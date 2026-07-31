@@ -57,10 +57,17 @@ Copy `.env.example` to `.env` and set:
 Prices, the weekend days, the default capacity and the booking window
 (90 days ahead) live in [`lib/config.ts`](lib/config.ts).
 
+## Deploying to a public URL
+
+See [DEPLOY.md](DEPLOY.md) — the repo ships a `Dockerfile`, a Render blueprint
+(`render.yaml`) and a Fly.io config (`fly.toml`), so getting a shareable
+HTTPS link is a few clicks on Render or a few commands on Railway/Fly.
+
 ## Notes
 
-- The app needs a persistent server (a small VPS or any Node host) because it
-  stores its data in a local SQLite file. It is not suited to serverless hosts.
+- The app needs a persistent server or a container host with a small
+  persistent disk, because it stores its data in a local SQLite file. It is
+  not suited to serverless hosts.
 - Times and "today" are calculated in the club's time zone (`Asia/Amman`).
 - Deploy behind HTTPS in production; the admin cookie is marked `Secure`
   automatically when served over HTTPS.

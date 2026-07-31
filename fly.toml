@@ -1,0 +1,24 @@
+# Fly.io config (https://fly.io). Deploy with: fly launch, then fly deploy.
+# The app name must be globally unique — fly launch will offer to change it.
+app = "oasis-ladies-club"
+primary_region = "fra"
+
+[build]
+
+[env]
+  DATABASE_PATH = "/data/oasis.db"
+
+[mounts]
+  source = "oasis_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
