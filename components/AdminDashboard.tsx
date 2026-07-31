@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Booking, BookingStatus, DaySummary } from "@/lib/bookings";
 import { formatDateLong, formatDateShort } from "@/lib/dates";
 
@@ -38,18 +38,33 @@ export default function AdminDashboard({
   showPasswordWarning: boolean;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [capacityInput, setCapacityInput] = useState(String(capacity));
   const [savingCapacity, setSavingCapacity] = useState(false);
   const [busyBooking, setBusyBooking] = useState<number | null>(null);
   const [message, setMessage] = useState("");
 
+  // Another admin (or a router.refresh after an action) may have changed the
+  // capacity — keep the input in step so a stale Save can't revert it.
+  useEffect(() => {
+    setCapacityInput(String(capacity));
+  }, [capacity]);
+
   function applyFilters(next: Partial<Filters>) {
-    const merged = { ...filters, ...next };
+    // Merge on top of the live URL, not the server-render prop — two quick
+    // filter changes would otherwise clobber each other.
+    const current: Filters = {
+      status: searchParams.get("status") ?? "",
+      date: searchParams.get("date") ?? "",
+      includePast: searchParams.get("past") === "1",
+    };
+    const merged = { ...current, ...next };
     const query = new URLSearchParams();
     if (merged.status) query.set("status", merged.status);
     if (merged.date) query.set("date", merged.date);
     if (merged.includePast) query.set("past", "1");
-    router.replace(`/admin${query.size ? `?${query}` : ""}`);
+    const qs = query.toString();
+    router.replace(qs ? `/admin?${qs}` : "/admin", { scroll: false });
   }
 
   async function setStatus(id: number, status: BookingStatus) {
@@ -236,6 +251,7 @@ export default function AdminDashboard({
             <h2 className="font-display text-2xl font-semibold">Bookings</h2>
             <div className="flex flex-wrap items-center gap-3 text-sm">
               <select
+                aria-label="Filter bookings by status"
                 value={filters.status}
                 onChange={(e) => applyFilters({ status: e.target.value })}
                 className="rounded-xl border border-oasis-200 bg-white px-3 py-2 outline-none focus:border-oasis-500"
@@ -247,6 +263,7 @@ export default function AdminDashboard({
               </select>
               <input
                 type="date"
+                aria-label="Filter bookings by day"
                 value={filters.date}
                 onChange={(e) => applyFilters({ date: e.target.value })}
                 className="rounded-xl border border-oasis-200 bg-white px-3 py-2 outline-none focus:border-oasis-500"

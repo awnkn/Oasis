@@ -183,12 +183,43 @@ export function listBookings(filters: BookingFilters = {}): Booking[] {
   return getDb().prepare(sql).all(...params) as Booking[];
 }
 
-export function updateBookingStatus(id: number, status: BookingStatus): boolean {
-  if (!BOOKING_STATUSES.includes(status)) return false;
-  const result = getDb()
-    .prepare("UPDATE bookings SET status = ? WHERE id = ?")
-    .run(status, id);
-  return result.changes > 0;
+export type StatusUpdateResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "capacity"; message: string };
+
+export function updateBookingStatus(
+  id: number,
+  status: BookingStatus
+): StatusUpdateResult {
+  const db = getDb();
+  const update = db.transaction((): StatusUpdateResult => {
+    const booking = getBooking(id);
+    if (!booking) {
+      return { ok: false, reason: "not_found", message: "Booking not found." };
+    }
+
+    // Bringing a rejected booking back puts its guests on the day again, so
+    // the capacity check must pass a second time (the spots may have been
+    // rebooked meanwhile). Past days are over — no capacity to protect.
+    if (
+      booking.status === "rejected" &&
+      status !== "rejected" &&
+      booking.date >= today()
+    ) {
+      const remaining = remainingOn(booking.date);
+      if (booking.guests > remaining) {
+        return {
+          ok: false,
+          reason: "capacity",
+          message: `Cannot restore this booking: it has ${booking.guests} guests but only ${remaining} ${remaining === 1 ? "spot is" : "spots are"} left on that day.`,
+        };
+      }
+    }
+
+    db.prepare("UPDATE bookings SET status = ? WHERE id = ?").run(status, id);
+    return { ok: true };
+  });
+  return update();
 }
 
 // ---------- admin overview ----------

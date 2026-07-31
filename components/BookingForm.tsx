@@ -40,24 +40,28 @@ export default function BookingForm({
 
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [checking, setChecking] = useState(false);
+  const [checkFailed, setCheckFailed] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [confirmed, setConfirmed] = useState<ConfirmedBooking | null>(null);
 
   useEffect(() => {
-    if (!date) {
-      setAvailability(null);
-      return;
-    }
+    setAvailability(null);
+    setCheckFailed(false);
+    if (!date) return;
     let cancelled = false;
     setChecking(true);
     fetch(`/api/availability?date=${encodeURIComponent(date)}`)
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => {
+        if (!res.ok) throw new Error("availability request failed");
+        return res.json();
+      })
       .then((data) => {
         if (!cancelled) setAvailability(data);
       })
       .catch(() => {
-        if (!cancelled) setAvailability(null);
+        if (!cancelled) setCheckFailed(true);
       })
       .finally(() => {
         if (!cancelled) setChecking(false);
@@ -65,7 +69,7 @@ export default function BookingForm({
     return () => {
       cancelled = true;
     };
-  }, [date]);
+  }, [date, retryToken]);
 
   const guestCount = Number.parseInt(guests, 10);
   const validGuests = Number.isInteger(guestCount) && guestCount >= 1;
@@ -196,8 +200,19 @@ export default function BookingForm({
               : "bg-oasis-50 text-oasis-800"
           }`}
         >
-          {checking || !availability ? (
+          {checking ? (
             <span>Checking availability…</span>
+          ) : checkFailed || !availability ? (
+            <span className="flex flex-wrap items-center gap-3">
+              Couldn’t check availability for this day.
+              <button
+                type="button"
+                onClick={() => setRetryToken((t) => t + 1)}
+                className="rounded-full border border-oasis-300 px-4 py-1 text-xs font-medium text-oasis-700 transition hover:border-oasis-500"
+              >
+                Try again
+              </button>
+            </span>
           ) : !availability.bookable ? (
             <span>This date can’t be booked online — please pick another day.</span>
           ) : soldOut ? (
@@ -314,7 +329,14 @@ export default function BookingForm({
         </div>
         <button
           type="submit"
-          disabled={submitting || !date || soldOut || checking}
+          disabled={
+            submitting ||
+            !date ||
+            checking ||
+            !availability ||
+            !availability.bookable ||
+            soldOut
+          }
           className="rounded-full bg-oasis-600 px-8 py-3.5 font-medium text-white shadow-md transition hover:bg-oasis-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Sending…" : "Send booking request"}

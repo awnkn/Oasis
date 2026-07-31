@@ -38,9 +38,12 @@ export async function PATCH(
     );
   }
 
-  const updated = updateBookingStatus(bookingId, status as BookingStatus);
-  if (!updated) {
-    return NextResponse.json({ error: "Booking not found." }, { status: 404 });
+  const result = updateBookingStatus(bookingId, status as BookingStatus);
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: result.message },
+      { status: result.reason === "not_found" ? 404 : 409 }
+    );
   }
   return NextResponse.json({ ok: true });
 }

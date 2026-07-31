@@ -23,7 +23,9 @@ A simple website and reservation system for a ladies-only swimming oasis club.
 - Filter bookings by status and by day
 
 Capacity counts **pending + approved** bookings, so a day can't be promised to
-more guests than it holds. Rejected bookings free their spots immediately.
+more guests than it holds. Rejected bookings free their spots immediately, and
+restoring a rejected booking re-checks capacity first — a day can't be
+overbooked even from the dashboard.
 
 ## Running it
 
