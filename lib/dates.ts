@@ -1,0 +1,65 @@
+import {
+  TIME_ZONE,
+  WEEKEND_DAYS,
+  WEEKDAY_PRICE,
+  WEEKEND_PRICE,
+} from "./config";
+
+// Dates are passed around as plain "YYYY-MM-DD" strings so that no time zone
+// conversion can shift a booking to a neighbouring day.
+
+export function isValidDateString(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+/** 0 = Sunday … 6 = Saturday, derived from the calendar date itself. */
+export function dayOfWeek(date: string): number {
+  return new Date(`${date}T00:00:00Z`).getUTCDay();
+}
+
+export function isWeekend(date: string): boolean {
+  return WEEKEND_DAYS.includes(dayOfWeek(date));
+}
+
+export function priceForDate(date: string): number {
+  return isWeekend(date) ? WEEKEND_PRICE : WEEKDAY_PRICE;
+}
+
+/** Today's date in the club's time zone, as YYYY-MM-DD. */
+export function today(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+export function addDays(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** e.g. "Friday, 7 August 2026" */
+export function formatDateLong(date: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "UTC",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${date}T00:00:00Z`));
+}
+
+/** e.g. "Fri 7 Aug" */
+export function formatDateShort(date: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "UTC",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(`${date}T00:00:00Z`));
+}
