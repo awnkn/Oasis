@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminAuthed, isManager } from "@/lib/auth";
+import { getAdminSession, isAdminAuthed } from "@/lib/auth";
 import { getDailyCapacity, setDailyCapacity } from "@/lib/bookings";
 
 export async function GET() {
@@ -10,7 +10,8 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  if (!(await isManager())) {
+  const session = await getAdminSession();
+  if (session?.role !== "manager") {
     return NextResponse.json(
       { error: "Only a manager can change the capacity." },
       { status: 403 }
@@ -37,6 +38,6 @@ export async function PUT(request: Request) {
     );
   }
 
-  setDailyCapacity(capacity);
+  setDailyCapacity(capacity, { name: session.name, role: session.role });
   return NextResponse.json({ ok: true, dailyCapacity: capacity });
 }

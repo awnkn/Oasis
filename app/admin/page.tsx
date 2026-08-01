@@ -4,6 +4,8 @@ import { defaultPasswordsInUse, getAdminRole } from "@/lib/auth";
 import {
   BOOKING_STATUSES,
   bookedGuestsOn,
+  bookingsTodayCount,
+  checkedInGuestsToday,
   getDailyCapacity,
   listBookings,
   occupancySummary,
@@ -56,6 +58,8 @@ export default async function AdminPage({
       summary={occupancySummary(14)}
       pendingCount={pendingRow.n}
       guestsToday={bookedGuestsOn(todayStr)}
+      bookingsToday={bookingsTodayCount()}
+      checkedInToday={checkedInGuestsToday()}
       today={todayStr}
       filters={{ status: status ?? "", date: date ?? "", includePast }}
       role={role}

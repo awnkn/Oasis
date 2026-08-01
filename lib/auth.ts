@@ -50,24 +50,37 @@ function sign(payload: string): string {
   return crypto.createHmac("sha256", getSecret()).update(payload).digest("hex");
 }
 
-/** Token format: "<role>.<expiry-epoch-ms>.<hmac>" */
-export function createSessionToken(role: AdminRole): string {
+export interface AdminSession {
+  role: AdminRole;
+  /** The name the person typed at login — recorded in the audit log. */
+  name: string;
+}
+
+export function sanitizeActorName(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const name = raw.trim().replace(/\s+/g, " ").slice(0, 40);
+  return name.length >= 2 ? name : null;
+}
+
+/** Token format: "<role>.<base64url-name>.<expiry-epoch-ms>.<hmac>" */
+export function createSessionToken(role: AdminRole, name: string): string {
   const expiry = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
-  const payload = `${role}.${expiry}`;
+  const payload = `${role}.${Buffer.from(name, "utf8").toString("base64url")}.${expiry}`;
   return `${payload}.${sign(payload)}`;
 }
 
 export function verifySessionToken(
   token: string | undefined
-): AdminRole | null {
+): AdminSession | null {
   if (!token) return null;
   const parts = token.split(".");
-  if (parts.length !== 3) return null;
-  const [role, expiry, signature] = parts;
+  if (parts.length !== 4) return null;
+  const [role, encodedName, expiry, signature] = parts;
   if (role !== "manager" && role !== "staff") return null;
   if (!/^\d+$/.test(expiry) || Number(expiry) < Date.now()) return null;
 
-  const expected = Buffer.from(sign(`${role}.${expiry}`), "hex");
+  const payload = `${role}.${encodedName}.${expiry}`;
+  const expected = Buffer.from(sign(payload), "hex");
   let actual: Buffer;
   try {
     actual = Buffer.from(signature, "hex");
@@ -77,16 +90,28 @@ export function verifySessionToken(
   const valid =
     expected.length === actual.length &&
     crypto.timingSafeEqual(expected, actual);
-  return valid ? (role as AdminRole) : null;
+  if (!valid) return null;
+
+  let name: string;
+  try {
+    name = Buffer.from(encodedName, "base64url").toString("utf8");
+  } catch {
+    return null;
+  }
+  return { role: role as AdminRole, name };
 }
 
-export async function getAdminRole(): Promise<AdminRole | null> {
+export async function getAdminSession(): Promise<AdminSession | null> {
   const store = await cookies();
   return verifySessionToken(store.get(ADMIN_COOKIE)?.value);
 }
 
+export async function getAdminRole(): Promise<AdminRole | null> {
+  return (await getAdminSession())?.role ?? null;
+}
+
 export async function isAdminAuthed(): Promise<boolean> {
-  return (await getAdminRole()) !== null;
+  return (await getAdminSession()) !== null;
 }
 
 export async function isManager(): Promise<boolean> {

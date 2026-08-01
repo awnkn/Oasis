@@ -39,6 +39,10 @@ export const HEARD_ABOUT_OPTIONS = [
   "Other",
 ] as const;
 
+// The three payment methods guests can choose, and the three accounts
+// collected money is recorded under.
+export const PAYMENT_ACCOUNTS = ["Cash", "CliQ", "Visa"] as const;
+
 // Acknowledgements every guest must accept before booking.
 export const BOOKING_TERMS = [
   "I understand that booking changes must be made at least 24 hours before my reservation. If cancelled in time, my booking can be transferred to a new booking date.",

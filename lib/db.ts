@@ -18,10 +18,27 @@ const SCHEMA = `
     rate_type TEXT NOT NULL DEFAULT 'standard'
       CHECK (rate_type IN ('standard', 'discounted', 'complimentary')),
     paid_amount REAL,
+    paid_account TEXT,
+    payment_method TEXT,
     heard_about TEXT,
+    checked_in_at TEXT,
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- Append-only audit trail: rows are only ever inserted, never updated
+  -- or deleted. There is intentionally no code path that modifies it.
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_id INTEGER,
+    actor_name TEXT NOT NULL,
+    actor_role TEXT NOT NULL,
+    action TEXT NOT NULL,
+    details TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at);
 
   CREATE INDEX IF NOT EXISTS idx_bookings_date ON bookings(date);
   CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status);
@@ -56,6 +73,15 @@ function createDatabase(): Database.Database {
   }
   if (!columns.includes("heard_about")) {
     db.exec("ALTER TABLE bookings ADD COLUMN heard_about TEXT");
+  }
+  if (!columns.includes("paid_account")) {
+    db.exec("ALTER TABLE bookings ADD COLUMN paid_account TEXT");
+  }
+  if (!columns.includes("checked_in_at")) {
+    db.exec("ALTER TABLE bookings ADD COLUMN checked_in_at TEXT");
+  }
+  if (!columns.includes("payment_method")) {
+    db.exec("ALTER TABLE bookings ADD COLUMN payment_method TEXT");
   }
 
   db.prepare(

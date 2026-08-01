@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -18,7 +19,7 @@ export default function AdminLoginPage() {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ name, password }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -48,14 +49,28 @@ export default function AdminLoginPage() {
           onSubmit={handleSubmit}
           className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-200"
         >
-          <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
-            Staff password
+          <label htmlFor="name" className="mb-1.5 block text-sm font-medium">
+            Your name
+          </label>
+          <input
+            id="name"
+            type="text"
+            required
+            minLength={2}
+            maxLength={40}
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="So we know who did what"
+            className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
+          />
+          <label htmlFor="password" className="mb-1.5 mt-4 block text-sm font-medium">
+            Password
           </label>
           <input
             id="password"
             type="password"
             required
-            autoFocus
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"

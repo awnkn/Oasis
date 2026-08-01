@@ -178,7 +178,7 @@ export default function HomePage() {
       <section id="prices" className="px-6 py-24">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-center font-display text-4xl font-semibold sm:text-5xl">
-            Simple prices, full days
+            Book Your Spot
           </h2>
           <p className="mt-3 text-center text-oasis-900/60">
             One entry price per guest — swim, lounge and relax from open to close.
