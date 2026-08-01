@@ -66,8 +66,8 @@ export default function HomePage() {
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.35em] text-sand-200">
             A sanctuary for women · Ladies only
           </p>
-          <h1 className="max-w-3xl font-display text-5xl font-semibold leading-[1.05] sm:text-7xl">
-            A space where you are fully present.
+          <h1 className="max-w-4xl font-display text-4xl font-semibold leading-[1.12] sm:text-6xl lg:text-7xl">
+            A space where you are fully&nbsp;present.
           </h1>
           <p className="mt-6 max-w-xl text-lg text-white/85">
             Sun-washed pools, complete privacy and slow days — designed
@@ -159,9 +159,17 @@ export default function HomePage() {
                 key={img.src}
                 src={img.src}
                 alt={img.alt}
-                className={`h-full w-full rounded-2xl object-cover ${img.span}`}
+                className={`h-full w-full rounded-2xl object-cover transition duration-300 hover:scale-[1.015] ${img.span}`}
               />
             ))}
+          </div>
+          <div className="mt-12 text-center">
+            <Link
+              href="/book"
+              className="inline-block rounded-full border border-white/40 bg-white/10 px-8 py-3.5 font-medium text-white backdrop-blur transition hover:bg-white/20"
+            >
+              Come see it for yourself →
+            </Link>
           </div>
         </div>
       </section>
@@ -186,6 +194,12 @@ export default function HomePage() {
                 <span className="ml-2 text-2xl text-oasis-500">{CURRENCY}</span>
               </p>
               <p className="mt-2 text-sm text-oasis-900/60">per guest, all day</p>
+              <Link
+                href="/book"
+                className="mt-6 inline-block rounded-full border border-oasis-300 px-6 py-2.5 text-sm font-medium text-oasis-700 transition hover:border-oasis-500 hover:bg-oasis-50"
+              >
+                Book a weekday
+              </Link>
             </div>
             <div className="rounded-3xl bg-oasis-900 p-8 text-white shadow-md">
               <p className="text-sm font-semibold uppercase tracking-widest text-oasis-300">
@@ -197,6 +211,12 @@ export default function HomePage() {
                 <span className="ml-2 text-2xl text-oasis-300">{CURRENCY}</span>
               </p>
               <p className="mt-2 text-sm text-white/60">per guest, all day</p>
+              <Link
+                href="/book"
+                className="mt-6 inline-block rounded-full bg-white/95 px-6 py-2.5 text-sm font-medium text-oasis-900 transition hover:bg-white"
+              >
+                Book a weekend
+              </Link>
             </div>
           </div>
 
