@@ -4,9 +4,22 @@ import CsvButton from "@/components/CsvButton";
 import { getAdminRole } from "@/lib/auth";
 import {
   getInsights,
+  recentActivity,
   type DailyAccountingRow,
 } from "@/lib/bookings";
 import { formatDateShort, today } from "@/lib/dates";
+import { PAYMENT_ACCOUNTS } from "@/lib/config";
+
+/** SQLite UTC timestamp → Amman-local display. */
+function formatWhen(utc: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Amman",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(utc.replace(" ", "T") + "Z"));
+}
 
 export const dynamic = "force-dynamic";
 
@@ -174,6 +187,11 @@ function AccountingTable({ rows, caption }: { rows: DailyAccountingRow[]; captio
             <th className="px-5 py-3.5">Guests</th>
             <th className="px-5 py-3.5">Approved revenue</th>
             <th className="px-5 py-3.5">Collected</th>
+            {PAYMENT_ACCOUNTS.map((a) => (
+              <th key={a} className="px-5 py-3.5">
+                {a}
+              </th>
+            ))}
             <th className="px-5 py-3.5">Outstanding</th>
           </tr>
         </thead>
@@ -184,7 +202,12 @@ function AccountingTable({ rows, caption }: { rows: DailyAccountingRow[]; captio
               <td className="px-5 py-2.5">{r.bookings}</td>
               <td className="px-5 py-2.5">{r.guests}</td>
               <td className="px-5 py-2.5">{r.expectedRevenue} JOD</td>
-              <td className="px-5 py-2.5">{r.collected} JOD</td>
+              <td className="px-5 py-2.5 font-medium">{r.collected} JOD</td>
+              {PAYMENT_ACCOUNTS.map((a) => (
+                <td key={a} className="px-5 py-2.5 text-oasis-900/60">
+                  {r.byAccount[a] ?? 0}
+                </td>
+              ))}
               <td className="px-5 py-2.5">{Math.max(0, r.expectedRevenue - r.collected)} JOD</td>
             </tr>
           ))}
@@ -194,6 +217,11 @@ function AccountingTable({ rows, caption }: { rows: DailyAccountingRow[]; captio
             <td className="px-5 py-3">{totals.guests}</td>
             <td className="px-5 py-3">{totals.expected} JOD</td>
             <td className="px-5 py-3">{totals.collected} JOD</td>
+            {PAYMENT_ACCOUNTS.map((a) => (
+              <td key={a} className="px-5 py-3">
+                {rows.reduce((acc, r) => acc + (r.byAccount[a] ?? 0), 0)}
+              </td>
+            ))}
             <td className="px-5 py-3">{Math.max(0, totals.expected - totals.collected)} JOD</td>
           </tr>
         </tbody>
@@ -209,6 +237,7 @@ function csvRows(rows: DailyAccountingRow[]): (string | number)[][] {
     r.guests,
     r.expectedRevenue,
     r.collected,
+    ...PAYMENT_ACCOUNTS.map((a) => r.byAccount[a] ?? 0),
     Math.max(0, r.expectedRevenue - r.collected),
   ]);
 }
@@ -219,6 +248,7 @@ const CSV_HEADER = [
   "Guests",
   "Approved revenue (JOD)",
   "Collected (JOD)",
+  ...PAYMENT_ACCOUNTS.map((a) => `${a} (JOD)`),
   "Outstanding (JOD)",
 ];
 
@@ -228,7 +258,14 @@ export default async function InsightsPage() {
   if (role !== "manager") redirect("/admin");
 
   const { past, upcoming, statusCounts, heardAbout } = getInsights();
+  const activity = recentActivity(60);
   const todayStr = today();
+
+  const accountTotals = PAYMENT_ACCOUNTS.map((a) => ({
+    account: a,
+    total: past.reduce((acc, r) => acc + (r.byAccount[a] ?? 0), 0),
+  }));
+  const accountMax = Math.max(1, ...accountTotals.map((a) => a.total));
 
   const kpis = [
     { label: "Collected · last 30 days", value: `${sum(past, "collected")} JOD` },
@@ -302,6 +339,27 @@ export default async function InsightsPage() {
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+            <h2 className="font-display text-xl font-semibold">Collected by account</h2>
+            <p className="mb-4 text-xs text-oasis-900/45">Last 30 days, from recorded payments.</p>
+            <ul className="space-y-3">
+              {accountTotals.map((a) => (
+                <li key={a.account}>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span className="text-oasis-900/75">{a.account}</span>
+                    <span className="font-semibold">{a.total} JOD</span>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-sand-100">
+                    <div
+                      className="h-2.5 rounded-full bg-sand-500"
+                      style={{ width: `${(a.total / accountMax) * 100}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
             <h2 className="font-display text-xl font-semibold">Where guests hear about you</h2>
             <p className="mb-4 text-xs text-oasis-900/45">From the booking form.</p>
             {heardAbout.length === 0 ? (
@@ -355,6 +413,59 @@ export default async function InsightsPage() {
           </div>
           <div className="mt-4">
             <AccountingTable rows={upcoming} caption="Day" />
+          </div>
+        </section>
+
+        {/* Activity log */}
+        <section className="mt-10">
+          <h2 className="font-display text-2xl font-semibold">Activity log</h2>
+          <p className="mt-1 text-sm text-oasis-900/50">
+            Every sign-in, status change, payment, check-in and capacity change
+            — permanent and uneditable.
+          </p>
+          <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-200/60">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-sand-200 text-xs uppercase tracking-wider text-oasis-900/50">
+                  <th className="px-5 py-3.5">When</th>
+                  <th className="px-5 py-3.5">Who</th>
+                  <th className="px-5 py-3.5">Action</th>
+                  <th className="px-5 py-3.5">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activity.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-10 text-center text-oasis-900/40">
+                      No activity recorded yet.
+                    </td>
+                  </tr>
+                )}
+                {activity.map((entry) => (
+                  <tr key={entry.id} className="border-b border-sand-100 last:border-0">
+                    <td className="whitespace-nowrap px-5 py-2.5 text-oasis-900/60">
+                      {formatWhen(entry.created_at)}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-2.5">
+                      <span className="font-medium">{entry.actor_name}</span>
+                      <span
+                        className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${
+                          entry.actor_role === "manager"
+                            ? "bg-oasis-100 text-oasis-700"
+                            : "bg-sand-200 text-sand-800"
+                        }`}
+                      >
+                        {entry.actor_role}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-2.5 capitalize text-oasis-900/60">
+                      {entry.action.replace("_", "-")}
+                    </td>
+                    <td className="px-5 py-2.5">{entry.details}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       </main>

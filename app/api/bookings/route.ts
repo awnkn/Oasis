@@ -19,6 +19,7 @@ export async function POST(request: Request) {
     heardAbout: Array.isArray(b.heardAbout)
       ? b.heardAbout.filter((o): o is string => typeof o === "string")
       : undefined,
+    paymentMethod: typeof b.paymentMethod === "string" ? b.paymentMethod : undefined,
     notes: typeof b.notes === "string" ? b.notes : undefined,
     termsAccepted: b.termsAccepted === true,
   });

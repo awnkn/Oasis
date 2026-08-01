@@ -1,22 +1,26 @@
 import { NextResponse } from "next/server";
-import { isAdminAuthed } from "@/lib/auth";
+import { getAdminSession } from "@/lib/auth";
 import {
   BOOKING_STATUSES,
   RATE_TYPES,
+  setCheckedIn,
   updateBookingPayment,
   updateBookingStatus,
   type BookingStatus,
   type PaymentUpdate,
   type RateType,
 } from "@/lib/bookings";
+import { PAYMENT_ACCOUNTS } from "@/lib/config";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!(await isAdminAuthed())) {
+  const session = await getAdminSession();
+  if (!session) {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
+  const actor = { name: session.name, role: session.role };
 
   const { id } = await params;
   const bookingId = Number.parseInt(id, 10);
@@ -43,7 +47,11 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    const result = updateBookingStatus(bookingId, b.status as BookingStatus);
+    const result = updateBookingStatus(
+      bookingId,
+      b.status as BookingStatus,
+      actor
+    );
     if (!result.ok) {
       return NextResponse.json(
         { error: result.message },
@@ -52,8 +60,29 @@ export async function PATCH(
     }
   }
 
-  // Payment details: rate type and/or amount actually paid.
-  if (b.rateType !== undefined || b.paidAmount !== undefined) {
+  // Check-in / undo check-in.
+  if (b.checkedIn !== undefined) {
+    if (typeof b.checkedIn !== "boolean") {
+      return NextResponse.json(
+        { error: "checkedIn must be true or false." },
+        { status: 400 }
+      );
+    }
+    const result = setCheckedIn(bookingId, b.checkedIn, actor);
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.message },
+        { status: result.reason === "not_found" ? 404 : 409 }
+      );
+    }
+  }
+
+  // Payment details: rate type, amount paid, and the account it went to.
+  if (
+    b.rateType !== undefined ||
+    b.paidAmount !== undefined ||
+    b.paidAccount !== undefined
+  ) {
     const update: PaymentUpdate = {};
     if (b.rateType !== undefined) {
       if (
@@ -76,7 +105,20 @@ export async function PATCH(
       }
       update.paidAmount = b.paidAmount as number | null;
     }
-    const result = updateBookingPayment(bookingId, update);
+    if (b.paidAccount !== undefined) {
+      if (
+        b.paidAccount !== null &&
+        (typeof b.paidAccount !== "string" ||
+          !(PAYMENT_ACCOUNTS as readonly string[]).includes(b.paidAccount))
+      ) {
+        return NextResponse.json(
+          { error: `Account must be one of: ${PAYMENT_ACCOUNTS.join(", ")}.` },
+          { status: 400 }
+        );
+      }
+      update.paidAccount = b.paidAccount as string | null;
+    }
+    const result = updateBookingPayment(bookingId, update, actor);
     if (!result.ok) {
       return NextResponse.json(
         { error: result.message },
@@ -87,8 +129,10 @@ export async function PATCH(
 
   if (
     b.status === undefined &&
+    b.checkedIn === undefined &&
     b.rateType === undefined &&
-    b.paidAmount === undefined
+    b.paidAmount === undefined &&
+    b.paidAccount === undefined
   ) {
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
   }

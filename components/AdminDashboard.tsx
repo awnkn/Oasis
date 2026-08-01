@@ -10,6 +10,7 @@ import type {
   RateType,
 } from "@/lib/bookings";
 import { formatDateLong, formatDateShort } from "@/lib/dates";
+import { PAYMENT_ACCOUNTS } from "@/lib/config";
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
   pending: "bg-amber-100 text-amber-800",
@@ -33,17 +34,22 @@ function PaymentEditor({
 }) {
   const propPaid =
     booking.paid_amount === null ? "" : String(booking.paid_amount);
+  const propAccount =
+    booking.paid_account ?? booking.payment_method ?? "Cash";
   const [rate, setRate] = useState<RateType>(booking.rate_type);
   const [paid, setPaid] = useState(propPaid);
+  const [account, setAccount] = useState(propAccount);
   const [saving, setSaving] = useState(false);
 
   // Resync after a refresh brings new server values.
   useEffect(() => {
     setRate(booking.rate_type);
     setPaid(booking.paid_amount === null ? "" : String(booking.paid_amount));
-  }, [booking.rate_type, booking.paid_amount]);
+    setAccount(booking.paid_account ?? booking.payment_method ?? "Cash");
+  }, [booking.rate_type, booking.paid_amount, booking.paid_account, booking.payment_method]);
 
-  const dirty = rate !== booking.rate_type || paid !== propPaid;
+  const dirty =
+    rate !== booking.rate_type || paid !== propPaid || account !== propAccount;
 
   async function save() {
     const trimmed = paid.trim();
@@ -57,7 +63,11 @@ function PaymentEditor({
       const res = await fetch(`/api/admin/bookings/${booking.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rateType: rate, paidAmount: amount }),
+        body: JSON.stringify({
+          rateType: rate,
+          paidAmount: amount,
+          paidAccount: amount === null ? null : account,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -99,8 +109,25 @@ function PaymentEditor({
           onChange={(e) => setPaid(e.target.value)}
           className="w-20 rounded-lg border border-oasis-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
         />
-        <span className="text-xs text-oasis-900/50">JOD paid</span>
+        <span className="text-xs text-oasis-900/50">JOD via</span>
+        <select
+          aria-label={`Account for booking ${booking.id}`}
+          value={account}
+          onChange={(e) => setAccount(e.target.value)}
+          className="rounded-lg border border-oasis-200 bg-white px-1.5 py-1.5 text-xs outline-none focus:border-oasis-500"
+        >
+          {PAYMENT_ACCOUNTS.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
       </div>
+      {booking.payment_method && (
+        <p className="text-xs text-oasis-900/40">
+          Guest chose {booking.payment_method}
+        </p>
+      )}
       {dirty && (
         <button
           onClick={save}
@@ -126,6 +153,8 @@ export default function AdminDashboard({
   summary,
   pendingCount,
   guestsToday,
+  bookingsToday,
+  checkedInToday,
   today,
   filters,
   role,
@@ -136,6 +165,8 @@ export default function AdminDashboard({
   summary: DaySummary[];
   pendingCount: number;
   guestsToday: number;
+  bookingsToday: number;
+  checkedInToday: number;
   today: string;
   filters: Filters;
   role: "manager" | "staff";
@@ -171,14 +202,14 @@ export default function AdminDashboard({
     router.replace(qs ? `/admin?${qs}` : "/admin", { scroll: false });
   }
 
-  async function setStatus(id: number, status: BookingStatus) {
+  async function patchBooking(id: number, body: Record<string, unknown>) {
     setBusyBooking(id);
     setMessage("");
     try {
       const res = await fetch(`/api/admin/bookings/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -191,6 +222,14 @@ export default function AdminDashboard({
     } finally {
       setBusyBooking(null);
     }
+  }
+
+  function setStatus(id: number, status: BookingStatus) {
+    return patchBooking(id, { status });
+  }
+
+  function setCheckedIn(id: number, checkedIn: boolean) {
+    return patchBooking(id, { checkedIn });
   }
 
   async function saveCapacity(e: React.FormEvent) {
@@ -269,7 +308,7 @@ export default function AdminDashboard({
         )}
 
         {/* Stats + capacity */}
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
             <p className="text-sm text-oasis-900/50">Pending requests</p>
             <p className="mt-1 font-display text-4xl font-semibold">
@@ -277,10 +316,23 @@ export default function AdminDashboard({
             </p>
           </div>
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+            <p className="text-sm text-oasis-900/50">Bookings today</p>
+            <p className="mt-1 font-display text-4xl font-semibold">
+              {bookingsToday}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
             <p className="text-sm text-oasis-900/50">Guests today</p>
             <p className="mt-1 font-display text-4xl font-semibold">
               {guestsToday}
               <span className="text-xl text-oasis-900/40"> / {capacity}</span>
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+            <p className="text-sm text-oasis-900/50">Checked in today</p>
+            <p className="mt-1 font-display text-4xl font-semibold text-oasis-600">
+              {checkedInToday}
+              <span className="text-xl text-oasis-900/40"> / {guestsToday}</span>
             </p>
           </div>
           {role === "manager" ? (
@@ -485,7 +537,32 @@ export default function AdminDashboard({
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        {b.status === "approved" &&
+                          !b.checked_in_at &&
+                          b.date <= today && (
+                            <button
+                              onClick={() => setCheckedIn(b.id, true)}
+                              disabled={busyBooking === b.id}
+                              className="rounded-full bg-oasis-900 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-800 disabled:opacity-40"
+                            >
+                              Check in
+                            </button>
+                          )}
+                        {b.checked_in_at && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-oasis-100 px-3 py-1.5 text-xs font-semibold text-oasis-700">
+                            ✓ Checked in
+                            {role === "manager" && (
+                              <button
+                                onClick={() => setCheckedIn(b.id, false)}
+                                disabled={busyBooking === b.id}
+                                className="ml-1 text-oasis-700/60 underline hover:text-oasis-700"
+                              >
+                                undo
+                              </button>
+                            )}
+                          </span>
+                        )}
                         {b.status !== "approved" && (
                           <button
                             onClick={() => setStatus(b.id, "approved")}

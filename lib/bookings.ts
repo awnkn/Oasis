@@ -3,6 +3,7 @@ import {
   DEFAULT_DAILY_CAPACITY,
   HEARD_ABOUT_OPTIONS,
   MAX_ADVANCE_DAYS,
+  PAYMENT_ACCOUNTS,
 } from "./config";
 import { addDays, isValidDateString, priceForDate, today } from "./dates";
 
@@ -34,9 +35,49 @@ export interface Booking {
   status: BookingStatus;
   rate_type: RateType;
   paid_amount: number | null;
+  paid_account: string | null;
+  payment_method: string | null;
   heard_about: string | null;
+  checked_in_at: string | null;
   notes: string | null;
   created_at: string;
+}
+
+// ---------- audit log (append-only, by design never updated/deleted) ----------
+
+export interface Actor {
+  name: string;
+  role: string;
+}
+
+export interface AuditEntry {
+  id: number;
+  booking_id: number | null;
+  actor_name: string;
+  actor_role: string;
+  action: string;
+  details: string;
+  created_at: string;
+}
+
+export function logAction(
+  actor: Actor,
+  action: string,
+  details: string,
+  bookingId?: number
+): void {
+  getDb()
+    .prepare(
+      `INSERT INTO audit_log (booking_id, actor_name, actor_role, action, details)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .run(bookingId ?? null, actor.name, actor.role, action, details);
+}
+
+export function recentActivity(limit = 100): AuditEntry[] {
+  return getDb()
+    .prepare("SELECT * FROM audit_log ORDER BY id DESC LIMIT ?")
+    .all(limit) as AuditEntry[];
 }
 
 export interface NewBookingInput {
@@ -46,6 +87,7 @@ export interface NewBookingInput {
   date: string;
   guests: number;
   heardAbout?: string[];
+  paymentMethod?: string;
   notes?: string;
   termsAccepted?: boolean;
 }
@@ -66,16 +108,43 @@ export function getDailyCapacity(): number {
     : DEFAULT_DAILY_CAPACITY;
 }
 
-export function setDailyCapacity(capacity: number): void {
+export function setDailyCapacity(capacity: number, actor: Actor): void {
   if (!Number.isInteger(capacity) || capacity < 0) {
     throw new Error("Capacity must be a non-negative whole number.");
   }
+  const previous = getDailyCapacity();
   getDb()
     .prepare(
       `INSERT INTO settings (key, value) VALUES ('daily_capacity', ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value`
     )
     .run(String(capacity));
+  if (previous !== capacity) {
+    logAction(actor, "capacity", `Daily capacity: ${previous} → ${capacity}`);
+  }
+}
+
+// ---------- today's front-desk stats ----------
+
+/** Bookings for today, excluding rejected ones. */
+export function bookingsTodayCount(): number {
+  const row = getDb()
+    .prepare(
+      "SELECT COUNT(*) AS n FROM bookings WHERE date = ? AND status != 'rejected'"
+    )
+    .get(today()) as { n: number };
+  return row.n;
+}
+
+/** Guests already checked in for today's visit. */
+export function checkedInGuestsToday(): number {
+  const row = getDb()
+    .prepare(
+      `SELECT COALESCE(SUM(guests), 0) AS total FROM bookings
+       WHERE date = ? AND checked_in_at IS NOT NULL`
+    )
+    .get(today()) as { total: number };
+  return row.total;
 }
 
 // ---------- availability ----------
@@ -131,6 +200,14 @@ export function createBooking(input: NewBookingInput): CreateResult {
   if (input.termsAccepted !== true) {
     return { ok: false, error: "Please accept the booking terms to continue." };
   }
+  const paymentMethod =
+    typeof input.paymentMethod === "string" &&
+    (PAYMENT_ACCOUNTS as readonly string[]).includes(input.paymentMethod)
+      ? input.paymentMethod
+      : null;
+  if (!paymentMethod) {
+    return { ok: false, error: "Please choose how you plan to pay." };
+  }
   if (!isValidDateString(date)) {
     return { ok: false, error: "Please choose a valid date." };
   }
@@ -166,10 +243,10 @@ export function createBooking(input: NewBookingInput): CreateResult {
     const pricePerGuest = priceForDate(date);
     const result = db
       .prepare(
-        `INSERT INTO bookings (name, phone, email, date, guests, price_per_guest, total_price, heard_about, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO bookings (name, phone, email, date, guests, price_per_guest, total_price, payment_method, heard_about, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(name, phone, email, date, guests, pricePerGuest, pricePerGuest * guests, heardAbout, notes);
+      .run(name, phone, email, date, guests, pricePerGuest, pricePerGuest * guests, paymentMethod, heardAbout, notes);
 
     const booking = getBooking(Number(result.lastInsertRowid));
     if (!booking) return { ok: false, error: "Something went wrong. Please try again." };
@@ -221,7 +298,8 @@ export type StatusUpdateResult =
 
 export function updateBookingStatus(
   id: number,
-  status: BookingStatus
+  status: BookingStatus,
+  actor: Actor
 ): StatusUpdateResult {
   const db = getDb();
   const update = db.transaction((): StatusUpdateResult => {
@@ -229,6 +307,7 @@ export function updateBookingStatus(
     if (!booking) {
       return { ok: false, reason: "not_found", message: "Booking not found." };
     }
+    if (booking.status === status) return { ok: true };
 
     // Bringing a rejected booking back puts its guests on the day again, so
     // the capacity check must pass a second time (the spots may have been
@@ -249,6 +328,54 @@ export function updateBookingStatus(
     }
 
     db.prepare("UPDATE bookings SET status = ? WHERE id = ?").run(status, id);
+    logAction(
+      actor,
+      "status",
+      `Booking #${id} (${booking.name}, ${booking.date}): ${booking.status} → ${status}`,
+      id
+    );
+    return { ok: true };
+  });
+  return update();
+}
+
+export type CheckInResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "invalid"; message: string };
+
+export function setCheckedIn(
+  id: number,
+  checkedIn: boolean,
+  actor: Actor
+): CheckInResult {
+  const db = getDb();
+  const update = db.transaction((): CheckInResult => {
+    const booking = getBooking(id);
+    if (!booking) {
+      return { ok: false, reason: "not_found", message: "Booking not found." };
+    }
+    if (checkedIn && booking.status !== "approved") {
+      return {
+        ok: false,
+        reason: "invalid",
+        message: "Approve the booking before checking guests in.",
+      };
+    }
+    if (checkedIn === (booking.checked_in_at !== null)) return { ok: true };
+
+    db.prepare(
+      "UPDATE bookings SET checked_in_at = " +
+        (checkedIn ? "datetime('now')" : "NULL") +
+        " WHERE id = ?"
+    ).run(id);
+    logAction(
+      actor,
+      "check_in",
+      checkedIn
+        ? `Checked in booking #${id} (${booking.name}, ${booking.guests} guests, ${booking.date})`
+        : `Undid check-in for booking #${id} (${booking.name}, ${booking.date})`,
+      id
+    );
     return { ok: true };
   });
   return update();
@@ -258,6 +385,8 @@ export interface PaymentUpdate {
   rateType?: RateType;
   /** Amount actually collected, in JOD. Pass null to clear it. */
   paidAmount?: number | null;
+  /** Which account the money was recorded under (Cash / CliQ / Visa). */
+  paidAccount?: string | null;
 }
 
 export type PaymentUpdateResult =
@@ -266,10 +395,12 @@ export type PaymentUpdateResult =
 
 export function updateBookingPayment(
   id: number,
-  update: PaymentUpdate
+  update: PaymentUpdate,
+  actor: Actor
 ): PaymentUpdateResult {
   const sets: string[] = [];
   const params: (string | number | null)[] = [];
+  const described: string[] = [];
 
   if (update.rateType !== undefined) {
     if (!RATE_TYPES.includes(update.rateType)) {
@@ -277,6 +408,7 @@ export function updateBookingPayment(
     }
     sets.push("rate_type = ?");
     params.push(update.rateType);
+    described.push(`rate ${update.rateType}`);
   }
   if (update.paidAmount !== undefined) {
     if (update.paidAmount !== null) {
@@ -295,17 +427,42 @@ export function updateBookingPayment(
     }
     sets.push("paid_amount = ?");
     params.push(update.paidAmount);
+    described.push(
+      update.paidAmount === null ? "paid cleared" : `paid ${update.paidAmount} JOD`
+    );
+  }
+  if (update.paidAccount !== undefined) {
+    if (
+      update.paidAccount !== null &&
+      !(PAYMENT_ACCOUNTS as readonly string[]).includes(update.paidAccount)
+    ) {
+      return {
+        ok: false,
+        reason: "invalid",
+        message: `Account must be one of: ${PAYMENT_ACCOUNTS.join(", ")}.`,
+      };
+    }
+    sets.push("paid_account = ?");
+    params.push(update.paidAccount);
+    if (update.paidAccount) described.push(`account ${update.paidAccount}`);
   }
   if (sets.length === 0) {
     return { ok: false, reason: "invalid", message: "Nothing to update." };
   }
 
-  const result = getDb()
-    .prepare(`UPDATE bookings SET ${sets.join(", ")} WHERE id = ?`)
-    .run(...params, id);
-  if (result.changes === 0) {
+  const booking = getBooking(id);
+  if (!booking) {
     return { ok: false, reason: "not_found", message: "Booking not found." };
   }
+  getDb()
+    .prepare(`UPDATE bookings SET ${sets.join(", ")} WHERE id = ?`)
+    .run(...params, id);
+  logAction(
+    actor,
+    "payment",
+    `Booking #${id} (${booking.name}, ${booking.date}): ${described.join(", ")}`,
+    id
+  );
   return { ok: true };
 }
 
@@ -321,6 +478,8 @@ export interface DailyAccountingRow {
   expectedRevenue: number;
   /** Sum of recorded paid amounts (any status). */
   collected: number;
+  /** Collected, split by account (Cash / CliQ / Visa). */
+  byAccount: Record<string, number>;
 }
 
 export function accountingRows(
@@ -336,20 +495,38 @@ export function accountingRows(
          COALESCE(SUM(paid_amount), 0) AS collected
        FROM bookings WHERE date >= ? AND date <= ? GROUP BY date`
     )
-    .all(startDate, endDate) as DailyAccountingRow[];
+    .all(startDate, endDate) as Omit<DailyAccountingRow, "byAccount">[];
+
+  const accountRows = getDb()
+    .prepare(
+      `SELECT date, paid_account, COALESCE(SUM(paid_amount), 0) AS total
+       FROM bookings
+       WHERE date >= ? AND date <= ? AND paid_amount IS NOT NULL AND paid_account IS NOT NULL
+       GROUP BY date, paid_account`
+    )
+    .all(startDate, endDate) as { date: string; paid_account: string; total: number }[];
+
+  const emptyAccounts = (): Record<string, number> =>
+    Object.fromEntries(PAYMENT_ACCOUNTS.map((a) => [a, 0]));
+
+  const accountsByDate = new Map<string, Record<string, number>>();
+  for (const r of accountRows) {
+    const bucket = accountsByDate.get(r.date) ?? emptyAccounts();
+    if (r.paid_account in bucket) bucket[r.paid_account] += r.total;
+    accountsByDate.set(r.date, bucket);
+  }
 
   const byDate = new Map(rows.map((r) => [r.date, r]));
   const filled: DailyAccountingRow[] = [];
   for (let d = startDate; d <= endDate; d = addDays(d, 1)) {
-    filled.push(
-      byDate.get(d) ?? {
-        date: d,
-        bookings: 0,
-        guests: 0,
-        expectedRevenue: 0,
-        collected: 0,
-      }
-    );
+    const base = byDate.get(d) ?? {
+      date: d,
+      bookings: 0,
+      guests: 0,
+      expectedRevenue: 0,
+      collected: 0,
+    };
+    filled.push({ ...base, byAccount: accountsByDate.get(d) ?? emptyAccounts() });
   }
   return filled;
 }
