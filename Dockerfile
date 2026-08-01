@@ -1,6 +1,11 @@
 # Build stage
 FROM node:22-slim AS builder
 WORKDIR /app
+# better-sqlite3 compiles from source when no prebuilt binary matches,
+# which needs a C++ toolchain the slim image doesn't include.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
