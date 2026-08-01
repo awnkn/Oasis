@@ -1,0 +1,19 @@
+# One-click deploy blueprint for Render (https://render.com).
+# In the Render dashboard: New → Blueprint → select this repository.
+services:
+  - type: web
+    name: oasis
+    runtime: docker
+    plan: starter # persistent disks require a paid instance (~$7/mo)
+    healthCheckPath: /
+    disk:
+      name: oasis-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: ADMIN_PASSWORD
+        sync: false # Render prompts you for this on deploy — pick a strong one
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_PATH
+        value: /data/oasis.db

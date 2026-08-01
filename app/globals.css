@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), Georgia, "Times New Roman", serif;
+
+  /* Lagoon teal — the water */
+  --color-oasis-50: #eefaf9;
+  --color-oasis-100: #d5f2f0;
+  --color-oasis-200: #aee5e3;
+  --color-oasis-300: #7dd1d0;
+  --color-oasis-400: #4cb5b6;
+  --color-oasis-500: #33999c;
+  --color-oasis-600: #297c80;
+  --color-oasis-700: #266468;
+  --color-oasis-800: #245257;
+  --color-oasis-900: #22454a;
+  --color-oasis-950: #102c30;
+
+  /* Warm sand — the shore */
+  --color-sand-50: #fbf9f4;
+  --color-sand-100: #f6f0e4;
+  --color-sand-200: #ece0c9;
+  --color-sand-300: #dfcba6;
+  --color-sand-400: #d0b17f;
+  --color-sand-500: #c59c63;
+  --color-sand-600: #b78957;
+  --color-sand-700: #986f4a;
+  --color-sand-800: #7b5a40;
+  --color-sand-900: #644a36;
+
+  /* Soft blush accent */
+  --color-blush-100: #fbeef0;
+  --color-blush-200: #f6dadf;
+  --color-blush-300: #edbcc5;
+  --color-blush-400: #e19aa9;
+  --color-blush-500: #d17b90;
+}
+
+body {
+  @apply bg-sand-50 text-oasis-950 font-sans antialiased;
+}
