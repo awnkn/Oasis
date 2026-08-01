@@ -104,7 +104,7 @@ export function createBooking(input: NewBookingInput): CreateResult {
   if (phone.length < 6 || phone.length > 30) {
     return { ok: false, error: "Please enter a valid phone number." };
   }
-  if (email && (email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+  if (!email || email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, error: "Please enter a valid email address." };
   }
   if (notes && notes.length > 500) {

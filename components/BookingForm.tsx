@@ -102,7 +102,7 @@ export default function BookingForm({
         body: JSON.stringify({
           name,
           phone: `+${country.dial}${phoneDigits}`,
-          email: email || undefined,
+          email,
           date,
           guests: guestCount,
           notes: notes || undefined,
@@ -314,11 +314,12 @@ export default function BookingForm({
 
       <div className="mt-6">
         <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
-          Email <span className="font-normal text-oasis-900/40">(optional)</span>
+          Email
         </label>
         <input
           id="email"
           type="email"
+          required
           maxLength={200}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
