@@ -22,6 +22,7 @@ ENV DATABASE_PATH=/data/oasis.db
 
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
 RUN mkdir -p /data && chown -R node:node /data /app
 USER node

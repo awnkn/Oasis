@@ -309,6 +309,87 @@ export function updateBookingPayment(
   return { ok: true };
 }
 
+// ---------- manager insights ----------
+
+export interface DailyAccountingRow {
+  date: string;
+  /** Bookings that day, excluding rejected. */
+  bookings: number;
+  /** Pending + approved guests. */
+  guests: number;
+  /** Sum of total_price over approved bookings — confirmed revenue. */
+  expectedRevenue: number;
+  /** Sum of recorded paid amounts (any status). */
+  collected: number;
+}
+
+export function accountingRows(
+  startDate: string,
+  endDate: string
+): DailyAccountingRow[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT date,
+         SUM(CASE WHEN status != 'rejected' THEN 1 ELSE 0 END) AS bookings,
+         SUM(CASE WHEN status IN ('pending','approved') THEN guests ELSE 0 END) AS guests,
+         SUM(CASE WHEN status = 'approved' THEN total_price ELSE 0 END) AS expectedRevenue,
+         COALESCE(SUM(paid_amount), 0) AS collected
+       FROM bookings WHERE date >= ? AND date <= ? GROUP BY date`
+    )
+    .all(startDate, endDate) as DailyAccountingRow[];
+
+  const byDate = new Map(rows.map((r) => [r.date, r]));
+  const filled: DailyAccountingRow[] = [];
+  for (let d = startDate; d <= endDate; d = addDays(d, 1)) {
+    filled.push(
+      byDate.get(d) ?? {
+        date: d,
+        bookings: 0,
+        guests: 0,
+        expectedRevenue: 0,
+        collected: 0,
+      }
+    );
+  }
+  return filled;
+}
+
+export interface InsightsData {
+  /** Past 30 days including today. */
+  past: DailyAccountingRow[];
+  /** Today plus the next 14 days. */
+  upcoming: DailyAccountingRow[];
+  statusCounts: { status: BookingStatus; count: number }[];
+  heardAbout: { source: string; count: number }[];
+}
+
+export function getInsights(): InsightsData {
+  const todayStr = today();
+  const past = accountingRows(addDays(todayStr, -29), todayStr);
+  const upcoming = accountingRows(todayStr, addDays(todayStr, 14));
+
+  const statusCounts = getDb()
+    .prepare("SELECT status, COUNT(*) AS count FROM bookings GROUP BY status")
+    .all() as { status: BookingStatus; count: number }[];
+
+  const sources = new Map<string, number>();
+  const heardRows = getDb()
+    .prepare(
+      "SELECT heard_about FROM bookings WHERE heard_about IS NOT NULL AND heard_about != ''"
+    )
+    .all() as { heard_about: string }[];
+  for (const row of heardRows) {
+    for (const token of row.heard_about.split(", ")) {
+      sources.set(token, (sources.get(token) ?? 0) + 1);
+    }
+  }
+  const heardAbout = [...sources.entries()]
+    .map(([source, count]) => ({ source, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return { past, upcoming, statusCounts, heardAbout };
+}
+
 // ---------- admin overview ----------
 
 export interface DaySummary {

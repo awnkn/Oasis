@@ -12,7 +12,9 @@ services:
       sizeGB: 1
     envVars:
       - key: ADMIN_PASSWORD
-        sync: false # Render prompts you for this on deploy — pick a strong one
+        sync: false # manager password — Render prompts you for this on deploy
+      - key: STAFF_PASSWORD
+        sync: false # staff password (limited dashboard) — prompted on deploy
       - key: SESSION_SECRET
         generateValue: true
       - key: DATABASE_PATH

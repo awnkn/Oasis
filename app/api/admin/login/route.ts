@@ -15,14 +15,15 @@ export async function POST(request: Request) {
   }
 
   const password = (body as Record<string, unknown>)?.password;
-  if (typeof password !== "string" || !checkPassword(password)) {
+  const role = typeof password === "string" ? checkPassword(password) : null;
+  if (!role) {
     return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
 
-  const response = NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true, role });
   response.cookies.set(
     ADMIN_COOKIE,
-    createSessionToken(),
+    createSessionToken(role),
     sessionCookieOptions(request)
   );
   return response;
