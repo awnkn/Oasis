@@ -10,6 +10,14 @@ export const BOOKING_STATUSES: BookingStatus[] = [
   "rejected",
 ];
 
+export type RateType = "standard" | "discounted" | "complimentary";
+
+export const RATE_TYPES: RateType[] = [
+  "standard",
+  "discounted",
+  "complimentary",
+];
+
 export interface Booking {
   id: number;
   name: string;
@@ -20,6 +28,8 @@ export interface Booking {
   price_per_guest: number;
   total_price: number;
   status: BookingStatus;
+  rate_type: RateType;
+  paid_amount: number | null;
   notes: string | null;
   created_at: string;
 }
@@ -220,6 +230,61 @@ export function updateBookingStatus(
     return { ok: true };
   });
   return update();
+}
+
+export interface PaymentUpdate {
+  rateType?: RateType;
+  /** Amount actually collected, in JOD. Pass null to clear it. */
+  paidAmount?: number | null;
+}
+
+export type PaymentUpdateResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "invalid"; message: string };
+
+export function updateBookingPayment(
+  id: number,
+  update: PaymentUpdate
+): PaymentUpdateResult {
+  const sets: string[] = [];
+  const params: (string | number | null)[] = [];
+
+  if (update.rateType !== undefined) {
+    if (!RATE_TYPES.includes(update.rateType)) {
+      return { ok: false, reason: "invalid", message: "Unknown rate type." };
+    }
+    sets.push("rate_type = ?");
+    params.push(update.rateType);
+  }
+  if (update.paidAmount !== undefined) {
+    if (update.paidAmount !== null) {
+      if (
+        typeof update.paidAmount !== "number" ||
+        !Number.isFinite(update.paidAmount) ||
+        update.paidAmount < 0 ||
+        update.paidAmount > 100000
+      ) {
+        return {
+          ok: false,
+          reason: "invalid",
+          message: "Paid amount must be between 0 and 100000 JOD.",
+        };
+      }
+    }
+    sets.push("paid_amount = ?");
+    params.push(update.paidAmount);
+  }
+  if (sets.length === 0) {
+    return { ok: false, reason: "invalid", message: "Nothing to update." };
+  }
+
+  const result = getDb()
+    .prepare(`UPDATE bookings SET ${sets.join(", ")} WHERE id = ?`)
+    .run(...params, id);
+  if (result.changes === 0) {
+    return { ok: false, reason: "not_found", message: "Booking not found." };
+  }
+  return { ok: true };
 }
 
 // ---------- admin overview ----------

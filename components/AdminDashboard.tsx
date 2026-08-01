@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Booking, BookingStatus, DaySummary } from "@/lib/bookings";
+import type {
+  Booking,
+  BookingStatus,
+  DaySummary,
+  RateType,
+} from "@/lib/bookings";
 import { formatDateLong, formatDateShort } from "@/lib/dates";
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
@@ -11,6 +16,103 @@ const STATUS_STYLES: Record<BookingStatus, string> = {
   approved: "bg-oasis-100 text-oasis-700",
   rejected: "bg-blush-100 text-blush-500",
 };
+
+const RATE_BADGES: Record<Exclude<RateType, "standard">, string> = {
+  discounted: "bg-amber-100 text-amber-800",
+  complimentary: "bg-blush-100 text-blush-500",
+};
+
+function PaymentEditor({
+  booking,
+  onError,
+  onSaved,
+}: {
+  booking: Booking;
+  onError: (message: string) => void;
+  onSaved: () => void;
+}) {
+  const propPaid =
+    booking.paid_amount === null ? "" : String(booking.paid_amount);
+  const [rate, setRate] = useState<RateType>(booking.rate_type);
+  const [paid, setPaid] = useState(propPaid);
+  const [saving, setSaving] = useState(false);
+
+  // Resync after a refresh brings new server values.
+  useEffect(() => {
+    setRate(booking.rate_type);
+    setPaid(booking.paid_amount === null ? "" : String(booking.paid_amount));
+  }, [booking.rate_type, booking.paid_amount]);
+
+  const dirty = rate !== booking.rate_type || paid !== propPaid;
+
+  async function save() {
+    const trimmed = paid.trim();
+    const amount = trimmed === "" ? null : Number(trimmed);
+    if (amount !== null && (!Number.isFinite(amount) || amount < 0)) {
+      onError("Paid amount must be a number of 0 or more.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${booking.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rateType: rate, paidAmount: amount }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        onError(data?.error || "Could not save the payment.");
+        return;
+      }
+      onSaved();
+    } catch {
+      onError("Could not reach the server.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <select
+        aria-label={`Rate for booking ${booking.id}`}
+        value={rate}
+        onChange={(e) => {
+          const next = e.target.value as RateType;
+          setRate(next);
+          if (next === "complimentary") setPaid("0");
+        }}
+        className="w-36 rounded-lg border border-oasis-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
+      >
+        <option value="standard">Standard</option>
+        <option value="discounted">Discounted</option>
+        <option value="complimentary">Complimentary</option>
+      </select>
+      <div className="flex items-center gap-1.5">
+        <input
+          type="number"
+          aria-label={`Amount paid for booking ${booking.id}`}
+          min={0}
+          step="0.01"
+          placeholder="—"
+          value={paid}
+          onChange={(e) => setPaid(e.target.value)}
+          className="w-20 rounded-lg border border-oasis-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
+        />
+        <span className="text-xs text-oasis-900/50">JOD paid</span>
+      </div>
+      {dirty && (
+        <button
+          onClick={save}
+          disabled={saving}
+          className="w-fit rounded-full bg-oasis-600 px-4 py-1 text-xs font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
+      )}
+    </div>
+  );
+}
 
 interface Filters {
   status: string;
@@ -287,7 +389,7 @@ export default function AdminDashboard({
           )}
 
           <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-200/60">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="w-full min-w-[1080px] text-left text-sm">
               <thead>
                 <tr className="border-b border-sand-200 text-xs uppercase tracking-wider text-oasis-900/50">
                   <th className="px-5 py-4">Ref</th>
@@ -295,6 +397,7 @@ export default function AdminDashboard({
                   <th className="px-5 py-4">Day</th>
                   <th className="px-5 py-4">Guests</th>
                   <th className="px-5 py-4">Total</th>
+                  <th className="px-5 py-4">Payment</th>
                   <th className="px-5 py-4">Status</th>
                   <th className="px-5 py-4">Actions</th>
                 </tr>
@@ -302,7 +405,7 @@ export default function AdminDashboard({
               <tbody>
                 {bookings.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-oasis-900/40">
+                    <td colSpan={8} className="px-5 py-12 text-center text-oasis-900/40">
                       No bookings match these filters.
                     </td>
                   </tr>
@@ -329,6 +432,23 @@ export default function AdminDashboard({
                       <p className="text-xs text-oasis-900/40">
                         {b.price_per_guest} JOD each
                       </p>
+                      {b.rate_type !== "standard" && (
+                        <span
+                          className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${RATE_BADGES[b.rate_type]}`}
+                        >
+                          {b.rate_type}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      <PaymentEditor
+                        booking={b}
+                        onError={setMessage}
+                        onSaved={() => {
+                          setMessage("");
+                          router.refresh();
+                        }}
+                      />
                     </td>
                     <td className="px-5 py-4">
                       <span

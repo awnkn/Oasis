@@ -15,6 +15,9 @@ const SCHEMA = `
     total_price REAL NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending'
       CHECK (status IN ('pending', 'approved', 'rejected')),
+    rate_type TEXT NOT NULL DEFAULT 'standard'
+      CHECK (rate_type IN ('standard', 'discounted', 'complimentary')),
+    paid_amount REAL,
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -36,6 +39,20 @@ function createDatabase(): Database.Database {
   const db = new Database(dbPath);
   db.pragma("journal_mode = WAL");
   db.exec(SCHEMA);
+
+  // Upgrade databases created before these columns existed. SQLite can't add
+  // CHECK constraints via ALTER, so those are enforced in lib/bookings.ts.
+  const columns = (
+    db.prepare("PRAGMA table_info(bookings)").all() as { name: string }[]
+  ).map((c) => c.name);
+  if (!columns.includes("rate_type")) {
+    db.exec(
+      "ALTER TABLE bookings ADD COLUMN rate_type TEXT NOT NULL DEFAULT 'standard'"
+    );
+  }
+  if (!columns.includes("paid_amount")) {
+    db.exec("ALTER TABLE bookings ADD COLUMN paid_amount REAL");
+  }
 
   db.prepare(
     "INSERT OR IGNORE INTO settings (key, value) VALUES ('daily_capacity', ?)"
