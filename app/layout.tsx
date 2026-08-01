@@ -16,11 +16,21 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://oasisjo.com"),
   title: {
     default: CLUB_NAME,
     template: `%s · ${CLUB_NAME}`,
   },
   description: CLUB_TAGLINE,
+  openGraph: {
+    title: CLUB_NAME,
+    description: CLUB_TAGLINE,
+    url: "https://oasisjo.com",
+    siteName: CLUB_NAME,
+    images: [{ url: "/images/hero.jpg", width: 1920, height: 815 }],
+    locale: "en_US",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
