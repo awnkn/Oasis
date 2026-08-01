@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDateLong } from "@/lib/dates";
 import {
+  AGE_GUARDIAN,
+  AGE_MONDAY,
+  AGE_OTHER_DAYS,
+  BOOKING_TERMS,
+  HEARD_ABOUT_OPTIONS,
+} from "@/lib/config";
+import {
   DEFAULT_PHONE_COUNTRY,
   PHONE_COUNTRIES,
   normalizeNationalNumber,
@@ -12,8 +19,7 @@ import {
 interface Availability {
   date: string;
   bookable: boolean;
-  remaining: number;
-  capacity: number;
+  available: boolean;
   pricePerGuest: number;
   isWeekend: boolean;
   currency: string;
@@ -29,6 +35,9 @@ interface ConfirmedBooking {
   status: string;
 }
 
+const inputClass =
+  "w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200";
+
 export default function BookingForm({
   minDate,
   maxDate,
@@ -38,11 +47,16 @@ export default function BookingForm({
 }) {
   const [date, setDate] = useState("");
   const [guests, setGuests] = useState("2");
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phoneCountry, setPhoneCountry] = useState(DEFAULT_PHONE_COUNTRY);
   const [phoneDigits, setPhoneDigits] = useState("");
   const [email, setEmail] = useState("");
+  const [heardAbout, setHeardAbout] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+  const [termsChecked, setTermsChecked] = useState<boolean[]>(
+    BOOKING_TERMS.map(() => false)
+  );
 
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [checking, setChecking] = useState(false);
@@ -81,9 +95,17 @@ export default function BookingForm({
   const validGuests = Number.isInteger(guestCount) && guestCount >= 1;
   const country =
     PHONE_COUNTRIES.find((c) => c.code === phoneCountry) ?? PHONE_COUNTRIES[0];
-  const soldOut = availability !== null && availability.remaining <= 0;
+  const soldOut = availability !== null && !availability.available;
   const total =
     availability && validGuests ? guestCount * availability.pricePerGuest : null;
+
+  function toggleHeardAbout(option: string) {
+    setHeardAbout((prev) =>
+      prev.includes(option)
+        ? prev.filter((o) => o !== option)
+        : [...prev, option]
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,12 +122,14 @@ export default function BookingForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
+          name: `${firstName.trim()} ${lastName.trim()}`.trim(),
           phone: `+${country.dial}${phoneDigits}`,
           email,
           date,
           guests: guestCount,
+          heardAbout: heardAbout.length ? heardAbout : undefined,
           notes: notes || undefined,
+          termsAccepted: termsChecked.every(Boolean),
         }),
       });
       const data = await res.json();
@@ -185,7 +209,7 @@ export default function BookingForm({
             max={maxDate}
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
+            className={inputClass}
           />
         </div>
         <div>
@@ -197,21 +221,24 @@ export default function BookingForm({
             type="number"
             required
             min={1}
-            max={availability?.remaining || undefined}
             value={guests}
             onChange={(e) => setGuests(e.target.value)}
-            className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
+            className={inputClass}
           />
         </div>
       </div>
+
+      <p className="mt-3 text-xs leading-relaxed text-oasis-900/50">
+        * Mondays welcome ages {AGE_MONDAY}+; all other days are {AGE_OTHER_DAYS}+.
+        Guests under {AGE_GUARDIAN} must be accompanied by a guardian aged{" "}
+        {AGE_GUARDIAN}+.
+      </p>
 
       {/* Availability + price strip */}
       {date && (
         <div
           className={`mt-5 rounded-2xl px-5 py-4 text-sm ${
-            soldOut
-              ? "bg-blush-100 text-blush-500"
-              : "bg-oasis-50 text-oasis-800"
+            soldOut ? "bg-blush-100 text-blush-500" : "bg-oasis-50 text-oasis-800"
           }`}
         >
           {checking ? (
@@ -235,41 +262,55 @@ export default function BookingForm({
               choose another day.
             </span>
           ) : (
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span>
-                <strong>{formatDateLong(date)}</strong>
-                {" · "}
-                {availability.isWeekend ? "Weekend" : "Weekday"} rate:{" "}
-                <strong>
-                  {availability.pricePerGuest} {availability.currency}
-                </strong>{" "}
-                per guest
-              </span>
-              <span className="text-oasis-600">
-                {availability.remaining} of {availability.capacity} spots left
-              </span>
-            </div>
+            <span>
+              <strong>{formatDateLong(date)}</strong>
+              {" · "}
+              {availability.isWeekend ? "Weekend" : "Weekday"} rate:{" "}
+              <strong>
+                {availability.pricePerGuest} {availability.currency}
+              </strong>{" "}
+              per guest · Available ✓
+            </span>
           )}
         </div>
       )}
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
         <div>
-          <label htmlFor="name" className="mb-1.5 block text-sm font-medium">
-            Full name
+          <label htmlFor="firstName" className="mb-1.5 block text-sm font-medium">
+            First name
           </label>
           <input
-            id="name"
+            id="firstName"
             type="text"
             required
             minLength={2}
-            maxLength={100}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
+            maxLength={50}
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Your first name"
+            className={inputClass}
           />
         </div>
+        <div>
+          <label htmlFor="lastName" className="mb-1.5 block text-sm font-medium">
+            Last name
+          </label>
+          <input
+            id="lastName"
+            type="text"
+            required
+            minLength={2}
+            maxLength={50}
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Your last name"
+            className={inputClass}
+          />
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 sm:grid-cols-2">
         <div>
           <label htmlFor="phone" className="mb-1.5 block text-sm font-medium">
             Phone number
@@ -303,30 +344,59 @@ export default function BookingForm({
                 setPhoneDigits(normalizeNationalNumber(e.target.value, country))
               }
               placeholder={country.code === "JO" ? "79 123 4567" : "Phone number"}
-              className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
+              className={inputClass}
             />
           </div>
           <p className="mt-1 text-xs text-oasis-900/50">
             We confirm every booking by phone.
           </p>
         </div>
+        <div>
+          <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            required
+            maxLength={200}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className={inputClass}
+          />
+        </div>
       </div>
 
-      <div className="mt-6">
-        <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          required
-          maxLength={200}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
-        />
-      </div>
+      <fieldset className="mt-6">
+        <legend className="mb-2 block text-sm font-medium">
+          Where did you hear about us?{" "}
+          <span className="font-normal text-oasis-900/40">(optional)</span>
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {HEARD_ABOUT_OPTIONS.map((option) => {
+            const active = heardAbout.includes(option);
+            return (
+              <label
+                key={option}
+                className={`cursor-pointer select-none rounded-full border px-4 py-2 text-sm transition ${
+                  active
+                    ? "border-oasis-600 bg-oasis-600 text-white"
+                    : "border-oasis-200 bg-sand-50 text-oasis-800 hover:border-oasis-400"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={active}
+                  onChange={() => toggleHeardAbout(option)}
+                  className="sr-only"
+                />
+                {option}
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
 
       <div className="mt-6">
         <label htmlFor="notes" className="mb-1.5 block text-sm font-medium">
@@ -340,9 +410,36 @@ export default function BookingForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Birthday celebration, accessibility needs…"
-          className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
+          className={inputClass}
         />
       </div>
+
+      {/* Booking terms */}
+      <fieldset className="mt-8 rounded-2xl bg-sand-100 p-6">
+        <legend className="mb-1 px-1 text-sm font-semibold">
+          Before you book <span className="text-blush-500">*</span>
+        </legend>
+        <div className="space-y-3">
+          {BOOKING_TERMS.map((term, i) => (
+            <label key={i} className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-oasis-900/75">
+              <input
+                type="checkbox"
+                required
+                checked={termsChecked[i]}
+                onChange={(e) =>
+                  setTermsChecked((prev) =>
+                    prev.map((v, j) => (j === i ? e.target.checked : v))
+                  )
+                }
+                className="mt-1 h-4 w-4 shrink-0 accent-oasis-600"
+              />
+              <span>
+                {term} <span className="text-blush-500">*</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       {error && (
         <p className="mt-5 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">

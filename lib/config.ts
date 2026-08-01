@@ -1,7 +1,8 @@
 // Central configuration for the Oasis club booking system.
 
-export const CLUB_NAME = "Oasis Ladies Swimming Club";
-export const CLUB_TAGLINE = "A private day of calm, sun and water — for ladies only.";
+export const CLUB_NAME = "Oasis by Azara";
+export const CLUB_TAGLINE =
+  "A sanctuary for women — a ladies-only pool retreat in Jordan.";
 
 export const CURRENCY = "JOD";
 
@@ -21,3 +22,28 @@ export const MAX_ADVANCE_DAYS = 90;
 
 // All "what day is it" logic runs in the club's local time zone.
 export const TIME_ZONE = "Asia/Amman";
+
+// Age policy: Mondays welcome ages 10+, all other days 16+.
+// Guests under 18 must be accompanied by a guardian aged 18+.
+export const AGE_MONDAY = 10;
+export const AGE_OTHER_DAYS = 16;
+export const AGE_GUARDIAN = 18;
+
+// Options for "Where did you hear about us?" on the booking form.
+export const HEARD_ABOUT_OPTIONS = [
+  "Instagram",
+  "TikTok",
+  "Facebook",
+  "Google",
+  "A friend",
+  "Other",
+] as const;
+
+// Acknowledgements every guest must accept before booking.
+export const BOOKING_TERMS = [
+  "I understand that booking changes must be made at least 24 hours before my reservation. If cancelled in time, my booking can be transferred to a new booking date.",
+  "I understand that same-day cancellations and no-shows will result in the loss of my booking.",
+  `I understand that Oasis is exclusively for guests aged ${AGE_OTHER_DAYS} and above, except Mondays where ages ${AGE_MONDAY}+ are welcome.`,
+  `I acknowledge the entrance fee of ${WEEKDAY_PRICE} JOD on weekdays and ${WEEKEND_PRICE} JOD on weekends.`,
+  "Seating at all pool areas, including the Shisha Pool, is available on a first-come, first-served basis and cannot be reserved or guaranteed.",
+] as const;
