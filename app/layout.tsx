@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Jost } from "next/font/google";
+import { Playfair_Display, Inter } from "next/font/google";
 import { CLUB_NAME, CLUB_TAGLINE } from "@/lib/config";
 import "./globals.css";
 
-const display = Cormorant_Garamond({
+const display = Playfair_Display({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
   variable: "--font-display",
 });
 
-const body = Jost({
+const body = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-body",
