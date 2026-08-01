@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDateLong } from "@/lib/dates";
+import {
+  DEFAULT_PHONE_COUNTRY,
+  PHONE_COUNTRIES,
+  normalizeNationalNumber,
+} from "@/lib/phone";
 
 interface Availability {
   date: string;
@@ -34,7 +39,8 @@ export default function BookingForm({
   const [date, setDate] = useState("");
   const [guests, setGuests] = useState("2");
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phoneCountry, setPhoneCountry] = useState(DEFAULT_PHONE_COUNTRY);
+  const [phoneDigits, setPhoneDigits] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -73,6 +79,8 @@ export default function BookingForm({
 
   const guestCount = Number.parseInt(guests, 10);
   const validGuests = Number.isInteger(guestCount) && guestCount >= 1;
+  const country =
+    PHONE_COUNTRIES.find((c) => c.code === phoneCountry) ?? PHONE_COUNTRIES[0];
   const soldOut = availability !== null && availability.remaining <= 0;
   const total =
     availability && validGuests ? guestCount * availability.pricePerGuest : null;
@@ -80,6 +88,12 @@ export default function BookingForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (phoneDigits.length < country.min) {
+      setError(
+        `Please enter a valid ${country.name} phone number (${country.min}–${country.max} digits after +${country.dial}).`
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch("/api/bookings", {
@@ -87,7 +101,7 @@ export default function BookingForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          phone,
+          phone: `+${country.dial}${phoneDigits}`,
           email: email || undefined,
           date,
           guests: guestCount,
@@ -260,17 +274,38 @@ export default function BookingForm({
           <label htmlFor="phone" className="mb-1.5 block text-sm font-medium">
             Phone number
           </label>
-          <input
-            id="phone"
-            type="tel"
-            required
-            minLength={6}
-            maxLength={30}
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="07X XXX XXXX"
-            className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
-          />
+          <div className="flex gap-2">
+            <select
+              aria-label="Country code"
+              value={phoneCountry}
+              onChange={(e) => {
+                setPhoneCountry(e.target.value);
+                const next =
+                  PHONE_COUNTRIES.find((c) => c.code === e.target.value) ??
+                  PHONE_COUNTRIES[0];
+                setPhoneDigits((d) => d.slice(0, next.max));
+              }}
+              className="w-28 shrink-0 rounded-xl border border-oasis-200 bg-sand-50 px-2 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
+            >
+              {PHONE_COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} +{c.dial}
+                </option>
+              ))}
+            </select>
+            <input
+              id="phone"
+              type="tel"
+              inputMode="numeric"
+              required
+              value={phoneDigits}
+              onChange={(e) =>
+                setPhoneDigits(normalizeNationalNumber(e.target.value, country))
+              }
+              placeholder={country.code === "JO" ? "79 123 4567" : "Phone number"}
+              className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
+            />
+          </div>
           <p className="mt-1 text-xs text-oasis-900/50">
             We confirm every booking by phone.
           </p>
