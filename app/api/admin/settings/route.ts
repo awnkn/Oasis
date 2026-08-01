@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminAuthed } from "@/lib/auth";
+import { isAdminAuthed, isManager } from "@/lib/auth";
 import { getDailyCapacity, setDailyCapacity } from "@/lib/bookings";
 
 export async function GET() {
@@ -10,8 +10,11 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  if (!(await isAdminAuthed())) {
-    return NextResponse.json({ error: "Not authorized." }, { status: 401 });
+  if (!(await isManager())) {
+    return NextResponse.json(
+      { error: "Only a manager can change the capacity." },
+      { status: 403 }
+    );
   }
 
   let body: unknown;

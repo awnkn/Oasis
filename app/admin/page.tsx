@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import AdminDashboard from "@/components/AdminDashboard";
-import { isAdminAuthed, isDefaultPassword } from "@/lib/auth";
+import { defaultPasswordsInUse, getAdminRole } from "@/lib/auth";
 import {
   BOOKING_STATUSES,
   bookedGuestsOn,
@@ -27,7 +27,8 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  if (!(await isAdminAuthed())) {
+  const role = await getAdminRole();
+  if (!role) {
     redirect("/admin/login");
   }
 
@@ -57,7 +58,11 @@ export default async function AdminPage({
       guestsToday={bookedGuestsOn(todayStr)}
       today={todayStr}
       filters={{ status: status ?? "", date: date ?? "", includePast }}
-      showPasswordWarning={isDefaultPassword()}
+      role={role}
+      showPasswordWarning={
+        role === "manager" &&
+        (defaultPasswordsInUse().manager || defaultPasswordsInUse().staff)
+      }
     />
   );
 }

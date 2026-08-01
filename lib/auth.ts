@@ -4,61 +4,93 @@ import { cookies } from "next/headers";
 export const ADMIN_COOKIE = "oasis_admin";
 const SESSION_DAYS = 7;
 
-export function getAdminPassword(): string {
+export type AdminRole = "manager" | "staff";
+
+// Two logins share one form: the password decides the role.
+// Managers see everything (capacity, insights, accounting);
+// staff manage bookings and payments only.
+export function getManagerPassword(): string {
   return process.env.ADMIN_PASSWORD || "change-me";
 }
 
-export function isDefaultPassword(): boolean {
-  return getAdminPassword() === "change-me";
+export function getStaffPassword(): string {
+  return process.env.STAFF_PASSWORD || "staff-change-me";
+}
+
+export function defaultPasswordsInUse(): { manager: boolean; staff: boolean } {
+  return {
+    manager: getManagerPassword() === "change-me",
+    staff: getStaffPassword() === "staff-change-me",
+  };
 }
 
 function getSecret(): Buffer {
-  const secret = process.env.SESSION_SECRET || `oasis:${getAdminPassword()}`;
+  const secret =
+    process.env.SESSION_SECRET ||
+    `oasis:${getManagerPassword()}:${getStaffPassword()}`;
   return crypto.createHash("sha256").update(secret).digest();
 }
 
-export function checkPassword(candidate: string): boolean {
-  const expected = crypto
-    .createHash("sha256")
-    .update(getAdminPassword())
-    .digest();
-  const actual = crypto.createHash("sha256").update(candidate).digest();
-  return crypto.timingSafeEqual(expected, actual);
+function hashEquals(a: string, b: string): boolean {
+  const ha = crypto.createHash("sha256").update(a).digest();
+  const hb = crypto.createHash("sha256").update(b).digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
+/** Returns the role the password unlocks, or null if it matches neither. */
+export function checkPassword(candidate: string): AdminRole | null {
+  const manager = hashEquals(candidate, getManagerPassword());
+  const staff = hashEquals(candidate, getStaffPassword());
+  if (manager) return "manager";
+  if (staff) return "staff";
+  return null;
 }
 
 function sign(payload: string): string {
   return crypto.createHmac("sha256", getSecret()).update(payload).digest("hex");
 }
 
-/** Token format: "<expiry-epoch-ms>.<hmac>" */
-export function createSessionToken(): string {
+/** Token format: "<role>.<expiry-epoch-ms>.<hmac>" */
+export function createSessionToken(role: AdminRole): string {
   const expiry = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
-  return `${expiry}.${sign(String(expiry))}`;
+  const payload = `${role}.${expiry}`;
+  return `${payload}.${sign(payload)}`;
 }
 
-export function verifySessionToken(token: string | undefined): boolean {
-  if (!token) return false;
-  const dot = token.indexOf(".");
-  if (dot === -1) return false;
-  const expiry = token.slice(0, dot);
-  const signature = token.slice(dot + 1);
-  if (!/^\d+$/.test(expiry) || Number(expiry) < Date.now()) return false;
+export function verifySessionToken(
+  token: string | undefined
+): AdminRole | null {
+  if (!token) return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [role, expiry, signature] = parts;
+  if (role !== "manager" && role !== "staff") return null;
+  if (!/^\d+$/.test(expiry) || Number(expiry) < Date.now()) return null;
 
-  const expected = Buffer.from(sign(expiry), "hex");
+  const expected = Buffer.from(sign(`${role}.${expiry}`), "hex");
   let actual: Buffer;
   try {
     actual = Buffer.from(signature, "hex");
   } catch {
-    return false;
+    return null;
   }
-  return (
-    expected.length === actual.length && crypto.timingSafeEqual(expected, actual)
-  );
+  const valid =
+    expected.length === actual.length &&
+    crypto.timingSafeEqual(expected, actual);
+  return valid ? (role as AdminRole) : null;
+}
+
+export async function getAdminRole(): Promise<AdminRole | null> {
+  const store = await cookies();
+  return verifySessionToken(store.get(ADMIN_COOKIE)?.value);
 }
 
 export async function isAdminAuthed(): Promise<boolean> {
-  const store = await cookies();
-  return verifySessionToken(store.get(ADMIN_COOKIE)?.value);
+  return (await getAdminRole()) !== null;
+}
+
+export async function isManager(): Promise<boolean> {
+  return (await getAdminRole()) === "manager";
 }
 
 export function sessionCookieOptions(request: Request) {

@@ -128,6 +128,7 @@ export default function AdminDashboard({
   guestsToday,
   today,
   filters,
+  role,
   showPasswordWarning,
 }: {
   bookings: Booking[];
@@ -137,6 +138,7 @@ export default function AdminDashboard({
   guestsToday: number;
   today: string;
   filters: Filters;
+  role: "manager" | "staff";
   showPasswordWarning: boolean;
 }) {
   const router = useRouter();
@@ -235,15 +237,25 @@ export default function AdminDashboard({
               Oasis
             </Link>
             <span className="rounded-full bg-oasis-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-oasis-700">
-              Admin
+              {role === "manager" ? "Manager" : "Staff"}
             </span>
           </div>
-          <button
-            onClick={logout}
-            className="text-sm font-medium text-oasis-800 hover:text-oasis-600"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-5">
+            {role === "manager" && (
+              <Link
+                href="/admin/insights"
+                className="rounded-full bg-oasis-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-700"
+              >
+                Insights & accounting
+              </Link>
+            )}
+            <button
+              onClick={logout}
+              className="text-sm font-medium text-oasis-800 hover:text-oasis-600"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -271,35 +283,45 @@ export default function AdminDashboard({
               <span className="text-xl text-oasis-900/40"> / {capacity}</span>
             </p>
           </div>
-          <form
-            onSubmit={saveCapacity}
-            className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60"
-          >
-            <label htmlFor="capacity" className="text-sm text-oasis-900/50">
-              Daily capacity
-            </label>
-            <div className="mt-2 flex gap-2">
-              <input
-                id="capacity"
-                type="number"
-                min={0}
-                max={10000}
-                value={capacityInput}
-                onChange={(e) => setCapacityInput(e.target.value)}
-                className="w-24 rounded-xl border border-oasis-200 bg-sand-50 px-3 py-2 outline-none focus:border-oasis-500"
-              />
-              <button
-                type="submit"
-                disabled={savingCapacity || capacityInput === String(capacity)}
-                className="rounded-xl bg-oasis-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
-              >
-                {savingCapacity ? "Saving…" : "Save"}
-              </button>
+          {role === "manager" ? (
+            <form
+              onSubmit={saveCapacity}
+              className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60"
+            >
+              <label htmlFor="capacity" className="text-sm text-oasis-900/50">
+                Daily capacity
+              </label>
+              <div className="mt-2 flex gap-2">
+                <input
+                  id="capacity"
+                  type="number"
+                  min={0}
+                  max={10000}
+                  value={capacityInput}
+                  onChange={(e) => setCapacityInput(e.target.value)}
+                  className="w-24 rounded-xl border border-oasis-200 bg-sand-50 px-3 py-2 outline-none focus:border-oasis-500"
+                />
+                <button
+                  type="submit"
+                  disabled={savingCapacity || capacityInput === String(capacity)}
+                  className="rounded-xl bg-oasis-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
+                >
+                  {savingCapacity ? "Saving…" : "Save"}
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-oasis-900/40">
+                Applies to every day. Lower it to limit guests.
+              </p>
+            </form>
+          ) : (
+            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+              <p className="text-sm text-oasis-900/50">Daily capacity</p>
+              <p className="mt-1 font-display text-4xl font-semibold">{capacity}</p>
+              <p className="mt-2 text-xs text-oasis-900/40">
+                Set by the manager.
+              </p>
             </div>
-            <p className="mt-2 text-xs text-oasis-900/40">
-              Applies to every day. Lower it to limit guests.
-            </p>
-          </form>
+          )}
         </div>
 
         {/* Next 14 days */}
