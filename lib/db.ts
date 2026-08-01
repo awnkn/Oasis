@@ -18,6 +18,7 @@ const SCHEMA = `
     rate_type TEXT NOT NULL DEFAULT 'standard'
       CHECK (rate_type IN ('standard', 'discounted', 'complimentary')),
     paid_amount REAL,
+    heard_about TEXT,
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -52,6 +53,9 @@ function createDatabase(): Database.Database {
   }
   if (!columns.includes("paid_amount")) {
     db.exec("ALTER TABLE bookings ADD COLUMN paid_amount REAL");
+  }
+  if (!columns.includes("heard_about")) {
+    db.exec("ALTER TABLE bookings ADD COLUMN heard_about TEXT");
   }
 
   db.prepare(

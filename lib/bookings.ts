@@ -1,5 +1,9 @@
 import { getDb } from "./db";
-import { DEFAULT_DAILY_CAPACITY, MAX_ADVANCE_DAYS } from "./config";
+import {
+  DEFAULT_DAILY_CAPACITY,
+  HEARD_ABOUT_OPTIONS,
+  MAX_ADVANCE_DAYS,
+} from "./config";
 import { addDays, isValidDateString, priceForDate, today } from "./dates";
 
 export type BookingStatus = "pending" | "approved" | "rejected";
@@ -30,6 +34,7 @@ export interface Booking {
   status: BookingStatus;
   rate_type: RateType;
   paid_amount: number | null;
+  heard_about: string | null;
   notes: string | null;
   created_at: string;
 }
@@ -40,7 +45,9 @@ export interface NewBookingInput {
   email?: string;
   date: string;
   guests: number;
+  heardAbout?: string[];
   notes?: string;
+  termsAccepted?: boolean;
 }
 
 export type CreateResult =
@@ -110,6 +117,20 @@ export function createBooking(input: NewBookingInput): CreateResult {
   if (notes && notes.length > 500) {
     return { ok: false, error: "Notes are too long (500 characters max)." };
   }
+
+  const heardAbout =
+    Array.isArray(input.heardAbout) && input.heardAbout.length > 0
+      ? [
+          ...new Set(
+            input.heardAbout.filter((o) =>
+              (HEARD_ABOUT_OPTIONS as readonly string[]).includes(o)
+            )
+          ),
+        ].join(", ") || null
+      : null;
+  if (input.termsAccepted !== true) {
+    return { ok: false, error: "Please accept the booking terms to continue." };
+  }
   if (!isValidDateString(date)) {
     return { ok: false, error: "Please choose a valid date." };
   }
@@ -137,17 +158,18 @@ export function createBooking(input: NewBookingInput): CreateResult {
     if (guests > remaining) {
       return {
         ok: false,
-        error: `Only ${remaining} ${remaining === 1 ? "spot is" : "spots are"} left on this day.`,
+        error:
+          "There isn't enough space left on this day for your group size. Please try a smaller group or another date.",
       };
     }
 
     const pricePerGuest = priceForDate(date);
     const result = db
       .prepare(
-        `INSERT INTO bookings (name, phone, email, date, guests, price_per_guest, total_price, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO bookings (name, phone, email, date, guests, price_per_guest, total_price, heard_about, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(name, phone, email, date, guests, pricePerGuest, pricePerGuest * guests, notes);
+      .run(name, phone, email, date, guests, pricePerGuest, pricePerGuest * guests, heardAbout, notes);
 
     const booking = getBooking(Number(result.lastInsertRowid));
     if (!booking) return { ok: false, error: "Something went wrong. Please try again." };

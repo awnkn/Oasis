@@ -16,7 +16,11 @@ export async function POST(request: Request) {
     email: typeof b.email === "string" ? b.email : undefined,
     date: typeof b.date === "string" ? b.date : "",
     guests: typeof b.guests === "number" ? b.guests : NaN,
+    heardAbout: Array.isArray(b.heardAbout)
+      ? b.heardAbout.filter((o): o is string => typeof o === "string")
+      : undefined,
     notes: typeof b.notes === "string" ? b.notes : undefined,
+    termsAccepted: b.termsAccepted === true,
   });
 
   if (!result.ok) {

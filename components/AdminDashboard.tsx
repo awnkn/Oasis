@@ -419,6 +419,11 @@ export default function AdminDashboard({
                       <p className="font-medium">{b.name}</p>
                       <p className="text-oasis-900/50">{b.phone}</p>
                       {b.email && <p className="text-oasis-900/50">{b.email}</p>}
+                      {b.heard_about && (
+                        <p className="mt-1 text-xs text-oasis-900/40">
+                          via {b.heard_about}
+                        </p>
+                      )}
                       {b.notes && (
                         <p className="mt-1 max-w-60 text-xs italic text-oasis-900/40">
                           “{b.notes}”

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { getDailyCapacity, remainingOn } from "@/lib/bookings";
+import { remainingOn } from "@/lib/bookings";
 import { isValidDateString, isWeekend, priceForDate, today, addDays } from "@/lib/dates";
 import { CURRENCY, MAX_ADVANCE_DAYS } from "@/lib/config";
 
+// Public availability: says only whether a day can take a booking — never
+// how many spots remain. Exact counts stay on the admin dashboard.
 export async function GET(request: Request) {
   const date = new URL(request.url).searchParams.get("date") ?? "";
 
@@ -17,8 +19,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     date,
     bookable,
-    remaining: remainingOn(date),
-    capacity: getDailyCapacity(),
+    available: remainingOn(date) > 0,
     pricePerGuest: priceForDate(date),
     isWeekend: isWeekend(date),
     currency: CURRENCY,
