@@ -47,6 +47,8 @@ export interface Booking {
   guest_status: GuestStatus;
   guest_status_at: string | null;
   checked_in_at: string | null;
+  /** How many of the party actually arrived (0 = none yet). */
+  checked_in_count: number;
   notes: string | null;
   created_at: string;
 }
@@ -147,12 +149,12 @@ export function bookingsTodayCount(): number {
   return row.n;
 }
 
-/** Guests already checked in for today's visit. */
+/** Guests actually through the gate today (partial arrivals counted). */
 export function checkedInGuestsToday(): number {
   const row = getDb()
     .prepare(
-      `SELECT COALESCE(SUM(guests), 0) AS total FROM bookings
-       WHERE date = ? AND checked_in_at IS NOT NULL`
+      `SELECT COALESCE(SUM(checked_in_count), 0) AS total FROM bookings
+       WHERE date = ?`
     )
     .get(today()) as { total: number };
   return row.total;
@@ -429,12 +431,12 @@ export function updateGuestStatus(
     }
     if (booking.guest_status === guestStatus) return { ok: true };
 
-    // checked_in_at stays in lockstep with the checked_in status.
+    // checked_in_at and the arrivals count stay in lockstep with the status.
     const checkedInSql =
       guestStatus === "checked_in"
-        ? ", checked_in_at = datetime('now')"
+        ? `, checked_in_at = datetime('now'), checked_in_count = CASE WHEN checked_in_count = 0 THEN guests ELSE checked_in_count END`
         : booking.guest_status === "checked_in"
-          ? ", checked_in_at = NULL"
+          ? ", checked_in_at = NULL, checked_in_count = 0"
           : "";
     db.prepare(
       `UPDATE bookings SET guest_status = ?, guest_status_at = datetime('now')${checkedInSql} WHERE id = ?`
@@ -457,7 +459,71 @@ export function setCheckedIn(
   checkedIn: boolean,
   actor: Actor
 ): CheckInResult {
-  return updateGuestStatus(id, checkedIn ? "checked_in" : "confirmed", actor);
+  if (!checkedIn) return updateGuestStatus(id, "confirmed", actor);
+  return updateGuestStatus(id, "checked_in", actor);
+}
+
+/**
+ * Record how many of the party have actually arrived (partial check-in).
+ * 0 clears the check-in; reaching any positive count marks the booking
+ * checked in.
+ */
+export function setCheckedInCount(
+  id: number,
+  count: number,
+  actor: Actor
+): CheckInResult {
+  if (!Number.isInteger(count) || count < 0) {
+    return { ok: false, reason: "invalid", message: "Invalid arrivals count." };
+  }
+  const db = getDb();
+  const update = db.transaction((): CheckInResult => {
+    const booking = getBooking(id);
+    if (!booking) {
+      return { ok: false, reason: "not_found", message: "Booking not found." };
+    }
+    if (count > booking.guests) {
+      return {
+        ok: false,
+        reason: "invalid",
+        message: `This booking has ${booking.guests} guests — the arrivals count can't exceed that.`,
+      };
+    }
+    if (count > 0 && booking.status !== "approved") {
+      return {
+        ok: false,
+        reason: "invalid",
+        message: "Approve the booking before checking guests in.",
+      };
+    }
+    if (count === booking.checked_in_count) return { ok: true };
+
+    if (count > 0) {
+      db.prepare(
+        `UPDATE bookings SET checked_in_count = ?, guest_status = 'checked_in',
+           guest_status_at = datetime('now'),
+           checked_in_at = COALESCE(checked_in_at, datetime('now'))
+         WHERE id = ?`
+      ).run(count, id);
+    } else {
+      db.prepare(
+        `UPDATE bookings SET checked_in_count = 0, checked_in_at = NULL,
+           guest_status = CASE WHEN guest_status = 'checked_in' THEN 'confirmed' ELSE guest_status END,
+           guest_status_at = datetime('now')
+         WHERE id = ?`
+      ).run(id);
+    }
+    logAction(
+      actor,
+      "check_in",
+      count > 0
+        ? `Booking #${id} (${booking.name}, ${booking.date}): ${count} of ${booking.guests} guests checked in`
+        : `Booking #${id} (${booking.name}, ${booking.date}): arrivals cleared (was ${booking.checked_in_count} of ${booking.guests})`,
+      id
+    );
+    return { ok: true };
+  });
+  return update();
 }
 
 export interface PaymentUpdate {
@@ -763,7 +829,7 @@ export function guestJourney(
          COUNT(*) AS total,
          SUM(status = 'rejected') AS rejected,
          ${statusSums},
-         SUM(CASE WHEN guest_status = 'checked_in' THEN guests ELSE 0 END) AS checkedInGuests
+         COALESCE(SUM(checked_in_count), 0) AS checkedInGuests
        FROM bookings WHERE date >= ? AND date <= ?
        GROUP BY period ORDER BY period DESC`
     )

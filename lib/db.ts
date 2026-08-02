@@ -24,6 +24,7 @@ const SCHEMA = `
     guest_status TEXT NOT NULL DEFAULT 'open',
     guest_status_at TEXT,
     checked_in_at TEXT,
+    checked_in_count INTEGER NOT NULL DEFAULT 0,
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -116,6 +117,15 @@ function createDatabase(): Database.Database {
   }
   if (!columns.includes("guest_status_at")) {
     db.exec("ALTER TABLE bookings ADD COLUMN guest_status_at TEXT");
+  }
+  if (!columns.includes("checked_in_count")) {
+    db.exec(
+      "ALTER TABLE bookings ADD COLUMN checked_in_count INTEGER NOT NULL DEFAULT 0"
+    );
+    // Bookings checked in before partial arrivals existed count in full.
+    db.exec(
+      "UPDATE bookings SET checked_in_count = guests WHERE checked_in_at IS NOT NULL"
+    );
   }
 
   db.prepare(
