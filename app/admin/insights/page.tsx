@@ -294,8 +294,13 @@ export default async function InsightsPage() {
       <header className="border-b border-zinc-200/70 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-base font-semibold tracking-tight">
-              Oasis
+            <Link href="/">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/logo-black.png"
+                alt="Oasis by Azara"
+                className="h-7 w-auto"
+              />
             </Link>
             <span className="rounded-full bg-sand-200 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sand-800">
               Insights

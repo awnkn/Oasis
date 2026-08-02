@@ -11,18 +11,12 @@ import {
 
 function Wordmark({ light = false }: { light?: boolean }) {
   return (
-    <span className="flex items-baseline gap-2">
-      <span
-        className={`font-display text-3xl font-semibold lowercase tracking-wide ${light ? "text-white" : "text-oasis-950"}`}
-      >
-        oasis
-      </span>
-      <span
-        className={`text-[0.65rem] font-semibold uppercase tracking-[0.3em] ${light ? "text-white/70" : "text-oasis-900/50"}`}
-      >
-        by Azara
-      </span>
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={light ? "/images/logo-white.png" : "/images/logo-black.png"}
+      alt="Oasis by Azara"
+      className={light ? "h-12 w-auto" : "h-10 w-auto"}
+    />
   );
 }
 
