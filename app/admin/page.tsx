@@ -13,6 +13,7 @@ import {
 } from "@/lib/bookings";
 import { isValidDateString, today } from "@/lib/dates";
 import { getDb } from "@/lib/db";
+import { listUsers } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ interface SearchParams {
   status?: string;
   date?: string;
   past?: string;
+  q?: string;
 }
 
 export default async function AdminPage({
@@ -41,8 +43,12 @@ export default async function AdminPage({
   const date =
     params.date && isValidDateString(params.date) ? params.date : undefined;
   const includePast = params.past === "1";
+  const query =
+    typeof params.q === "string" && params.q.trim()
+      ? params.q.trim().slice(0, 60)
+      : undefined;
 
-  const bookings = listBookings({ status, date, includePast });
+  const bookings = listBookings({ status, date, includePast, query });
   const todayStr = today();
 
   const pendingRow = getDb()
@@ -61,8 +67,9 @@ export default async function AdminPage({
       bookingsToday={bookingsTodayCount()}
       checkedInToday={checkedInGuestsToday()}
       today={todayStr}
-      filters={{ status: status ?? "", date: date ?? "", includePast }}
+      filters={{ status: status ?? "", date: date ?? "", includePast, query: query ?? "" }}
       role={role}
+      team={role === "manager" ? listUsers() : []}
       showPasswordWarning={
         role === "manager" &&
         (defaultPasswordsInUse().manager || defaultPasswordsInUse().staff)

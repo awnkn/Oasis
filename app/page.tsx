@@ -43,23 +43,12 @@ export default function HomePage() {
           <Link href="/">
             <Wordmark light />
           </Link>
-          <nav className="flex items-center gap-6 text-sm font-medium text-white/90">
-            <a href="#prices" className="hidden hover:text-white sm:block">
-              Prices
-            </a>
-            <a href="#gallery" className="hidden hover:text-white sm:block">
-              The space
-            </a>
-            <a href="#how" className="hidden hover:text-white sm:block">
-              How it works
-            </a>
-            <Link
-              href="/book"
-              className="rounded-full bg-white/95 px-5 py-2.5 text-oasis-900 shadow-md transition hover:bg-white"
-            >
-              Book your day
-            </Link>
-          </nav>
+          <Link
+            href="/book"
+            className="rounded-full bg-white/95 px-5 py-2.5 text-sm font-medium text-oasis-900 shadow-md transition hover:bg-white"
+          >
+            Book your day
+          </Link>
         </header>
 
         <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6 py-20 text-center text-white">
@@ -87,6 +76,9 @@ export default function HomePage() {
               See prices
             </a>
           </div>
+          <p className="mt-5 text-sm text-white/60">
+            Takes under a minute · No online payment — pay at the gate
+          </p>
         </div>
 
         <div className="relative z-10 border-t border-white/15 bg-oasis-950/40 backdrop-blur">
@@ -133,6 +125,50 @@ export default function HomePage() {
             alt="The Oasis by Azara mark pressed into sand"
             className="w-full rounded-3xl object-cover shadow-xl ring-1 ring-sand-200"
           />
+        </div>
+      </section>
+
+      {/* Why Oasis */}
+      <section className="border-y border-oasis-950/5 bg-white px-6 py-24">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="text-center font-display text-4xl font-semibold sm:text-5xl">
+            Why women choose Oasis
+          </h2>
+          <div className="mx-auto mt-14 grid max-w-5xl gap-x-12 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                title: "Ladies only. Always.",
+                text: "Every hour of every day — no exceptions, no “family times”.",
+              },
+              {
+                title: "No cameras inside",
+                text: "Complete privacy in every interior space, so you can simply be.",
+              },
+              {
+                title: "Never crowded",
+                text: "Entry is capped every single day — your calm is protected.",
+              },
+              {
+                title: "Pools for every mood",
+                text: "Sun-soaked lagoons, still water, shaded corners — choose by feeling.",
+              },
+              {
+                title: "Book in a minute",
+                text: "No online payment, no cards — reserve now, pay at the gate.",
+              },
+              {
+                title: "Personally confirmed",
+                text: "A real person calls you to confirm every single booking.",
+              },
+            ].map((point) => (
+              <div key={point.title} className="border-t border-oasis-950/10 pt-5">
+                <h3 className="font-display text-xl font-semibold">{point.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-oasis-900/60">
+                  {point.text}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -184,7 +220,7 @@ export default function HomePage() {
             One entry price per guest — swim, lounge and relax from open to close.
           </p>
           <div className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2">
-            <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-200">
+            <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5">
               <p className="text-sm font-semibold uppercase tracking-widest text-oasis-500">
                 Weekdays
               </p>

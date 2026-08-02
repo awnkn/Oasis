@@ -1,6 +1,7 @@
 import { getDb } from "./db";
 import {
   DEFAULT_DAILY_CAPACITY,
+  GUEST_PAYMENT_METHODS,
   HEARD_ABOUT_OPTIONS,
   MAX_ADVANCE_DAYS,
   PAYMENT_ACCOUNTS,
@@ -202,7 +203,7 @@ export function createBooking(input: NewBookingInput): CreateResult {
   }
   const paymentMethod =
     typeof input.paymentMethod === "string" &&
-    (PAYMENT_ACCOUNTS as readonly string[]).includes(input.paymentMethod)
+    (GUEST_PAYMENT_METHODS as readonly string[]).includes(input.paymentMethod)
       ? input.paymentMethod
       : null;
   if (!paymentMethod) {
@@ -266,6 +267,8 @@ export interface BookingFilters {
   status?: BookingStatus;
   date?: string;
   includePast?: boolean;
+  /** Case-insensitive match against guest name or phone number. */
+  query?: string;
 }
 
 export function listBookings(filters: BookingFilters = {}): Booking[] {
@@ -279,9 +282,14 @@ export function listBookings(filters: BookingFilters = {}): Booking[] {
   if (filters.date) {
     where.push("date = ?");
     params.push(filters.date);
-  } else if (!filters.includePast) {
+  } else if (!filters.includePast && !filters.query) {
     where.push("date >= ?");
     params.push(today());
+  }
+  if (filters.query) {
+    const like = `%${filters.query.replace(/[%_]/g, "")}%`;
+    where.push("(name LIKE ? OR phone LIKE ? OR email LIKE ?)");
+    params.push(like, like, like);
   }
 
   const sql = `
@@ -293,7 +301,7 @@ export function listBookings(filters: BookingFilters = {}): Booking[] {
 }
 
 export type StatusUpdateResult =
-  | { ok: true }
+  | { ok: true; changed: boolean }
   | { ok: false; reason: "not_found" | "capacity"; message: string };
 
 export function updateBookingStatus(
@@ -307,7 +315,7 @@ export function updateBookingStatus(
     if (!booking) {
       return { ok: false, reason: "not_found", message: "Booking not found." };
     }
-    if (booking.status === status) return { ok: true };
+    if (booking.status === status) return { ok: true, changed: false };
 
     // Bringing a rejected booking back puts its guests on the day again, so
     // the capacity check must pass a second time (the spots may have been
@@ -334,7 +342,7 @@ export function updateBookingStatus(
       `Booking #${id} (${booking.name}, ${booking.date}): ${booking.status} → ${status}`,
       id
     );
-    return { ok: true };
+    return { ok: true, changed: true };
   });
   return update();
 }

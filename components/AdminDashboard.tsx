@@ -10,7 +10,241 @@ import type {
   RateType,
 } from "@/lib/bookings";
 import { formatDateLong, formatDateShort } from "@/lib/dates";
-import { PAYMENT_ACCOUNTS } from "@/lib/config";
+import { CLUB_NAME, PAYMENT_ACCOUNTS } from "@/lib/config";
+import type { StaffUser } from "@/lib/users";
+
+/** Pre-filled WhatsApp confirmation staff can send with one tap. */
+function waLink(b: Booking): string {
+  const text =
+    `Dear ${b.name.split(" ")[0]}, your ${CLUB_NAME} booking is confirmed! ` +
+    `Reference #${String(b.id).padStart(4, "0")} · ${formatDateLong(b.date)} · ` +
+    `${b.guests} ${b.guests === 1 ? "guest" : "guests"} · ` +
+    `${b.total_price} JOD payable at the gate. We can't wait to welcome you 🌸`;
+  return `https://wa.me/${b.phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
+}
+
+function TeamSection({
+  team,
+  onError,
+  onSaved,
+}: {
+  team: StaffUser[];
+  onError: (m: string) => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"staff" | "manager">("staff");
+  const [busy, setBusy] = useState(false);
+  const [resettingId, setResettingId] = useState<number | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+
+  async function call(url: string, method: string, body: unknown) {
+    setBusy(true);
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        onError(data?.error || "Could not update the team.");
+        return false;
+      }
+      onSaved();
+      return true;
+    } catch {
+      onError("Could not reach the server.");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="mt-10">
+      <h2 className="font-display text-2xl font-semibold">Team & access</h2>
+      <p className="mt-1 text-sm text-oasis-900/50">
+        Each person signs in with their own name and password. Staff manage
+        bookings and payments; managers also control capacity, insights and
+        this team list. Every action is recorded under their name.
+      </p>
+
+      <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-950/5">
+        <table className="w-full min-w-[640px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-sand-200 text-xs uppercase tracking-wider text-oasis-900/50">
+              <th className="px-5 py-3.5">Name</th>
+              <th className="px-5 py-3.5">Access</th>
+              <th className="px-5 py-3.5">Status</th>
+              <th className="px-5 py-3.5">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {team.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-5 py-8 text-center text-oasis-900/40">
+                  No team accounts yet — add your first below.
+                </td>
+              </tr>
+            )}
+            {team.map((u) => (
+              <tr key={u.id} className="border-b border-sand-100 last:border-0">
+                <td className="px-5 py-3 font-medium">{u.name}</td>
+                <td className="px-5 py-3">
+                  <select
+                    aria-label={`Role for ${u.name}`}
+                    value={u.role}
+                    disabled={busy}
+                    onChange={(e) =>
+                      call(`/api/admin/users/${u.id}`, "PATCH", { role: e.target.value })
+                    }
+                    className="rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-950/25"
+                  >
+                    <option value="staff">Staff — bookings & payments</option>
+                    <option value="manager">Manager — full access</option>
+                  </select>
+                </td>
+                <td className="px-5 py-3">
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      u.active ? "bg-oasis-100 text-oasis-700" : "bg-blush-100 text-blush-500"
+                    }`}
+                  >
+                    {u.active ? "Active" : "Disabled"}
+                  </span>
+                </td>
+                <td className="px-5 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      disabled={busy}
+                      onClick={() =>
+                        call(`/api/admin/users/${u.id}`, "PATCH", { active: !u.active })
+                      }
+                      className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
+                    >
+                      {u.active ? "Disable" : "Enable"}
+                    </button>
+                    {resettingId === u.id ? (
+                      <span className="flex items-center gap-1.5">
+                        <input
+                          type="password"
+                          autoFocus
+                          placeholder="New password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="w-32 rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-950/25"
+                        />
+                        <button
+                          disabled={busy || newPassword.length < 6}
+                          onClick={async () => {
+                            if (
+                              await call(`/api/admin/users/${u.id}`, "PATCH", {
+                                password: newPassword,
+                              })
+                            ) {
+                              setResettingId(null);
+                              setNewPassword("");
+                            }
+                          }}
+                          className="rounded-full bg-oasis-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => {
+                            setResettingId(null);
+                            setNewPassword("");
+                          }}
+                          className="text-xs text-oasis-900/50 hover:text-oasis-900"
+                        >
+                          Cancel
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        disabled={busy}
+                        onClick={() => setResettingId(u.id)}
+                        className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
+                      >
+                        Reset password
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (await call("/api/admin/users", "POST", { name, password, role })) {
+            setName("");
+            setPassword("");
+            setRole("staff");
+          }
+        }}
+        className="mt-4 flex flex-wrap items-end gap-3 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-oasis-950/5"
+      >
+        <div>
+          <label htmlFor="new-member-name" className="mb-1 block text-xs font-medium text-oasis-900/60">
+            Name
+          </label>
+          <input
+            id="new-member-name"
+            required
+            minLength={2}
+            maxLength={40}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Salma"
+            className="w-40 rounded-xl border border-oasis-950/10 bg-white px-3 py-2 text-sm outline-none focus:border-oasis-950/25"
+          />
+        </div>
+        <div>
+          <label htmlFor="new-member-password" className="mb-1 block text-xs font-medium text-oasis-900/60">
+            Password
+          </label>
+          <input
+            id="new-member-password"
+            type="password"
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Min 6 characters"
+            className="w-40 rounded-xl border border-oasis-950/10 bg-white px-3 py-2 text-sm outline-none focus:border-oasis-950/25"
+          />
+        </div>
+        <div>
+          <label htmlFor="new-member-role" className="mb-1 block text-xs font-medium text-oasis-900/60">
+            Access
+          </label>
+          <select
+            id="new-member-role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as "staff" | "manager")}
+            className="rounded-xl border border-oasis-950/10 bg-white px-3 py-2 text-sm outline-none focus:border-oasis-950/25"
+          >
+            <option value="staff">Staff — bookings & payments</option>
+            <option value="manager">Manager — full access</option>
+          </select>
+        </div>
+        <button
+          type="submit"
+          disabled={busy}
+          className="rounded-full bg-oasis-600 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
+        >
+          Add team member
+        </button>
+      </form>
+    </section>
+  );
+}
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
   pending: "bg-amber-100 text-amber-800",
@@ -92,7 +326,7 @@ function PaymentEditor({
           setRate(next);
           if (next === "complimentary") setPaid("0");
         }}
-        className="w-36 rounded-lg border border-oasis-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
+        className="w-36 rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
       >
         <option value="standard">Standard</option>
         <option value="discounted">Discounted</option>
@@ -107,14 +341,14 @@ function PaymentEditor({
           placeholder="—"
           value={paid}
           onChange={(e) => setPaid(e.target.value)}
-          className="w-20 rounded-lg border border-oasis-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
+          className="w-20 rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
         />
         <span className="text-xs text-oasis-900/50">JOD via</span>
         <select
           aria-label={`Account for booking ${booking.id}`}
           value={account}
           onChange={(e) => setAccount(e.target.value)}
-          className="rounded-lg border border-oasis-200 bg-white px-1.5 py-1.5 text-xs outline-none focus:border-oasis-500"
+          className="rounded-lg border border-oasis-950/10 bg-white px-1.5 py-1.5 text-xs outline-none focus:border-oasis-500"
         >
           {PAYMENT_ACCOUNTS.map((a) => (
             <option key={a} value={a}>
@@ -145,6 +379,7 @@ interface Filters {
   status: string;
   date: string;
   includePast: boolean;
+  query: string;
 }
 
 export default function AdminDashboard({
@@ -158,6 +393,7 @@ export default function AdminDashboard({
   today,
   filters,
   role,
+  team,
   showPasswordWarning,
 }: {
   bookings: Booking[];
@@ -170,6 +406,7 @@ export default function AdminDashboard({
   today: string;
   filters: Filters;
   role: "manager" | "staff";
+  team: StaffUser[];
   showPasswordWarning: boolean;
 }) {
   const router = useRouter();
@@ -178,6 +415,15 @@ export default function AdminDashboard({
   const [savingCapacity, setSavingCapacity] = useState(false);
   const [busyBooking, setBusyBooking] = useState<number | null>(null);
   const [message, setMessage] = useState("");
+  const [searchInput, setSearchInput] = useState(filters.query);
+
+  // Debounced client search → URL param → server-filtered list.
+  useEffect(() => {
+    if (searchInput === filters.query) return;
+    const timer = setTimeout(() => applyFilters({ query: searchInput }), 350);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput, filters.query]);
 
   // Another admin (or a router.refresh after an action) may have changed the
   // capacity — keep the input in step so a stale Save can't revert it.
@@ -192,12 +438,14 @@ export default function AdminDashboard({
       status: searchParams.get("status") ?? "",
       date: searchParams.get("date") ?? "",
       includePast: searchParams.get("past") === "1",
+      query: searchParams.get("q") ?? "",
     };
     const merged = { ...current, ...next };
     const query = new URLSearchParams();
     if (merged.status) query.set("status", merged.status);
     if (merged.date) query.set("date", merged.date);
     if (merged.includePast) query.set("past", "1");
+    if (merged.query) query.set("q", merged.query);
     const qs = query.toString();
     router.replace(qs ? `/admin?${qs}` : "/admin", { scroll: false });
   }
@@ -309,26 +557,26 @@ export default function AdminDashboard({
 
         {/* Stats + capacity */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
             <p className="text-sm text-oasis-900/50">Pending requests</p>
             <p className="mt-1 font-display text-4xl font-semibold">
               {pendingCount}
             </p>
           </div>
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
             <p className="text-sm text-oasis-900/50">Bookings today</p>
             <p className="mt-1 font-display text-4xl font-semibold">
               {bookingsToday}
             </p>
           </div>
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
             <p className="text-sm text-oasis-900/50">Guests today</p>
             <p className="mt-1 font-display text-4xl font-semibold">
               {guestsToday}
               <span className="text-xl text-oasis-900/40"> / {capacity}</span>
             </p>
           </div>
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
             <p className="text-sm text-oasis-900/50">Checked in today</p>
             <p className="mt-1 font-display text-4xl font-semibold text-oasis-600">
               {checkedInToday}
@@ -338,7 +586,7 @@ export default function AdminDashboard({
           {role === "manager" ? (
             <form
               onSubmit={saveCapacity}
-              className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60"
+              className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60"
             >
               <label htmlFor="capacity" className="text-sm text-oasis-900/50">
                 Daily capacity
@@ -351,7 +599,7 @@ export default function AdminDashboard({
                   max={10000}
                   value={capacityInput}
                   onChange={(e) => setCapacityInput(e.target.value)}
-                  className="w-24 rounded-xl border border-oasis-200 bg-sand-50 px-3 py-2 outline-none focus:border-oasis-500"
+                  className="w-24 rounded-xl border border-oasis-950/10 bg-white px-3 py-2 outline-none focus:border-oasis-500"
                 />
                 <button
                   type="submit"
@@ -366,7 +614,7 @@ export default function AdminDashboard({
               </p>
             </form>
           ) : (
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
               <p className="text-sm text-oasis-900/50">Daily capacity</p>
               <p className="mt-1 font-display text-4xl font-semibold">{capacity}</p>
               <p className="mt-2 text-xs text-oasis-900/40">
@@ -426,11 +674,19 @@ export default function AdminDashboard({
           <div className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="font-display text-2xl font-semibold">Bookings</h2>
             <div className="flex flex-wrap items-center gap-3 text-sm">
+              <input
+                type="search"
+                aria-label="Search bookings by name or phone"
+                placeholder="Search name or phone…"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-52 rounded-xl border border-oasis-950/10 bg-white px-3 py-2 outline-none transition focus:border-oasis-950/25 focus:ring-4 focus:ring-oasis-500/10"
+              />
               <select
                 aria-label="Filter bookings by status"
                 value={filters.status}
                 onChange={(e) => applyFilters({ status: e.target.value })}
-                className="rounded-xl border border-oasis-200 bg-white px-3 py-2 outline-none focus:border-oasis-500"
+                className="rounded-xl border border-oasis-950/10 bg-white px-3 py-2 outline-none focus:border-oasis-500"
               >
                 <option value="">All statuses</option>
                 <option value="pending">Pending</option>
@@ -442,7 +698,7 @@ export default function AdminDashboard({
                 aria-label="Filter bookings by day"
                 value={filters.date}
                 onChange={(e) => applyFilters({ date: e.target.value })}
-                className="rounded-xl border border-oasis-200 bg-white px-3 py-2 outline-none focus:border-oasis-500"
+                className="rounded-xl border border-oasis-950/10 bg-white px-3 py-2 outline-none focus:border-oasis-500"
               />
               <label className="flex items-center gap-2">
                 <input
@@ -462,7 +718,7 @@ export default function AdminDashboard({
             </p>
           )}
 
-          <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-200/60">
+          <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-950/5/60">
             <table className="w-full min-w-[1080px] text-left text-sm">
               <thead>
                 <tr className="border-b border-sand-200 text-xs uppercase tracking-wider text-oasis-900/50">
@@ -563,6 +819,16 @@ export default function AdminDashboard({
                             )}
                           </span>
                         )}
+                        {b.status === "approved" && (
+                          <a
+                            href={waLink(b)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50"
+                          >
+                            WhatsApp ↗
+                          </a>
+                        )}
                         {b.status !== "approved" && (
                           <button
                             onClick={() => setStatus(b.id, "approved")}
@@ -598,6 +864,17 @@ export default function AdminDashboard({
             </table>
           </div>
         </section>
+
+        {role === "manager" && (
+          <TeamSection
+            team={team}
+            onError={setMessage}
+            onSaved={() => {
+              setMessage("");
+              router.refresh();
+            }}
+          />
+        )}
       </main>
     </div>
   );

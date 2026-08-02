@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
         </Link>
         <form
           onSubmit={handleSubmit}
-          className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-200"
+          className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5"
         >
           <label htmlFor="name" className="mb-1.5 block text-sm font-medium">
             Your name
@@ -62,7 +62,7 @@ export default function AdminLoginPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="So we know who did what"
-            className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
+            className="w-full rounded-xl border border-oasis-950/10 bg-white px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
           />
           <label htmlFor="password" className="mb-1.5 mt-4 block text-sm font-medium">
             Password
@@ -73,7 +73,7 @@ export default function AdminLoginPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
+            className="w-full rounded-xl border border-oasis-950/10 bg-white px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
           />
           {error && (
             <p className="mt-4 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">
