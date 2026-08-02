@@ -344,7 +344,7 @@ function PaymentEditor({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-wrap items-center gap-2">
       <select
         aria-label={`Rate for booking ${booking.id}`}
         value={rate}
@@ -561,12 +561,20 @@ export default function AdminDashboard({
           </div>
           <div className="flex items-center gap-5">
             {role === "manager" && (
-              <Link
-                href="/admin/insights"
-                className="rounded-full bg-oasis-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-700"
-              >
-                Insights & accounting
-              </Link>
+              <>
+                <Link
+                  href="/admin/insights"
+                  className="rounded-full bg-oasis-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-700"
+                >
+                  Insights & accounting
+                </Link>
+                <Link
+                  href="/admin/activity"
+                  className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
+                >
+                  Activity log
+                </Link>
+              </>
             )}
             <button
               onClick={logout}
@@ -750,176 +758,170 @@ export default function AdminDashboard({
             </p>
           )}
 
-          <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
-            <table className="w-full min-w-[1220px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-zinc-200/70 text-xs uppercase tracking-wider text-zinc-500">
-                  <th className="px-5 py-4">Ref</th>
-                  <th className="px-5 py-4">Guest</th>
-                  <th className="px-5 py-4">Day</th>
-                  <th className="px-5 py-4">Guests</th>
-                  <th className="px-5 py-4">Total</th>
-                  <th className="px-5 py-4">Payment</th>
-                  <th className="px-5 py-4">Booking status</th>
-                  <th className="px-5 py-4">Guest status</th>
-                  <th className="px-5 py-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="px-5 py-12 text-center text-zinc-400">
-                      No bookings match these filters.
-                    </td>
-                  </tr>
-                )}
-                {bookings.map((b) => (
-                  <tr key={b.id} className="border-b border-zinc-100 last:border-0">
-                    <td className="px-5 py-4 font-semibold">
+          <div className="mt-4 space-y-3">
+            {bookings.length === 0 && (
+              <div className="rounded-2xl bg-white px-6 py-12 text-center text-sm text-zinc-400 shadow-sm ring-1 ring-black/5">
+                No bookings match these filters.
+              </div>
+            )}
+            {bookings.map((b) => (
+              <div
+                key={b.id}
+                className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5"
+              >
+                {/* Who + statuses */}
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-xs font-semibold text-zinc-400">
                       #{String(b.id).padStart(4, "0")}
-                    </td>
-                    <td className="px-5 py-4">
-                      <p className="font-medium">{b.name}</p>
-                      <p className="text-zinc-500">{b.phone}</p>
-                      {b.email && <p className="text-zinc-500">{b.email}</p>}
-                      {b.heard_about && (
-                        <p className="mt-1 text-xs text-zinc-400">
-                          via {b.heard_about}
-                        </p>
-                      )}
-                      {b.notes && (
-                        <p className="mt-1 max-w-60 text-xs italic text-zinc-400">
-                          “{b.notes}”
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-5 py-4">{formatDateLong(b.date)}</td>
-                    <td className="px-5 py-4">{b.guests}</td>
-                    <td className="px-5 py-4">
-                      {b.total_price} JOD
-                      <p className="text-xs text-zinc-400">
-                        {b.price_per_guest} JOD each
-                      </p>
-                      {b.rate_type !== "standard" && (
-                        <span
-                          className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${RATE_BADGES[b.rate_type]}`}
-                        >
-                          {b.rate_type}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      <PaymentEditor
-                        booking={b}
-                        onError={setMessage}
-                        onSaved={() => {
-                          setMessage("");
-                          router.refresh();
-                        }}
-                      />
-                    </td>
-                    <td className="px-5 py-4">
+                    </span>
+                    <span className="text-base font-semibold">{b.name}</span>
+                    <span className="text-sm text-zinc-500">{b.phone}</span>
+                    {b.email && (
+                      <span className="text-sm text-zinc-500">{b.email}</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[b.status]}`}
+                    >
+                      {BOOKING_STATUS_LABELS[b.status]}
+                    </span>
+                    {b.guest_status === "checked_in" ||
+                    b.guest_status === "cancelled_no_response" ? (
                       <span
-                        className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[b.status]}`}
+                        className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${GUEST_STATUS_STYLES[b.guest_status]}`}
                       >
-                        {BOOKING_STATUS_LABELS[b.status]}
+                        {GUEST_STATUS_LABELS[b.guest_status]}
                       </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      {b.guest_status === "checked_in" ||
-                      b.guest_status === "cancelled_no_response" ? (
-                        <span
-                          className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${GUEST_STATUS_STYLES[b.guest_status]}`}
-                        >
-                          {GUEST_STATUS_LABELS[b.guest_status]}
-                        </span>
-                      ) : (
-                        <select
-                          aria-label={`Guest status for booking ${b.id}`}
-                          value={b.guest_status}
+                    ) : (
+                      <select
+                        aria-label={`Guest status for booking ${b.id}`}
+                        value={b.guest_status}
+                        disabled={busyBooking === b.id}
+                        onChange={(e) =>
+                          patchBooking(b.id, { guestStatus: e.target.value })
+                        }
+                        className="rounded-full border border-oasis-950/10 bg-white px-3 py-1.5 text-xs font-medium outline-none focus:border-oasis-950/25"
+                      >
+                        {SELECTABLE_GUEST_STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {GUEST_STATUS_LABELS[s]}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+
+                {/* Booking facts */}
+                <div className="mt-3 flex flex-wrap items-baseline gap-x-8 gap-y-1.5 text-sm">
+                  <span>
+                    <span className="text-zinc-400">Day </span>
+                    <span className="font-medium">{formatDateLong(b.date)}</span>
+                  </span>
+                  <span>
+                    <span className="text-zinc-400">Guests </span>
+                    <span className="font-medium">{b.guests}</span>
+                  </span>
+                  <span>
+                    <span className="text-zinc-400">Total </span>
+                    <span className="font-medium">{b.total_price} JOD</span>{" "}
+                    <span className="text-xs text-zinc-400">
+                      ({b.price_per_guest} each)
+                    </span>
+                    {b.rate_type !== "standard" && (
+                      <span
+                        className={`ml-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${RATE_BADGES[b.rate_type]}`}
+                      >
+                        {b.rate_type}
+                      </span>
+                    )}
+                  </span>
+                  {b.heard_about && (
+                    <span className="text-xs text-zinc-400">via {b.heard_about}</span>
+                  )}
+                </div>
+                {b.notes && (
+                  <p className="mt-1.5 text-xs italic text-zinc-400">“{b.notes}”</p>
+                )}
+
+                {/* Payment + actions */}
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-zinc-100 pt-4">
+                  <PaymentEditor
+                    booking={b}
+                    onError={setMessage}
+                    onSaved={() => {
+                      setMessage("");
+                      router.refresh();
+                    }}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    {b.status === "approved" &&
+                      b.guest_status !== "checked_in" && (
+                        <button
+                          onClick={() => setCheckedIn(b.id, true)}
                           disabled={busyBooking === b.id}
-                          onChange={(e) =>
-                            patchBooking(b.id, { guestStatus: e.target.value })
-                          }
-                          className="rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-950/25"
+                          className="rounded-full bg-oasis-900 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-800 disabled:opacity-40"
                         >
-                          {SELECTABLE_GUEST_STATUSES.map((s) => (
-                            <option key={s} value={s}>
-                              {GUEST_STATUS_LABELS[s]}
-                            </option>
-                          ))}
-                        </select>
+                          Check in
+                        </button>
                       )}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        {b.status === "approved" &&
-                          b.guest_status !== "checked_in" && (
-                            <button
-                              onClick={() => setCheckedIn(b.id, true)}
-                              disabled={busyBooking === b.id}
-                              className="rounded-full bg-oasis-900 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-800 disabled:opacity-40"
-                            >
-                              Check in
-                            </button>
-                          )}
-                        {b.guest_status === "checked_in" && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-oasis-100 px-3 py-1.5 text-xs font-semibold text-oasis-700">
-                            ✓ Checked in
-                            {role === "manager" && (
-                              <button
-                                onClick={() => setCheckedIn(b.id, false)}
-                                disabled={busyBooking === b.id}
-                                className="ml-1 text-oasis-700/60 underline hover:text-oasis-700"
-                              >
-                                undo
-                              </button>
-                            )}
-                          </span>
-                        )}
-                        {b.status === "approved" && (
-                          <a
-                            href={waLink(b)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50"
-                          >
-                            WhatsApp ↗
-                          </a>
-                        )}
-                        {b.status !== "approved" && (
+                    {b.guest_status === "checked_in" && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-oasis-100 px-3 py-1.5 text-xs font-semibold text-oasis-700">
+                        ✓ Checked in
+                        {role === "manager" && (
                           <button
-                            onClick={() => setStatus(b.id, "approved")}
+                            onClick={() => setCheckedIn(b.id, false)}
                             disabled={busyBooking === b.id}
-                            className="rounded-full bg-oasis-600 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
+                            className="ml-1 text-oasis-700/60 underline hover:text-oasis-700"
                           >
-                            Approve
+                            undo
                           </button>
                         )}
-                        {b.status !== "rejected" && (
-                          <button
-                            onClick={() => setStatus(b.id, "rejected")}
-                            disabled={busyBooking === b.id}
-                            className="rounded-full border border-blush-300 px-4 py-1.5 text-xs font-medium text-blush-500 transition hover:bg-blush-100 disabled:opacity-40"
-                          >
-                            Reject
-                          </button>
-                        )}
-                        {b.status !== "pending" && (
-                          <button
-                            onClick={() => setStatus(b.id, "pending")}
-                            disabled={busyBooking === b.id}
-                            className="rounded-full border border-oasis-200 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
-                          >
-                            Reset
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </span>
+                    )}
+                    {b.status === "approved" && (
+                      <a
+                        href={waLink(b)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50"
+                      >
+                        WhatsApp ↗
+                      </a>
+                    )}
+                    {b.status !== "approved" && (
+                      <button
+                        onClick={() => setStatus(b.id, "approved")}
+                        disabled={busyBooking === b.id}
+                        className="rounded-full bg-oasis-600 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
+                      >
+                        Approve
+                      </button>
+                    )}
+                    {b.status !== "rejected" && (
+                      <button
+                        onClick={() => setStatus(b.id, "rejected")}
+                        disabled={busyBooking === b.id}
+                        className="rounded-full border border-blush-300 px-4 py-1.5 text-xs font-medium text-blush-500 transition hover:bg-blush-100 disabled:opacity-40"
+                      >
+                        Reject
+                      </button>
+                    )}
+                    {b.status !== "pending" && (
+                      <button
+                        onClick={() => setStatus(b.id, "pending")}
+                        disabled={busyBooking === b.id}
+                        className="rounded-full border border-oasis-200 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 

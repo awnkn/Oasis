@@ -282,7 +282,14 @@ export default async function InsightsPage() {
   }));
   const accountMax = Math.max(1, ...accountTotals.map((a) => a.total));
 
+  const todayRow = past[past.length - 1];
   const kpis: { label: string; value: string | number; sub?: string }[] = [
+    { label: "Total collected today", value: `${todayRow?.collected ?? 0} JOD` },
+    {
+      label: "Total bookings today",
+      value: todayRow?.bookings ?? 0,
+      sub: "excluding rejected",
+    },
     { label: "Collected · last 30 days", value: `${sum(past, "collected")} JOD` },
     { label: "Approved revenue · last 30 days", value: `${sum(past, "expectedRevenue")} JOD` },
     { label: "Guests · last 30 days", value: sum(past, "guests") },
