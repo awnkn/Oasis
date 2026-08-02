@@ -11,7 +11,9 @@ import {
   occupancySummary,
   sweepNoResponse,
   type BookingStatus,
+  type GuestStatus,
 } from "@/lib/bookings";
+import { GUEST_STATUSES } from "@/lib/config";
 import { isValidDateString, today } from "@/lib/dates";
 import { getDb } from "@/lib/db";
 import { listUsers } from "@/lib/users";
@@ -22,6 +24,7 @@ export const metadata = { title: "Admin" };
 
 interface SearchParams {
   status?: string;
+  gs?: string;
   date?: string;
   past?: string;
   q?: string;
@@ -42,6 +45,9 @@ export default async function AdminPage({
   const status = BOOKING_STATUSES.includes(params.status as BookingStatus)
     ? (params.status as BookingStatus)
     : undefined;
+  const guestStatus = GUEST_STATUSES.includes(params.gs as GuestStatus)
+    ? (params.gs as GuestStatus)
+    : undefined;
   const date =
     params.date && isValidDateString(params.date) ? params.date : undefined;
   const includePast = params.past === "1";
@@ -50,7 +56,7 @@ export default async function AdminPage({
       ? params.q.trim().slice(0, 60)
       : undefined;
 
-  const bookings = listBookings({ status, date, includePast, query });
+  const bookings = listBookings({ status, guestStatus, date, includePast, query });
   const todayStr = today();
 
   const pendingRow = getDb()
@@ -69,7 +75,13 @@ export default async function AdminPage({
       bookingsToday={bookingsTodayCount()}
       checkedInToday={checkedInGuestsToday()}
       today={todayStr}
-      filters={{ status: status ?? "", date: date ?? "", includePast, query: query ?? "" }}
+      filters={{
+        status: status ?? "",
+        guestStatus: guestStatus ?? "",
+        date: date ?? "",
+        includePast,
+        query: query ?? "",
+      }}
       role={role}
       team={role === "manager" ? listUsers() : []}
       showPasswordWarning={
