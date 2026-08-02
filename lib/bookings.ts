@@ -2,10 +2,15 @@ import { getDb } from "./db";
 import {
   DEFAULT_DAILY_CAPACITY,
   GUEST_PAYMENT_METHODS,
+  GUEST_STATUSES,
   HEARD_ABOUT_OPTIONS,
   MAX_ADVANCE_DAYS,
+  NO_RESPONSE_CANCEL_HOURS,
   PAYMENT_ACCOUNTS,
+  type GuestStatus,
 } from "./config";
+
+export type { GuestStatus };
 import { addDays, isValidDateString, priceForDate, today } from "./dates";
 
 export type BookingStatus = "pending" | "approved" | "rejected";
@@ -39,10 +44,15 @@ export interface Booking {
   paid_account: string | null;
   payment_method: string | null;
   heard_about: string | null;
+  guest_status: GuestStatus;
+  guest_status_at: string | null;
   checked_in_at: string | null;
   notes: string | null;
   created_at: string;
 }
+
+/** Guest statuses that release the booking's spots back to the day. */
+const RELEASING_GUEST_STATUSES = "('cancelled', 'cancelled_no_response')";
 
 // ---------- audit log (append-only, by design never updated/deleted) ----------
 
@@ -150,15 +160,57 @@ export function checkedInGuestsToday(): number {
 
 // ---------- availability ----------
 
-/** Guests already counted against capacity: pending + approved bookings. */
+/**
+ * Guests counted against capacity: pending + approved bookings whose guest
+ * hasn't cancelled.
+ */
 export function bookedGuestsOn(date: string): number {
   const row = getDb()
     .prepare(
       `SELECT COALESCE(SUM(guests), 0) AS total FROM bookings
-       WHERE date = ? AND status IN ('pending', 'approved')`
+       WHERE date = ? AND status IN ('pending', 'approved')
+         AND guest_status NOT IN ${RELEASING_GUEST_STATUSES}`
     )
     .get(date) as { total: number };
   return row.total;
+}
+
+/**
+ * Auto-cancel bookings left at "No response" for more than
+ * NO_RESPONSE_CANCEL_HOURS. Cheap and idempotent — called from the pages
+ * and endpoints that read booking data.
+ */
+export function sweepNoResponse(): void {
+  const db = getDb();
+  const stale = db
+    .prepare(
+      `SELECT id, name, date FROM bookings
+       WHERE guest_status = 'no_response' AND guest_status_at IS NOT NULL
+         AND guest_status_at <= datetime('now', ?)`
+    )
+    .all(`-${NO_RESPONSE_CANCEL_HOURS} hours`) as {
+    id: number;
+    name: string;
+    date: string;
+  }[];
+  if (stale.length === 0) return;
+
+  const cancel = db.prepare(
+    `UPDATE bookings SET guest_status = 'cancelled_no_response',
+       guest_status_at = datetime('now') WHERE id = ?`
+  );
+  const run = db.transaction(() => {
+    for (const b of stale) {
+      cancel.run(b.id);
+      logAction(
+        { name: "System", role: "system" },
+        "guest_status",
+        `Booking #${b.id} (${b.name}, ${b.date}): auto-cancelled after ${NO_RESPONSE_CANCEL_HOURS}h with no response`,
+        b.id
+      );
+    }
+  });
+  run();
 }
 
 export function remainingOn(date: string): number {
@@ -201,14 +253,13 @@ export function createBooking(input: NewBookingInput): CreateResult {
   if (input.termsAccepted !== true) {
     return { ok: false, error: "Please accept the booking terms to continue." };
   }
+  // Guests no longer choose a payment method; staff record the account
+  // when money is collected. Accepted if sent (older clients), else null.
   const paymentMethod =
     typeof input.paymentMethod === "string" &&
     (GUEST_PAYMENT_METHODS as readonly string[]).includes(input.paymentMethod)
       ? input.paymentMethod
       : null;
-  if (!paymentMethod) {
-    return { ok: false, error: "Please choose how you plan to pay." };
-  }
   if (!isValidDateString(date)) {
     return { ok: false, error: "Please choose a valid date." };
   }
@@ -227,6 +278,7 @@ export function createBooking(input: NewBookingInput): CreateResult {
     return { ok: false, error: "Please enter how many guests are coming." };
   }
 
+  sweepNoResponse();
   const db = getDb();
   const insert = db.transaction((): CreateResult => {
     const remaining = remainingOn(date);
@@ -351,42 +403,61 @@ export type CheckInResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "invalid"; message: string };
 
-export function setCheckedIn(
+export function updateGuestStatus(
   id: number,
-  checkedIn: boolean,
+  guestStatus: GuestStatus,
   actor: Actor
 ): CheckInResult {
+  if (
+    !GUEST_STATUSES.includes(guestStatus) ||
+    guestStatus === "cancelled_no_response" // system-only, via the sweep
+  ) {
+    return { ok: false, reason: "invalid", message: "Unknown guest status." };
+  }
   const db = getDb();
   const update = db.transaction((): CheckInResult => {
     const booking = getBooking(id);
     if (!booking) {
       return { ok: false, reason: "not_found", message: "Booking not found." };
     }
-    if (checkedIn && booking.status !== "approved") {
+    if (guestStatus === "checked_in" && booking.status !== "approved") {
       return {
         ok: false,
         reason: "invalid",
         message: "Approve the booking before checking guests in.",
       };
     }
-    if (checkedIn === (booking.checked_in_at !== null)) return { ok: true };
+    if (booking.guest_status === guestStatus) return { ok: true };
 
+    // checked_in_at stays in lockstep with the checked_in status.
+    const checkedInSql =
+      guestStatus === "checked_in"
+        ? ", checked_in_at = datetime('now')"
+        : booking.guest_status === "checked_in"
+          ? ", checked_in_at = NULL"
+          : "";
     db.prepare(
-      "UPDATE bookings SET checked_in_at = " +
-        (checkedIn ? "datetime('now')" : "NULL") +
-        " WHERE id = ?"
-    ).run(id);
+      `UPDATE bookings SET guest_status = ?, guest_status_at = datetime('now')${checkedInSql} WHERE id = ?`
+    ).run(guestStatus, id);
     logAction(
       actor,
-      "check_in",
-      checkedIn
+      guestStatus === "checked_in" ? "check_in" : "guest_status",
+      guestStatus === "checked_in"
         ? `Checked in booking #${id} (${booking.name}, ${booking.guests} guests, ${booking.date})`
-        : `Undid check-in for booking #${id} (${booking.name}, ${booking.date})`,
+        : `Booking #${id} (${booking.name}, ${booking.date}): guest status ${booking.guest_status} → ${guestStatus}`,
       id
     );
     return { ok: true };
   });
   return update();
+}
+
+export function setCheckedIn(
+  id: number,
+  checkedIn: boolean,
+  actor: Actor
+): CheckInResult {
+  return updateGuestStatus(id, checkedIn ? "checked_in" : "confirmed", actor);
 }
 
 export interface PaymentUpdate {
@@ -498,8 +569,12 @@ export function accountingRows(
     .prepare(
       `SELECT date,
          SUM(CASE WHEN status != 'rejected' THEN 1 ELSE 0 END) AS bookings,
-         SUM(CASE WHEN status IN ('pending','approved') THEN guests ELSE 0 END) AS guests,
-         SUM(CASE WHEN status = 'approved' THEN total_price ELSE 0 END) AS expectedRevenue,
+         SUM(CASE WHEN status IN ('pending','approved')
+                   AND guest_status NOT IN ${RELEASING_GUEST_STATUSES}
+             THEN guests ELSE 0 END) AS guests,
+         SUM(CASE WHEN status = 'approved'
+                   AND guest_status NOT IN ${RELEASING_GUEST_STATUSES}
+             THEN total_price ELSE 0 END) AS expectedRevenue,
          COALESCE(SUM(paid_amount), 0) AS collected
        FROM bookings WHERE date >= ? AND date <= ? GROUP BY date`
     )
@@ -575,6 +650,74 @@ export function getInsights(): InsightsData {
   return { past, upcoming, statusCounts, heardAbout };
 }
 
+// ---------- guest journey reports (for partners) ----------
+
+export interface JourneyRow {
+  period: string;
+  total: number;
+  rejected: number;
+  counts: Record<GuestStatus, number>;
+  checkedInGuests: number;
+}
+
+/**
+ * Bookings per period (by visit date) broken down by guest status.
+ * unit: "day" | "week" | "month".
+ */
+export function guestJourney(
+  unit: "day" | "week" | "month",
+  periods: number
+): JourneyRow[] {
+  const todayStr = today();
+  const start =
+    unit === "day"
+      ? addDays(todayStr, -(periods - 1))
+      : unit === "week"
+        ? addDays(todayStr, -(periods * 7 - 1))
+        : `${todayStr.slice(0, 7)}-01`.replace(
+            /^(\d{4})-(\d{2})/,
+            (_, y, m) => {
+              const total = Number(y) * 12 + (Number(m) - 1) - (periods - 1);
+              const yy = Math.floor(total / 12);
+              const mm = total - yy * 12 + 1;
+              return `${yy}-${String(mm).padStart(2, "0")}`;
+            }
+          );
+
+  const expr =
+    unit === "day"
+      ? "date"
+      : unit === "week"
+        ? "strftime('%Y-W%W', date)"
+        : "strftime('%Y-%m', date)";
+
+  const statusSums = GUEST_STATUSES.map(
+    (s) => `SUM(guest_status = '${s}') AS "${s}"`
+  ).join(", ");
+
+  const rows = getDb()
+    .prepare(
+      `SELECT ${expr} AS period,
+         COUNT(*) AS total,
+         SUM(status = 'rejected') AS rejected,
+         ${statusSums},
+         SUM(CASE WHEN guest_status = 'checked_in' THEN guests ELSE 0 END) AS checkedInGuests
+       FROM bookings WHERE date >= ? AND date <= ?
+       GROUP BY period ORDER BY period DESC`
+    )
+    .all(start, todayStr) as (Record<string, number> & { period: string })[];
+
+  return rows.map((r) => ({
+    period: String(r.period),
+    total: r.total,
+    rejected: r.rejected,
+    counts: Object.fromEntries(
+      GUEST_STATUSES.map((s) => [s, r[s] ?? 0])
+    ) as Record<GuestStatus, number>,
+    checkedInGuests: r.checkedInGuests,
+  }));
+}
+
 // ---------- admin overview ----------
 
 export interface DaySummary {
@@ -593,6 +736,7 @@ export function occupancySummary(days: number): DaySummary[] {
     .prepare(
       `SELECT date, COALESCE(SUM(guests), 0) AS booked FROM bookings
        WHERE date >= ? AND date <= ? AND status IN ('pending', 'approved')
+         AND guest_status NOT IN ${RELEASING_GUEST_STATUSES}
        GROUP BY date`
     )
     .all(start, addDays(start, days - 1)) as { date: string; booked: number }[];

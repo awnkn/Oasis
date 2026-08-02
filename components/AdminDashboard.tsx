@@ -7,10 +7,37 @@ import type {
   Booking,
   BookingStatus,
   DaySummary,
+  GuestStatus,
   RateType,
 } from "@/lib/bookings";
 import { formatDateLong, formatDateShort } from "@/lib/dates";
-import { CLUB_NAME, PAYMENT_ACCOUNTS } from "@/lib/config";
+import {
+  CLUB_NAME,
+  GUEST_STATUS_LABELS,
+  PAYMENT_ACCOUNTS,
+} from "@/lib/config";
+
+const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
+  pending: "Pending",
+  approved: "Booking approved",
+  rejected: "Rejected",
+};
+
+// Staff-selectable guest statuses ("checked in" via the button,
+// "cancelled — no response" only via the automatic 24h sweep).
+const SELECTABLE_GUEST_STATUSES: GuestStatus[] = [
+  "open",
+  "contacted",
+  "no_response",
+  "confirmed",
+  "cancelled",
+];
+
+const GUEST_STATUS_STYLES: Partial<Record<GuestStatus, string>> = {
+  checked_in: "bg-oasis-100 text-oasis-700",
+  cancelled: "bg-blush-100 text-blush-500",
+  cancelled_no_response: "bg-blush-100 text-blush-500",
+};
 import type { StaffUser } from "@/lib/users";
 
 /** Pre-filled WhatsApp confirmation staff can send with one tap. */
@@ -64,8 +91,8 @@ function TeamSection({
 
   return (
     <section className="mt-10">
-      <h2 className="font-display text-2xl font-semibold">Team & access</h2>
-      <p className="mt-1 text-sm text-oasis-900/50">
+      <h2 className="text-lg font-semibold tracking-tight">Team & access</h2>
+      <p className="mt-1 text-sm text-zinc-500">
         Each person signs in with their own name and password. Staff manage
         bookings and payments; managers also control capacity, insights and
         this team list. Every action is recorded under their name.
@@ -74,7 +101,7 @@ function TeamSection({
       <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-950/5">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr className="border-b border-sand-200 text-xs uppercase tracking-wider text-oasis-900/50">
+            <tr className="border-b border-zinc-200/70 text-xs uppercase tracking-wider text-zinc-500">
               <th className="px-5 py-3.5">Name</th>
               <th className="px-5 py-3.5">Access</th>
               <th className="px-5 py-3.5">Status</th>
@@ -84,13 +111,13 @@ function TeamSection({
           <tbody>
             {team.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-5 py-8 text-center text-oasis-900/40">
+                <td colSpan={4} className="px-5 py-8 text-center text-zinc-400">
                   No team accounts yet — add your first below.
                 </td>
               </tr>
             )}
             {team.map((u) => (
-              <tr key={u.id} className="border-b border-sand-100 last:border-0">
+              <tr key={u.id} className="border-b border-zinc-100 last:border-0">
                 <td className="px-5 py-3 font-medium">{u.name}</td>
                 <td className="px-5 py-3">
                   <select
@@ -157,7 +184,7 @@ function TeamSection({
                             setResettingId(null);
                             setNewPassword("");
                           }}
-                          className="text-xs text-oasis-900/50 hover:text-oasis-900"
+                          className="text-xs text-zinc-500 hover:text-oasis-900"
                         >
                           Cancel
                         </button>
@@ -191,7 +218,7 @@ function TeamSection({
         className="mt-4 flex flex-wrap items-end gap-3 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-oasis-950/5"
       >
         <div>
-          <label htmlFor="new-member-name" className="mb-1 block text-xs font-medium text-oasis-900/60">
+          <label htmlFor="new-member-name" className="mb-1 block text-xs font-medium text-zinc-500">
             Name
           </label>
           <input
@@ -206,7 +233,7 @@ function TeamSection({
           />
         </div>
         <div>
-          <label htmlFor="new-member-password" className="mb-1 block text-xs font-medium text-oasis-900/60">
+          <label htmlFor="new-member-password" className="mb-1 block text-xs font-medium text-zinc-500">
             Password
           </label>
           <input
@@ -221,7 +248,7 @@ function TeamSection({
           />
         </div>
         <div>
-          <label htmlFor="new-member-role" className="mb-1 block text-xs font-medium text-oasis-900/60">
+          <label htmlFor="new-member-role" className="mb-1 block text-xs font-medium text-zinc-500">
             Access
           </label>
           <select
@@ -343,7 +370,7 @@ function PaymentEditor({
           onChange={(e) => setPaid(e.target.value)}
           className="w-20 rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
         />
-        <span className="text-xs text-oasis-900/50">JOD via</span>
+        <span className="text-xs text-zinc-500">JOD via</span>
         <select
           aria-label={`Account for booking ${booking.id}`}
           value={account}
@@ -358,7 +385,7 @@ function PaymentEditor({
         </select>
       </div>
       {booking.payment_method && (
-        <p className="text-xs text-oasis-900/40">
+        <p className="text-xs text-zinc-400">
           Guest chose {booking.payment_method}
         </p>
       )}
@@ -515,12 +542,12 @@ export default function AdminDashboard({
   }
 
   return (
-    <div className="min-h-screen bg-sand-50 pb-20">
+    <div className="min-h-screen bg-zinc-50 pb-20">
       {/* Top bar */}
-      <header className="border-b border-sand-200 bg-white">
+      <header className="border-b border-zinc-200/70 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <Link href="/" className="font-display text-xl font-semibold">
+            <Link href="/" className="text-base font-semibold tracking-tight">
               Oasis
             </Link>
             <span className="rounded-full bg-oasis-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-oasis-700">
@@ -557,38 +584,38 @@ export default function AdminDashboard({
 
         {/* Stats + capacity */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
-            <p className="text-sm text-oasis-900/50">Pending requests</p>
-            <p className="mt-1 font-display text-4xl font-semibold">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <p className="text-sm text-zinc-500">Pending requests</p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight">
               {pendingCount}
             </p>
           </div>
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
-            <p className="text-sm text-oasis-900/50">Bookings today</p>
-            <p className="mt-1 font-display text-4xl font-semibold">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <p className="text-sm text-zinc-500">Bookings today</p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight">
               {bookingsToday}
             </p>
           </div>
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
-            <p className="text-sm text-oasis-900/50">Guests today</p>
-            <p className="mt-1 font-display text-4xl font-semibold">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <p className="text-sm text-zinc-500">Guests today</p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight">
               {guestsToday}
-              <span className="text-xl text-oasis-900/40"> / {capacity}</span>
+              <span className="text-xl text-zinc-400"> / {capacity}</span>
             </p>
           </div>
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
-            <p className="text-sm text-oasis-900/50">Checked in today</p>
-            <p className="mt-1 font-display text-4xl font-semibold text-oasis-600">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <p className="text-sm text-zinc-500">Checked in today</p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight text-oasis-600">
               {checkedInToday}
-              <span className="text-xl text-oasis-900/40"> / {guestsToday}</span>
+              <span className="text-xl text-zinc-400"> / {guestsToday}</span>
             </p>
           </div>
           {role === "manager" ? (
             <form
               onSubmit={saveCapacity}
-              className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60"
+              className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5"
             >
-              <label htmlFor="capacity" className="text-sm text-oasis-900/50">
+              <label htmlFor="capacity" className="text-sm text-zinc-500">
                 Daily capacity
               </label>
               <div className="mt-2 flex gap-2">
@@ -609,15 +636,15 @@ export default function AdminDashboard({
                   {savingCapacity ? "Saving…" : "Save"}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-oasis-900/40">
+              <p className="mt-2 text-xs text-zinc-400">
                 Applies to every day. Lower it to limit guests.
               </p>
             </form>
           ) : (
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
-              <p className="text-sm text-oasis-900/50">Daily capacity</p>
-              <p className="mt-1 font-display text-4xl font-semibold">{capacity}</p>
-              <p className="mt-2 text-xs text-oasis-900/40">
+            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+              <p className="text-sm text-zinc-500">Daily capacity</p>
+              <p className="mt-1 text-3xl font-semibold tracking-tight">{capacity}</p>
+              <p className="mt-2 text-xs text-zinc-400">
                 Set by the manager.
               </p>
             </div>
@@ -626,7 +653,7 @@ export default function AdminDashboard({
 
         {/* Next 14 days */}
         <section className="mt-10">
-          <h2 className="font-display text-2xl font-semibold">Next 14 days</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Next 14 days</h2>
           <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
             {summary.map((day) => {
               const full = day.remaining <= 0;
@@ -646,7 +673,7 @@ export default function AdminDashboard({
                   <p className="text-xs font-semibold uppercase tracking-wide opacity-60">
                     {day.date === today ? "Today" : formatDateShort(day.date)}
                   </p>
-                  <p className="mt-2 font-display text-2xl font-semibold">
+                  <p className="mt-2 text-lg font-semibold tracking-tight">
                     {day.booked}
                     <span className="text-sm opacity-50"> / {day.capacity}</span>
                   </p>
@@ -672,7 +699,7 @@ export default function AdminDashboard({
         {/* Bookings */}
         <section className="mt-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="font-display text-2xl font-semibold">Bookings</h2>
+            <h2 className="text-lg font-semibold tracking-tight">Bookings</h2>
             <div className="flex flex-wrap items-center gap-3 text-sm">
               <input
                 type="search"
@@ -718,44 +745,45 @@ export default function AdminDashboard({
             </p>
           )}
 
-          <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-950/5/60">
-            <table className="w-full min-w-[1080px] text-left text-sm">
+          <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+            <table className="w-full min-w-[1220px] text-left text-sm">
               <thead>
-                <tr className="border-b border-sand-200 text-xs uppercase tracking-wider text-oasis-900/50">
+                <tr className="border-b border-zinc-200/70 text-xs uppercase tracking-wider text-zinc-500">
                   <th className="px-5 py-4">Ref</th>
                   <th className="px-5 py-4">Guest</th>
                   <th className="px-5 py-4">Day</th>
                   <th className="px-5 py-4">Guests</th>
                   <th className="px-5 py-4">Total</th>
                   <th className="px-5 py-4">Payment</th>
-                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4">Booking status</th>
+                  <th className="px-5 py-4">Guest status</th>
                   <th className="px-5 py-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {bookings.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-5 py-12 text-center text-oasis-900/40">
+                    <td colSpan={9} className="px-5 py-12 text-center text-zinc-400">
                       No bookings match these filters.
                     </td>
                   </tr>
                 )}
                 {bookings.map((b) => (
-                  <tr key={b.id} className="border-b border-sand-100 last:border-0">
+                  <tr key={b.id} className="border-b border-zinc-100 last:border-0">
                     <td className="px-5 py-4 font-semibold">
                       #{String(b.id).padStart(4, "0")}
                     </td>
                     <td className="px-5 py-4">
                       <p className="font-medium">{b.name}</p>
-                      <p className="text-oasis-900/50">{b.phone}</p>
-                      {b.email && <p className="text-oasis-900/50">{b.email}</p>}
+                      <p className="text-zinc-500">{b.phone}</p>
+                      {b.email && <p className="text-zinc-500">{b.email}</p>}
                       {b.heard_about && (
-                        <p className="mt-1 text-xs text-oasis-900/40">
+                        <p className="mt-1 text-xs text-zinc-400">
                           via {b.heard_about}
                         </p>
                       )}
                       {b.notes && (
-                        <p className="mt-1 max-w-60 text-xs italic text-oasis-900/40">
+                        <p className="mt-1 max-w-60 text-xs italic text-zinc-400">
                           “{b.notes}”
                         </p>
                       )}
@@ -764,7 +792,7 @@ export default function AdminDashboard({
                     <td className="px-5 py-4">{b.guests}</td>
                     <td className="px-5 py-4">
                       {b.total_price} JOD
-                      <p className="text-xs text-oasis-900/40">
+                      <p className="text-xs text-zinc-400">
                         {b.price_per_guest} JOD each
                       </p>
                       {b.rate_type !== "standard" && (
@@ -787,16 +815,41 @@ export default function AdminDashboard({
                     </td>
                     <td className="px-5 py-4">
                       <span
-                        className={`inline-block rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[b.status]}`}
+                        className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[b.status]}`}
                       >
-                        {b.status}
+                        {BOOKING_STATUS_LABELS[b.status]}
                       </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      {b.guest_status === "checked_in" ||
+                      b.guest_status === "cancelled_no_response" ? (
+                        <span
+                          className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${GUEST_STATUS_STYLES[b.guest_status]}`}
+                        >
+                          {GUEST_STATUS_LABELS[b.guest_status]}
+                        </span>
+                      ) : (
+                        <select
+                          aria-label={`Guest status for booking ${b.id}`}
+                          value={b.guest_status}
+                          disabled={busyBooking === b.id}
+                          onChange={(e) =>
+                            patchBooking(b.id, { guestStatus: e.target.value })
+                          }
+                          className="rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-950/25"
+                        >
+                          {SELECTABLE_GUEST_STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                              {GUEST_STATUS_LABELS[s]}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-2">
                         {b.status === "approved" &&
-                          !b.checked_in_at &&
-                          b.date <= today && (
+                          b.guest_status !== "checked_in" && (
                             <button
                               onClick={() => setCheckedIn(b.id, true)}
                               disabled={busyBooking === b.id}
@@ -805,7 +858,7 @@ export default function AdminDashboard({
                               Check in
                             </button>
                           )}
-                        {b.checked_in_at && (
+                        {b.guest_status === "checked_in" && (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-oasis-100 px-3 py-1.5 text-xs font-semibold text-oasis-700">
                             ✓ Checked in
                             {role === "manager" && (

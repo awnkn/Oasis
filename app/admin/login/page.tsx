@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         <Link
           href="/"
-          className="mb-8 block text-center font-display text-3xl font-semibold"
+          className="mb-8 block text-center text-2xl font-semibold tracking-tight"
         >
           Oasis <span className="text-oasis-500">·</span>{" "}
           <span className="text-oasis-600">Admin</span>
@@ -88,7 +88,7 @@ export default function AdminLoginPage() {
             {submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-oasis-900/50">
+        <p className="mt-6 text-center text-sm text-zinc-500">
           <Link href="/" className="hover:text-oasis-600">
             ← Back to the website
           </Link>

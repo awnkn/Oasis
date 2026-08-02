@@ -39,6 +39,33 @@ export const HEARD_ABOUT_OPTIONS = [
   "Other",
 ] as const;
 
+// Guest relationship statuses (separate from booking approval).
+// "cancelled_no_response" is set automatically by the 24-hour sweep.
+export const GUEST_STATUSES = [
+  "open",
+  "contacted",
+  "no_response",
+  "confirmed",
+  "checked_in",
+  "cancelled",
+  "cancelled_no_response",
+] as const;
+
+export type GuestStatus = (typeof GUEST_STATUSES)[number];
+
+export const GUEST_STATUS_LABELS: Record<GuestStatus, string> = {
+  open: "Open",
+  contacted: "Contacted",
+  no_response: "No response",
+  confirmed: "Confirmed",
+  checked_in: "Checked in",
+  cancelled: "Cancelled",
+  cancelled_no_response: "Cancelled — no response",
+};
+
+// How long a booking may sit at "No response" before it auto-cancels.
+export const NO_RESPONSE_CANCEL_HOURS = 24;
+
 // The three accounts collected money is recorded under (admin side).
 export const PAYMENT_ACCOUNTS = ["Cash", "CliQ", "Visa"] as const;
 

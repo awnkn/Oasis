@@ -21,6 +21,8 @@ const SCHEMA = `
     paid_account TEXT,
     payment_method TEXT,
     heard_about TEXT,
+    guest_status TEXT NOT NULL DEFAULT 'open',
+    guest_status_at TEXT,
     checked_in_at TEXT,
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -92,6 +94,18 @@ function createDatabase(): Database.Database {
   }
   if (!columns.includes("payment_method")) {
     db.exec("ALTER TABLE bookings ADD COLUMN payment_method TEXT");
+  }
+  if (!columns.includes("guest_status")) {
+    db.exec(
+      "ALTER TABLE bookings ADD COLUMN guest_status TEXT NOT NULL DEFAULT 'open'"
+    );
+    // Bookings checked in before this column existed stay coherent.
+    db.exec(
+      "UPDATE bookings SET guest_status = 'checked_in' WHERE checked_in_at IS NOT NULL"
+    );
+  }
+  if (!columns.includes("guest_status_at")) {
+    db.exec("ALTER TABLE bookings ADD COLUMN guest_status_at TEXT");
   }
 
   db.prepare(
