@@ -330,9 +330,17 @@ export default async function InsightsPage() {
               Insights
             </span>
           </div>
-          <Link href="/admin" className="text-sm font-medium text-oasis-800 hover:text-oasis-600">
-            ← Back to dashboard
-          </Link>
+          <div className="flex items-center gap-4">
+            <a
+              href="/api/admin/backup"
+              className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
+            >
+              Download backup
+            </a>
+            <Link href="/admin" className="text-sm font-medium text-oasis-800 hover:text-oasis-600">
+              ← Back to dashboard
+            </Link>
+          </div>
         </div>
       </header>
 
