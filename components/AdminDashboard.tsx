@@ -282,6 +282,155 @@ const STATUS_STYLES: Record<BookingStatus, string> = {
   rejected: "bg-blush-100 text-blush-500",
 };
 
+// Dot colours for the grouped-by-status view.
+const GUEST_STATUS_DOTS: Record<GuestStatus, string> = {
+  open: "bg-zinc-400",
+  contacted: "bg-sky-500",
+  no_response: "bg-amber-500",
+  confirmed: "bg-oasis-500",
+  checked_in: "bg-oasis-600",
+  cancelled: "bg-blush-400",
+  cancelled_no_response: "bg-blush-400",
+};
+
+/** The same bookings, grouped by guest status, each group collapsible. */
+function BookingsByStatus({
+  bookings,
+  onEdit,
+}: {
+  bookings: Booking[];
+  onEdit: (b: Booking) => void;
+}) {
+  const [openGroups, setOpenGroups] = useState<Partial<Record<GuestStatus, boolean>>>({});
+
+  const groups = (Object.keys(GUEST_STATUS_LABELS) as GuestStatus[]).map((s) => ({
+    status: s,
+    items: bookings.filter((b) => b.guest_status === s),
+  }));
+
+  return (
+    <section className="mt-10">
+      <h2 className="text-lg font-semibold tracking-tight">Bookings by status</h2>
+      <p className="mt-1 text-sm text-zinc-500">
+        The same bookings as above, grouped by guest status. Click a status to
+        open it — the filters and search up there apply here too.
+      </p>
+
+      <div className="mt-4 space-y-2">
+        {groups.map(({ status, items }) => {
+          const guests = items.reduce((sum, b) => sum + b.guests, 0);
+          const isOpen = openGroups[status] === true && items.length > 0;
+          return (
+            <div
+              key={status}
+              className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5"
+            >
+              <button
+                onClick={() =>
+                  setOpenGroups((g) => ({ ...g, [status]: !g[status] }))
+                }
+                disabled={items.length === 0}
+                aria-expanded={isOpen}
+                className="flex w-full items-center justify-between px-5 py-3.5 text-left transition enabled:hover:bg-zinc-50 disabled:cursor-default"
+              >
+                <span className="flex items-center gap-2.5">
+                  <span
+                    className={`h-2 w-2 rounded-full ${GUEST_STATUS_DOTS[status]}`}
+                  />
+                  <span className="text-sm font-semibold">
+                    {GUEST_STATUS_LABELS[status]}
+                  </span>
+                  <span className="text-sm text-zinc-400">
+                    {items.length === 0
+                      ? "none"
+                      : `${items.length} ${items.length === 1 ? "booking" : "bookings"} · ${guests} ${guests === 1 ? "guest" : "guests"}`}
+                  </span>
+                </span>
+                {items.length > 0 && (
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden
+                    className={`shrink-0 text-zinc-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                  >
+                    <path
+                      d="M6 9l6 6 6-6"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </button>
+
+              {isOpen && (
+                <ul className="border-t border-zinc-100">
+                  {items.map((b) => {
+                    const pending =
+                      b.rate_type === "complimentary"
+                        ? 0
+                        : Math.max(0, b.total_price - (b.paid_amount ?? 0));
+                    return (
+                      <li
+                        key={b.id}
+                        className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-zinc-100 px-5 py-3 text-sm last:border-0"
+                      >
+                        <span className="w-32 shrink-0">
+                          <span className="block truncate font-medium">{b.name}</span>
+                          <span className="text-xs text-zinc-400">
+                            #{String(b.id).padStart(4, "0")}
+                          </span>
+                        </span>
+                        <span
+                          className="w-20 shrink-0 whitespace-nowrap text-zinc-600"
+                          title={formatDateLong(b.date)}
+                        >
+                          {formatDateShort(b.date)}
+                        </span>
+                        <span className="w-16 shrink-0 text-zinc-600">
+                          {b.guest_status === "checked_in"
+                            ? `${b.checked_in_count}/${b.guests} in`
+                            : `${b.guests} ${b.guests === 1 ? "guest" : "guests"}`}
+                        </span>
+                        <span className="w-24 shrink-0">
+                          <span className="font-semibold text-oasis-600">
+                            {b.paid_amount ?? 0} JOD
+                          </span>{" "}
+                          <span className="text-xs text-zinc-400">paid</span>
+                        </span>
+                        <span className="w-28 shrink-0">
+                          <span
+                            className={`font-semibold ${pending > 0 ? "text-amber-600" : "text-zinc-400"}`}
+                          >
+                            {pending} JOD
+                          </span>{" "}
+                          <span className="text-xs text-zinc-400">pending</span>
+                        </span>
+                        <span className="hidden text-xs text-zinc-400 sm:inline">
+                          {b.phone}
+                        </span>
+                        <button
+                          onClick={() => onEdit(b)}
+                          className="ml-auto rounded-full border border-oasis-950/10 px-3 py-1 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50"
+                        >
+                          Edit
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 const RATE_BADGES: Record<Exclude<RateType, "standard">, string> = {
   discounted: "bg-amber-100 text-amber-800",
   complimentary: "bg-blush-100 text-blush-500",
@@ -1039,6 +1188,8 @@ export default function AdminDashboard({
             </table>
           </div>
         </section>
+
+        <BookingsByStatus bookings={bookings} onEdit={setEditing} />
 
         {role === "manager" && (
           <TeamSection
