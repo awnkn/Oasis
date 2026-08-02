@@ -411,6 +411,7 @@ export function getBooking(id: number): Booking | undefined {
 
 export interface BookingFilters {
   status?: BookingStatus;
+  guestStatus?: GuestStatus;
   date?: string;
   includePast?: boolean;
   /** Case-insensitive match against guest name or phone number. */
@@ -425,6 +426,10 @@ export function listBookings(filters: BookingFilters = {}): Booking[] {
     where.push("status = ?");
     params.push(filters.status);
   }
+  if (filters.guestStatus) {
+    where.push("guest_status = ?");
+    params.push(filters.guestStatus);
+  }
   if (filters.date) {
     where.push("date = ?");
     params.push(filters.date);
@@ -438,10 +443,13 @@ export function listBookings(filters: BookingFilters = {}): Booking[] {
     params.push(like, like, like);
   }
 
+  // Fully-arrived parties sink to the bottom — the list leads with
+  // bookings that still need attention.
   const sql = `
     SELECT * FROM bookings
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-    ORDER BY date ASC, created_at ASC
+    ORDER BY (status = 'approved' AND checked_in_count >= guests) ASC,
+      date ASC, created_at ASC
   `;
   return getDb().prepare(sql).all(...params) as Booking[];
 }

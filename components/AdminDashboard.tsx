@@ -406,6 +406,7 @@ function PaymentEditor({
 
 interface Filters {
   status: string;
+  guestStatus: string;
   date: string;
   includePast: boolean;
   query: string;
@@ -466,6 +467,7 @@ export default function AdminDashboard({
     // filter changes would otherwise clobber each other.
     const current: Filters = {
       status: searchParams.get("status") ?? "",
+      guestStatus: searchParams.get("gs") ?? "",
       date: searchParams.get("date") ?? "",
       includePast: searchParams.get("past") === "1",
       query: searchParams.get("q") ?? "",
@@ -473,6 +475,7 @@ export default function AdminDashboard({
     const merged = { ...current, ...next };
     const query = new URLSearchParams();
     if (merged.status) query.set("status", merged.status);
+    if (merged.guestStatus) query.set("gs", merged.guestStatus);
     if (merged.date) query.set("date", merged.date);
     if (merged.includePast) query.set("past", "1");
     if (merged.query) query.set("q", merged.query);
@@ -742,6 +745,19 @@ export default function AdminDashboard({
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
               </select>
+              <select
+                aria-label="Filter bookings by guest status"
+                value={filters.guestStatus}
+                onChange={(e) => applyFilters({ guestStatus: e.target.value })}
+                className="rounded-xl border border-oasis-950/10 bg-white px-3 py-2 outline-none focus:border-oasis-500"
+              >
+                <option value="">All guest statuses</option>
+                {(Object.keys(GUEST_STATUS_LABELS) as GuestStatus[]).map((s) => (
+                  <option key={s} value={s}>
+                    {GUEST_STATUS_LABELS[s]}
+                  </option>
+                ))}
+              </select>
               <input
                 type="date"
                 aria-label="Filter bookings by day"
@@ -790,7 +806,14 @@ export default function AdminDashboard({
                   </tr>
                 )}
                 {bookings.map((b) => (
-                  <tr key={b.id} className="border-b border-zinc-100 last:border-0">
+                  <tr
+                    key={b.id}
+                    className={`border-b border-zinc-100 last:border-0 ${
+                      b.status === "approved" && b.checked_in_count >= b.guests
+                        ? "bg-zinc-50/70"
+                        : ""
+                    }`}
+                  >
                     <td className="px-4 py-3.5">
                       <p className="text-xs text-zinc-400">
                         #{String(b.id).padStart(4, "0")}
