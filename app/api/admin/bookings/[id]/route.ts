@@ -5,6 +5,7 @@ import {
   BOOKING_STATUSES,
   RATE_TYPES,
   setCheckedIn,
+  setCheckedInCount,
   updateBookingPayment,
   updateBookingStatus,
   updateGuestStatus,
@@ -93,6 +94,23 @@ export async function PATCH(
     }
   }
 
+  // Partial arrivals: how many of the party are through the gate.
+  if (b.checkedInCount !== undefined) {
+    if (typeof b.checkedInCount !== "number") {
+      return NextResponse.json(
+        { error: "checkedInCount must be a number." },
+        { status: 400 }
+      );
+    }
+    const result = setCheckedInCount(bookingId, b.checkedInCount, actor);
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.message },
+        { status: result.reason === "not_found" ? 404 : 409 }
+      );
+    }
+  }
+
   // Check-in / undo check-in.
   if (b.checkedIn !== undefined) {
     if (typeof b.checkedIn !== "boolean") {
@@ -164,6 +182,7 @@ export async function PATCH(
     b.status === undefined &&
     b.guestStatus === undefined &&
     b.checkedIn === undefined &&
+    b.checkedInCount === undefined &&
     b.rateType === undefined &&
     b.paidAmount === undefined &&
     b.paidAccount === undefined

@@ -41,21 +41,46 @@ async function sendEmail(b: Booking): Promise<string | null> {
       to: [b.email],
       subject: `Your booking is confirmed — ${formatDateLong(b.date)}`,
       html: `
-        <div style="font-family:Georgia,serif;max-width:520px;margin:0 auto;padding:24px;color:#22454a">
-          <div style="background:#102c30;border-radius:14px;padding:22px;text-align:center;margin-bottom:20px">
-            <img src="${SITE_URL}/images/logo-white.png" alt="${CLUB_NAME}" height="44" style="height:44px" />
+        <div style="background:#fafafa;padding:32px 16px">
+          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #ececec;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1c1e">
+            <img src="${SITE_URL}/images/email-header.jpg" alt="${CLUB_NAME}" width="560" style="width:100%;display:block" />
+            <div style="padding:36px 40px 40px">
+              <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:600;letter-spacing:-0.2px">Your booking at Oasis is confirmed!</h1>
+              <p style="margin:14px 0 0;font-size:15px;line-height:1.6;color:#6b6b70">
+                Dear ${b.name.split(" ")[0]}, your day of stillness is set.
+                Bring this reference and we'll take care of the rest.
+              </p>
+              <table style="width:100%;border-collapse:collapse;margin-top:28px;font-size:15px">
+                <tr>
+                  <td style="padding:12px 0;color:#8e8e93">Reference</td>
+                  <td style="padding:12px 0;text-align:right;font-weight:600">#${String(b.id).padStart(4, "0")}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;color:#8e8e93;border-top:1px solid #f2f2f2">Day</td>
+                  <td style="padding:12px 0;text-align:right;font-weight:600;border-top:1px solid #f2f2f2">${formatDateLong(b.date)}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;color:#8e8e93;border-top:1px solid #f2f2f2">Guests</td>
+                  <td style="padding:12px 0;text-align:right;font-weight:600;border-top:1px solid #f2f2f2">${b.guests}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 0 0;color:#8e8e93;border-top:1px solid #f2f2f2">Total at the gate</td>
+                  <td style="padding:14px 0 0;text-align:right;border-top:1px solid #f2f2f2;font-weight:700;font-size:18px;color:#297c80">${b.total_price} JOD</td>
+                </tr>
+              </table>
+              <p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#8e8e93">
+                Changes need at least 24 hours' notice. Mondays welcome ages 10+;
+                all other days are 16+. Pool seating is first-come, first-served.
+              </p>
+              <p style="margin:24px 0 0;font-size:15px">
+                See you at the oasis 🌴<br/>
+                <span style="color:#6b6b70">${CLUB_NAME}</span>
+              </p>
+            </div>
           </div>
-          <h1 style="font-weight:600">Your day is confirmed 🌸</h1>
-          <p>Dear ${b.name.split(" ")[0]},</p>
-          <p>We're delighted to confirm your booking at <strong>${CLUB_NAME}</strong>.</p>
-          <table style="width:100%;border-collapse:collapse;background:#f6f0e4;border-radius:12px">
-            <tr><td style="padding:10px 16px">Reference</td><td style="padding:10px 16px"><strong>#${String(b.id).padStart(4, "0")}</strong></td></tr>
-            <tr><td style="padding:10px 16px">Day</td><td style="padding:10px 16px"><strong>${formatDateLong(b.date)}</strong></td></tr>
-            <tr><td style="padding:10px 16px">Guests</td><td style="padding:10px 16px"><strong>${b.guests}</strong></td></tr>
-            <tr><td style="padding:10px 16px">Total at the gate</td><td style="padding:10px 16px"><strong>${b.total_price} JOD</strong></td></tr>
-          </table>
-          <p style="margin-top:16px">Please arrive with this reference. Changes need at least 24 hours' notice.</p>
-          <p>See you at the oasis,<br/>${CLUB_NAME}</p>
+          <p style="max-width:560px;margin:16px auto 0;text-align:center;font-size:12px;color:#b0b0b5">
+            ${CLUB_NAME} · Ladies only · Amman, Jordan
+          </p>
         </div>`,
     }),
   });
