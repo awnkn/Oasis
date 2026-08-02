@@ -39,6 +39,8 @@ const GUEST_STATUS_STYLES: Partial<Record<GuestStatus, string>> = {
   cancelled_no_response: "bg-blush-100 text-blush-500",
 };
 import type { StaffUser } from "@/lib/users";
+import AddBookingModal from "@/components/AddBookingModal";
+import AssistantWidget from "@/components/AssistantWidget";
 
 /** Pre-filled WhatsApp confirmation staff can send with one tap. */
 function waLink(b: Booking): string {
@@ -443,6 +445,7 @@ export default function AdminDashboard({
   const [busyBooking, setBusyBooking] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [searchInput, setSearchInput] = useState(filters.query);
+  const [showAdd, setShowAdd] = useState(false);
 
   // Debounced client search → URL param → server-filtered list.
   useEffect(() => {
@@ -714,6 +717,12 @@ export default function AdminDashboard({
           <div className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-lg font-semibold tracking-tight">Bookings</h2>
             <div className="flex flex-wrap items-center gap-3 text-sm">
+              <button
+                onClick={() => setShowAdd(true)}
+                className="rounded-full bg-oasis-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-800"
+              >
+                + Add booking
+              </button>
               <input
                 type="search"
                 aria-label="Search bookings by name or phone"
@@ -1010,6 +1019,18 @@ export default function AdminDashboard({
           />
         )}
       </main>
+
+      <AddBookingModal
+        open={showAdd}
+        today={today}
+        onClose={() => setShowAdd(false)}
+        onSaved={() => {
+          setShowAdd(false);
+          setMessage("");
+          router.refresh();
+        }}
+      />
+      <AssistantWidget />
     </div>
   );
 }

@@ -311,6 +311,98 @@ export function createBooking(input: NewBookingInput): CreateResult {
   return insert();
 }
 
+export interface ManualBookingInput {
+  name: string;
+  phone: string;
+  email?: string;
+  date: string;
+  guests: number;
+  notes?: string;
+}
+
+/**
+ * Staff-entered booking (walk-in or phone booking). Created already
+ * approved with the guest marked "confirmed" — staff spoke to the guest
+ * themselves. Email is optional here, unlike the public form.
+ */
+export function createManualBooking(
+  input: ManualBookingInput,
+  actor: Actor
+): CreateResult {
+  const name = input.name?.trim() ?? "";
+  const phone = input.phone?.trim() ?? "";
+  const email = input.email?.trim() || null;
+  const notes = input.notes?.trim() || null;
+  const date = input.date?.trim() ?? "";
+  const guests = input.guests;
+
+  if (name.length < 2 || name.length > 100) {
+    return { ok: false, error: "Please enter the guest's full name." };
+  }
+  if (phone.length < 6 || phone.length > 30) {
+    return { ok: false, error: "Please enter a valid phone number." };
+  }
+  if (email && (email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+    return { ok: false, error: "Please enter a valid email address (or leave it empty)." };
+  }
+  if (notes && notes.length > 500) {
+    return { ok: false, error: "Notes are too long (500 characters max)." };
+  }
+  if (!isValidDateString(date)) {
+    return { ok: false, error: "Please choose a valid date." };
+  }
+  const todayStr = today();
+  if (date < todayStr) {
+    return { ok: false, error: "That date has already passed — pick today or a future day." };
+  }
+  if (date > addDays(todayStr, MAX_ADVANCE_DAYS)) {
+    return {
+      ok: false,
+      error: `Bookings open up to ${MAX_ADVANCE_DAYS} days in advance.`,
+    };
+  }
+  if (!Number.isInteger(guests) || guests < 1) {
+    return { ok: false, error: "Please enter how many guests are coming." };
+  }
+
+  sweepNoResponse();
+  const db = getDb();
+  const insert = db.transaction((): CreateResult => {
+    const remaining = remainingOn(date);
+    if (guests > remaining) {
+      return {
+        ok: false,
+        error:
+          remaining <= 0
+            ? "This day is fully booked."
+            : `Only ${remaining} ${remaining === 1 ? "spot is" : "spots are"} left on this day.`,
+      };
+    }
+
+    const pricePerGuest = priceForDate(date);
+    const result = db
+      .prepare(
+        `INSERT INTO bookings (name, phone, email, date, guests, price_per_guest, total_price,
+           status, guest_status, guest_status_at, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', 'confirmed', datetime('now'), ?)`
+      )
+      .run(name, phone, email, date, guests, pricePerGuest, pricePerGuest * guests, notes);
+
+    const id = Number(result.lastInsertRowid);
+    logAction(
+      actor,
+      "created",
+      `Booking #${id} (${name}, ${date}, ${guests} ${guests === 1 ? "guest" : "guests"}) added manually from the dashboard`,
+      id
+    );
+    const booking = getBooking(id);
+    if (!booking) return { ok: false, error: "Something went wrong. Please try again." };
+    return { ok: true, booking };
+  });
+
+  return insert();
+}
+
 export function getBooking(id: number): Booking | undefined {
   return getDb()
     .prepare("SELECT * FROM bookings WHERE id = ?")
