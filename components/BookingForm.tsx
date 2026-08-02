@@ -8,7 +8,6 @@ import {
   AGE_MONDAY,
   AGE_OTHER_DAYS,
   BOOKING_TERMS,
-  GUEST_PAYMENT_METHODS,
   HEARD_ABOUT_OPTIONS,
 } from "@/lib/config";
 import {
@@ -55,7 +54,6 @@ export default function BookingForm({
   const [phoneCountry, setPhoneCountry] = useState(DEFAULT_PHONE_COUNTRY);
   const [phoneDigits, setPhoneDigits] = useState("");
   const [email, setEmail] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<string>("Cash");
   const [heardAbout, setHeardAbout] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [termsChecked, setTermsChecked] = useState<boolean[]>(
@@ -131,7 +129,6 @@ export default function BookingForm({
           email,
           date,
           guests: guestCount,
-          paymentMethod,
           heardAbout: heardAbout.length ? heardAbout : undefined,
           notes: notes || undefined,
           termsAccepted: termsChecked.every(Boolean),
@@ -381,36 +378,6 @@ export default function BookingForm({
           />
         </div>
       </div>
-
-      <fieldset className="mt-6">
-        <legend className="mb-2 block text-sm font-medium">
-          How will you pay at the gate?
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          {GUEST_PAYMENT_METHODS.map((method) => {
-            const active = paymentMethod === method;
-            return (
-              <label
-                key={method}
-                className={`cursor-pointer select-none rounded-full border px-5 py-2 text-sm transition ${
-                  active
-                    ? "border-oasis-600 bg-oasis-600 text-white"
-                    : "border-oasis-950/10 bg-white text-oasis-800 hover:border-oasis-400"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  checked={active}
-                  onChange={() => setPaymentMethod(method)}
-                  className="sr-only"
-                />
-                {method}
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
 
       <fieldset className="mt-6">
         <legend className="mb-2 block text-sm font-medium">

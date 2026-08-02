@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import { CLUB_NAME, CLUB_TAGLINE } from "@/lib/config";
+import PageViewTracker from "@/components/PageViewTracker";
 import "./globals.css";
 
 const display = Playfair_Display({
@@ -38,7 +39,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${display.variable} ${body.variable}`}>{children}</body>
+      <body className={`${display.variable} ${body.variable}`}>
+        <PageViewTracker />
+        {children}
+      </body>
     </html>
   );
 }

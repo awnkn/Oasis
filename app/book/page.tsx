@@ -2,12 +2,21 @@ import Link from "next/link";
 import BookingForm from "@/components/BookingForm";
 import { MAX_ADVANCE_DAYS } from "@/lib/config";
 import { addDays, today } from "@/lib/dates";
+import { recordEvent } from "@/lib/bookings";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Book your day" };
 
-export default function BookPage() {
+export default async function BookPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ src?: string }>;
+}) {
+  const { src } = await searchParams;
+  if (typeof src === "string" && src && src.length <= 30) {
+    recordEvent("book_click", src);
+  }
   const todayStr = today();
   return (
     <div className="min-h-screen">
@@ -22,13 +31,13 @@ export default function BookPage() {
         />
         <div className="absolute inset-0 bg-oasis-950/60" />
         <header className="relative z-10 mx-auto flex max-w-3xl items-center justify-between px-6 py-6 text-white">
-          <Link href="/" className="flex items-baseline gap-2">
-            <span className="font-display text-2xl font-semibold lowercase tracking-wide">
-              oasis
-            </span>
-            <span className="text-[0.6rem] font-semibold uppercase tracking-[0.3em] text-white/70">
-              by Azara
-            </span>
+          <Link href="/">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/logo-white.png"
+              alt="Oasis by Azara"
+              className="h-10 w-auto"
+            />
           </Link>
           <Link href="/" className="text-sm font-medium text-white/85 hover:text-white">
             ← Back home

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { remainingOn } from "@/lib/bookings";
+import { remainingOn, sweepNoResponse } from "@/lib/bookings";
 import { isValidDateString, isWeekend, priceForDate, today, addDays } from "@/lib/dates";
 import { CURRENCY, MAX_ADVANCE_DAYS } from "@/lib/config";
 
@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid date." }, { status: 400 });
   }
 
+  sweepNoResponse();
   const todayStr = today();
   const bookable =
     date >= todayStr && date <= addDays(todayStr, MAX_ADVANCE_DAYS);

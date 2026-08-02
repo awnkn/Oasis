@@ -13,6 +13,9 @@ import { getBooking, logAction, type Booking } from "./bookings";
 
 const SYSTEM = { name: "System", role: "system" };
 
+// Absolute base URL for assets inside emails.
+const SITE_URL = process.env.SITE_URL || "https://oasis-i1qn.onrender.com";
+
 function confirmationText(b: Booking): string {
   return (
     `Dear ${b.name.split(" ")[0]}, your ${CLUB_NAME} booking is confirmed! ` +
@@ -39,6 +42,9 @@ async function sendEmail(b: Booking): Promise<string | null> {
       subject: `Your booking is confirmed — ${formatDateLong(b.date)}`,
       html: `
         <div style="font-family:Georgia,serif;max-width:520px;margin:0 auto;padding:24px;color:#22454a">
+          <div style="background:#102c30;border-radius:14px;padding:22px;text-align:center;margin-bottom:20px">
+            <img src="${SITE_URL}/images/logo-white.png" alt="${CLUB_NAME}" height="44" style="height:44px" />
+          </div>
           <h1 style="font-weight:600">Your day is confirmed 🌸</h1>
           <p>Dear ${b.name.split(" ")[0]},</p>
           <p>We're delighted to confirm your booking at <strong>${CLUB_NAME}</strong>.</p>

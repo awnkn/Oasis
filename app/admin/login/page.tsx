@@ -38,12 +38,16 @@ export default function AdminLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <Link
-          href="/"
-          className="mb-8 block text-center font-display text-3xl font-semibold"
-        >
-          Oasis <span className="text-oasis-500">·</span>{" "}
-          <span className="text-oasis-600">Admin</span>
+        <Link href="/" className="mb-8 flex flex-col items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/logo-black.png"
+            alt="Oasis by Azara"
+            className="h-12 w-auto"
+          />
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
+            Team sign in
+          </span>
         </Link>
         <form
           onSubmit={handleSubmit}
@@ -88,7 +92,7 @@ export default function AdminLoginPage() {
             {submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-oasis-900/50">
+        <p className="mt-6 text-center text-sm text-zinc-500">
           <Link href="/" className="hover:text-oasis-600">
             ← Back to the website
           </Link>

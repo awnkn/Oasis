@@ -9,6 +9,7 @@ import {
   getDailyCapacity,
   listBookings,
   occupancySummary,
+  sweepNoResponse,
   type BookingStatus,
 } from "@/lib/bookings";
 import { isValidDateString, today } from "@/lib/dates";
@@ -36,6 +37,7 @@ export default async function AdminPage({
     redirect("/admin/login");
   }
 
+  sweepNoResponse();
   const params = await searchParams;
   const status = BOOKING_STATUSES.includes(params.status as BookingStatus)
     ? (params.status as BookingStatus)

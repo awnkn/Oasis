@@ -7,10 +7,13 @@ import {
   setCheckedIn,
   updateBookingPayment,
   updateBookingStatus,
+  updateGuestStatus,
   type BookingStatus,
+  type GuestStatus,
   type PaymentUpdate,
   type RateType,
 } from "@/lib/bookings";
+import { GUEST_STATUSES } from "@/lib/config";
 import { PAYMENT_ACCOUNTS } from "@/lib/config";
 
 export async function PATCH(
@@ -63,6 +66,30 @@ export async function PATCH(
     // into "approved", after the response is sent.
     if (result.changed && b.status === "approved") {
       after(() => sendApprovalNotifications(bookingId));
+    }
+  }
+
+  // Guest relationship status (open / contacted / no response / …).
+  if (b.guestStatus !== undefined) {
+    if (
+      typeof b.guestStatus !== "string" ||
+      !GUEST_STATUSES.includes(b.guestStatus as GuestStatus)
+    ) {
+      return NextResponse.json(
+        { error: "Unknown guest status." },
+        { status: 400 }
+      );
+    }
+    const result = updateGuestStatus(
+      bookingId,
+      b.guestStatus as GuestStatus,
+      actor
+    );
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.message },
+        { status: result.reason === "not_found" ? 404 : 409 }
+      );
     }
   }
 
@@ -135,6 +162,7 @@ export async function PATCH(
 
   if (
     b.status === undefined &&
+    b.guestStatus === undefined &&
     b.checkedIn === undefined &&
     b.rateType === undefined &&
     b.paidAmount === undefined &&
