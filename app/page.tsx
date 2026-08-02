@@ -38,7 +38,7 @@ export default function HomePage() {
             <Wordmark light />
           </Link>
           <Link
-            href="/book"
+            href="/book?src=header"
             className="rounded-full bg-white/95 px-5 py-2.5 text-sm font-medium text-oasis-900 shadow-md transition hover:bg-white"
           >
             Book your day
@@ -58,7 +58,7 @@ export default function HomePage() {
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
-              href="/book"
+              href="/book?src=hero"
               className="rounded-full bg-oasis-500 px-8 py-3.5 text-base font-medium text-white shadow-lg transition hover:bg-oasis-400"
             >
               Reserve your day
@@ -106,7 +106,7 @@ export default function HomePage() {
             returning to, again and again.
           </p>
           <Link
-            href="/book"
+            href="/book?src=story"
             className="mt-8 inline-block rounded-full bg-oasis-600 px-7 py-3 font-medium text-white shadow-md transition hover:bg-oasis-700"
           >
             Book your visit
@@ -195,7 +195,7 @@ export default function HomePage() {
           </div>
           <div className="mt-12 text-center">
             <Link
-              href="/book"
+              href="/book?src=gallery"
               className="inline-block rounded-full border border-white/40 bg-white/10 px-8 py-3.5 font-medium text-white backdrop-blur transition hover:bg-white/20"
             >
               Come see it for yourself →
@@ -225,7 +225,7 @@ export default function HomePage() {
               </p>
               <p className="mt-2 text-sm text-oasis-900/60">per guest, all day</p>
               <Link
-                href="/book"
+                href="/book?src=pricing-weekday"
                 className="mt-6 inline-block rounded-full border border-oasis-300 px-6 py-2.5 text-sm font-medium text-oasis-700 transition hover:border-oasis-500 hover:bg-oasis-50"
               >
                 Book a weekday
@@ -242,7 +242,7 @@ export default function HomePage() {
               </p>
               <p className="mt-2 text-sm text-white/60">per guest, all day</p>
               <Link
-                href="/book"
+                href="/book?src=pricing-weekend"
                 className="mt-6 inline-block rounded-full bg-white/95 px-6 py-2.5 text-sm font-medium text-oasis-900 transition hover:bg-white"
               >
                 Book a weekend
@@ -317,7 +317,7 @@ export default function HomePage() {
             Pick your day — we&apos;ll hold the calm for you.
           </p>
           <Link
-            href="/book"
+            href="/book?src=closing"
             className="mt-9 inline-block rounded-full bg-white px-9 py-4 text-base font-medium text-oasis-900 shadow-lg transition hover:bg-sand-100"
           >
             Reserve your spot
@@ -333,7 +333,7 @@ export default function HomePage() {
           </div>
           <p>Ladies only · Amman, Jordan</p>
           <div className="flex items-center gap-6">
-            <Link href="/book" className="hover:text-oasis-600">
+            <Link href="/book?src=footer" className="hover:text-oasis-600">
               Book a visit
             </Link>
             <Link href="/admin" className="hover:text-oasis-600">

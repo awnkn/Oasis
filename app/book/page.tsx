@@ -2,12 +2,21 @@ import Link from "next/link";
 import BookingForm from "@/components/BookingForm";
 import { MAX_ADVANCE_DAYS } from "@/lib/config";
 import { addDays, today } from "@/lib/dates";
+import { recordEvent } from "@/lib/bookings";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Book your day" };
 
-export default function BookPage() {
+export default async function BookPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ src?: string }>;
+}) {
+  const { src } = await searchParams;
+  if (typeof src === "string" && src && src.length <= 30) {
+    recordEvent("book_click", src);
+  }
   const todayStr = today();
   return (
     <div className="min-h-screen">

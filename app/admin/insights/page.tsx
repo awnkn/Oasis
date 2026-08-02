@@ -265,7 +265,9 @@ export default async function InsightsPage() {
   if (role !== "manager") redirect("/admin");
 
   sweepNoResponse();
-  const { past, upcoming, statusCounts, heardAbout } = getInsights();
+  const { past, upcoming, statusCounts, heardAbout, returning, views30, bookClicks } =
+    getInsights();
+  const clickMax = Math.max(1, ...bookClicks.map((c) => c.count));
   const activity = recentActivity(60);
   const journeys: { title: string; unit: string; rows: JourneyRow[] }[] = [
     { title: "Daily — last 14 days", unit: "day", rows: guestJourney("day", 14) },
@@ -280,11 +282,26 @@ export default async function InsightsPage() {
   }));
   const accountMax = Math.max(1, ...accountTotals.map((a) => a.total));
 
-  const kpis = [
+  const kpis: { label: string; value: string | number; sub?: string }[] = [
     { label: "Collected · last 30 days", value: `${sum(past, "collected")} JOD` },
     { label: "Approved revenue · last 30 days", value: `${sum(past, "expectedRevenue")} JOD` },
     { label: "Guests · last 30 days", value: sum(past, "guests") },
     { label: "Approved revenue · next 15 days", value: `${sum(upcoming, "expectedRevenue")} JOD` },
+    {
+      label: "Website views · last 30 days",
+      value: views30,
+      sub: "public pages only, dashboard excluded",
+    },
+    {
+      label: "Unique customers · all time",
+      value: returning.totalGuests,
+      sub: "distinct guests by phone number",
+    },
+    {
+      label: "Returning customers",
+      value: `${returning.rate}%`,
+      sub: `${returning.repeatGuests} of ${returning.totalGuests} booked more than once`,
+    },
   ];
 
   const heardMax = Math.max(1, ...heardAbout.map((h) => h.count));
@@ -314,11 +331,12 @@ export default async function InsightsPage() {
 
       <main className="mx-auto max-w-6xl px-6 pt-8">
         {/* KPIs */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {kpis.map((k) => (
             <div key={k.label} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
               <p className="text-sm text-zinc-500">{k.label}</p>
               <p className="mt-1 text-2xl font-semibold tracking-tight">{k.value}</p>
+              {k.sub && <p className="mt-1 text-xs text-zinc-400">{k.sub}</p>}
             </div>
           ))}
         </div>
@@ -354,6 +372,37 @@ export default async function InsightsPage() {
                 color: STATUS_COLORS[s],
               }))}
             />
+          </div>
+
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <h2 className="text-base font-semibold tracking-tight">
+              Where guests press “Book”
+            </h2>
+            <p className="mb-4 text-xs text-zinc-400">
+              Clicks by page section, last 30 days.
+            </p>
+            {bookClicks.length === 0 ? (
+              <p className="text-sm text-zinc-400">No clicks recorded yet.</p>
+            ) : (
+              <ul className="space-y-3">
+                {bookClicks.map((c) => (
+                  <li key={c.source}>
+                    <div className="mb-1 flex justify-between text-sm">
+                      <span className="capitalize text-zinc-700">
+                        {c.source.replace(/-/g, " ")}
+                      </span>
+                      <span className="font-semibold">{c.count}</span>
+                    </div>
+                    <div className="h-2.5 rounded-full bg-zinc-100">
+                      <div
+                        className="h-2.5 rounded-full bg-oasis-500"
+                        style={{ width: `${(c.count / clickMax) * 100}%` }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">

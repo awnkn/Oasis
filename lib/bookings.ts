@@ -621,6 +621,12 @@ export interface InsightsData {
   upcoming: DailyAccountingRow[];
   statusCounts: { status: BookingStatus; count: number }[];
   heardAbout: { source: string; count: number }[];
+  /** Distinct guests (by phone) and how many of them booked more than once. */
+  returning: { totalGuests: number; repeatGuests: number; rate: number };
+  /** Website page views over the last 30 days. */
+  views30: number;
+  /** "Book" button clicks by page section, last 30 days. */
+  bookClicks: { source: string; count: number }[];
 }
 
 export function getInsights(): InsightsData {
@@ -647,7 +653,63 @@ export function getInsights(): InsightsData {
     .map(([source, count]) => ({ source, count }))
     .sort((a, b) => b.count - a.count);
 
-  return { past, upcoming, statusCounts, heardAbout };
+  const repeat = getDb()
+    .prepare(
+      `SELECT COUNT(*) AS totalGuests,
+              COALESCE(SUM(CASE WHEN cnt > 1 THEN 1 ELSE 0 END), 0) AS repeatGuests
+       FROM (SELECT phone, COUNT(*) AS cnt FROM bookings
+             WHERE status != 'rejected' GROUP BY phone)`
+    )
+    .get() as { totalGuests: number; repeatGuests: number };
+  const returning = {
+    ...repeat,
+    rate:
+      repeat.totalGuests > 0
+        ? Math.round((repeat.repeatGuests / repeat.totalGuests) * 100)
+        : 0,
+  };
+
+  return {
+    past,
+    upcoming,
+    statusCounts,
+    heardAbout,
+    returning,
+    views30: eventCount30d("page_view"),
+    bookClicks: bookClicksBySource30d(),
+  };
+}
+
+// ---------- first-party analytics ----------
+
+export const EVENT_TYPES = ["page_view", "book_click"] as const;
+
+export function recordEvent(type: string, meta: string | null): void {
+  if (!(EVENT_TYPES as readonly string[]).includes(type)) return;
+  getDb()
+    .prepare("INSERT INTO events (type, meta) VALUES (?, ?)")
+    .run(type, meta ? meta.slice(0, 60) : null);
+}
+
+function eventCount30d(type: string): number {
+  const row = getDb()
+    .prepare(
+      `SELECT COUNT(*) AS n FROM events
+       WHERE type = ? AND created_at >= datetime('now', '-30 days')`
+    )
+    .get(type) as { n: number };
+  return row.n;
+}
+
+function bookClicksBySource30d(): { source: string; count: number }[] {
+  return getDb()
+    .prepare(
+      `SELECT COALESCE(meta, 'unknown') AS source, COUNT(*) AS count
+       FROM events
+       WHERE type = 'book_click' AND created_at >= datetime('now', '-30 days')
+       GROUP BY source ORDER BY count DESC`
+    )
+    .all() as { source: string; count: number }[];
 }
 
 // ---------- guest journey reports (for partners) ----------

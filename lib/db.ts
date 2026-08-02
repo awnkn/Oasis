@@ -42,6 +42,16 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at);
 
+  -- Lightweight first-party analytics: page views and Book-button clicks.
+  CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL,
+    meta TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_events_type_time ON events(type, created_at);
+
   -- Named staff accounts, managed from the dashboard by managers.
   CREATE TABLE IF NOT EXISTS staff_users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
