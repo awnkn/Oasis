@@ -39,9 +39,11 @@ export const HEARD_ABOUT_OPTIONS = [
   "Other",
 ] as const;
 
-// The three payment methods guests can choose, and the three accounts
-// collected money is recorded under.
+// The three accounts collected money is recorded under (admin side).
 export const PAYMENT_ACCOUNTS = ["Cash", "CliQ", "Visa"] as const;
+
+// What guests can pick on the booking form (Visa hidden for now).
+export const GUEST_PAYMENT_METHODS = ["Cash", "CliQ"] as const;
 
 // Acknowledgements every guest must accept before booking.
 export const BOOKING_TERMS = [

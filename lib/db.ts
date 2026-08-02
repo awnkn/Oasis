@@ -40,6 +40,16 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at);
 
+  -- Named staff accounts, managed from the dashboard by managers.
+  CREATE TABLE IF NOT EXISTS staff_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'staff' CHECK (role IN ('manager', 'staff')),
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_bookings_date ON bookings(date);
   CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status);
 

@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getAdminSession } from "@/lib/auth";
+import { sendApprovalNotifications } from "@/lib/notify";
 import {
   BOOKING_STATUSES,
   RATE_TYPES,
@@ -57,6 +58,11 @@ export async function PATCH(
         { error: result.message },
         { status: result.reason === "not_found" ? 404 : 409 }
       );
+    }
+    // Guest notifications (WhatsApp/email) fire only on a real transition
+    // into "approved", after the response is sent.
+    if (result.changed && b.status === "approved") {
+      after(() => sendApprovalNotifications(bookingId));
     }
   }
 

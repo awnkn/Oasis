@@ -178,7 +178,7 @@ function AccountingTable({ rows, caption }: { rows: DailyAccountingRow[]; captio
     collected: sum(rows, "collected"),
   };
   return (
-    <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-200/60">
+    <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-950/5/60">
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead>
           <tr className="border-b border-sand-200 text-xs uppercase tracking-wider text-oasis-900/50">
@@ -298,7 +298,7 @@ export default async function InsightsPage() {
         {/* KPIs */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {kpis.map((k) => (
-            <div key={k.label} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+            <div key={k.label} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
               <p className="text-sm text-oasis-900/50">{k.label}</p>
               <p className="mt-1 font-display text-3xl font-semibold">{k.value}</p>
             </div>
@@ -307,13 +307,13 @@ export default async function InsightsPage() {
 
         {/* Charts */}
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60 lg:col-span-2">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60 lg:col-span-2">
             <h2 className="font-display text-xl font-semibold">Guests per day — last 30 days</h2>
             <p className="mb-4 text-xs text-oasis-900/45">Pending + approved guests by visit day.</p>
             <BarChart rows={past} value={(r) => r.guests} color="#33999c" />
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60 lg:col-span-2">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60 lg:col-span-2">
             <h2 className="font-display text-xl font-semibold">Revenue per day — last 30 days</h2>
             <p className="mb-4 text-xs text-oasis-900/45">
               <span className="mr-4 inline-flex items-center gap-1.5">
@@ -326,7 +326,7 @@ export default async function InsightsPage() {
             <RevenueChart rows={past} />
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
             <h2 className="font-display text-xl font-semibold">Booking statuses</h2>
             <p className="mb-4 text-xs text-oasis-900/45">All bookings, all time.</p>
             <Donut
@@ -338,7 +338,7 @@ export default async function InsightsPage() {
             />
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
             <h2 className="font-display text-xl font-semibold">Collected by account</h2>
             <p className="mb-4 text-xs text-oasis-900/45">Last 30 days, from recorded payments.</p>
             <ul className="space-y-3">
@@ -359,7 +359,7 @@ export default async function InsightsPage() {
             </ul>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-200/60">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-oasis-950/5/60">
             <h2 className="font-display text-xl font-semibold">Where guests hear about you</h2>
             <p className="mb-4 text-xs text-oasis-900/45">From the booking form.</p>
             {heardAbout.length === 0 ? (
@@ -423,7 +423,7 @@ export default async function InsightsPage() {
             Every sign-in, status change, payment, check-in and capacity change
             — permanent and uneditable.
           </p>
-          <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-200/60">
+          <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-950/5/60">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead>
                 <tr className="border-b border-sand-200 text-xs uppercase tracking-wider text-oasis-900/50">

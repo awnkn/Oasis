@@ -8,11 +8,13 @@ import {
   AGE_MONDAY,
   AGE_OTHER_DAYS,
   BOOKING_TERMS,
+  GUEST_PAYMENT_METHODS,
   HEARD_ABOUT_OPTIONS,
-  PAYMENT_ACCOUNTS,
 } from "@/lib/config";
 import {
+  ARAB_COUNTRIES,
   DEFAULT_PHONE_COUNTRY,
+  OTHER_COUNTRIES,
   PHONE_COUNTRIES,
   normalizeNationalNumber,
 } from "@/lib/phone";
@@ -37,7 +39,7 @@ interface ConfirmedBooking {
 }
 
 const inputClass =
-  "w-full rounded-xl border border-oasis-200 bg-sand-50 px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200";
+  "w-full rounded-xl border border-oasis-950/10 bg-white px-4 py-3 outline-none transition focus:border-oasis-950/25 focus:ring-4 focus:ring-oasis-500/10";
 
 export default function BookingForm({
   minDate,
@@ -150,7 +152,7 @@ export default function BookingForm({
 
   if (confirmed) {
     return (
-      <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-200 sm:p-10">
+      <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5 sm:p-10">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-oasis-100 text-3xl">
           ✓
         </div>
@@ -197,7 +199,7 @@ export default function BookingForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-200 sm:p-10"
+      className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5 sm:p-10"
     >
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
@@ -329,13 +331,22 @@ export default function BookingForm({
                   PHONE_COUNTRIES[0];
                 setPhoneDigits((d) => d.slice(0, next.max));
               }}
-              className="w-28 shrink-0 rounded-xl border border-oasis-200 bg-sand-50 px-2 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
+              className="w-36 shrink-0 rounded-xl border border-oasis-950/10 bg-white px-2 py-3 outline-none transition focus:border-oasis-950/25 focus:ring-4 focus:ring-oasis-500/10"
             >
-              {PHONE_COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.flag} +{c.dial}
-                </option>
-              ))}
+              <optgroup label="Arab countries">
+                {ARAB_COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.name} (+{c.dial})
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="── Rest of the world">
+                {OTHER_COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.name} (+{c.dial})
+                  </option>
+                ))}
+              </optgroup>
             </select>
             <input
               id="phone"
@@ -376,7 +387,7 @@ export default function BookingForm({
           How will you pay at the gate?
         </legend>
         <div className="flex flex-wrap gap-2">
-          {PAYMENT_ACCOUNTS.map((method) => {
+          {GUEST_PAYMENT_METHODS.map((method) => {
             const active = paymentMethod === method;
             return (
               <label
@@ -384,7 +395,7 @@ export default function BookingForm({
                 className={`cursor-pointer select-none rounded-full border px-5 py-2 text-sm transition ${
                   active
                     ? "border-oasis-600 bg-oasis-600 text-white"
-                    : "border-oasis-200 bg-sand-50 text-oasis-800 hover:border-oasis-400"
+                    : "border-oasis-950/10 bg-white text-oasis-800 hover:border-oasis-400"
                 }`}
               >
                 <input
@@ -415,7 +426,7 @@ export default function BookingForm({
                 className={`cursor-pointer select-none rounded-full border px-4 py-2 text-sm transition ${
                   active
                     ? "border-oasis-600 bg-oasis-600 text-white"
-                    : "border-oasis-200 bg-sand-50 text-oasis-800 hover:border-oasis-400"
+                    : "border-oasis-950/10 bg-white text-oasis-800 hover:border-oasis-400"
                 }`}
               >
                 <input
