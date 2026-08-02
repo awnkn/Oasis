@@ -454,6 +454,141 @@ export function listBookings(filters: BookingFilters = {}): Booking[] {
   return getDb().prepare(sql).all(...params) as Booking[];
 }
 
+export interface BookingDetailsUpdate {
+  name?: string;
+  phone?: string;
+  /** null clears the email. */
+  email?: string | null;
+  date?: string;
+  guests?: number;
+  notes?: string | null;
+  heardAbout?: string | null;
+}
+
+export type DetailsUpdateResult =
+  | { ok: true; changed: boolean }
+  | { ok: false; reason: "not_found" | "invalid" | "capacity"; message: string };
+
+/**
+ * Edit any booking detail. Moving the booking to another day (or growing
+ * the group) re-checks capacity, and the price is recalculated from the
+ * new day. Every real change is written to the audit log.
+ */
+export function updateBookingDetails(
+  id: number,
+  u: BookingDetailsUpdate,
+  actor: Actor
+): DetailsUpdateResult {
+  const invalid = (message: string): DetailsUpdateResult => ({
+    ok: false,
+    reason: "invalid",
+    message,
+  });
+
+  if (u.name !== undefined && (u.name.trim().length < 2 || u.name.trim().length > 100)) {
+    return invalid("Please enter the guest's full name.");
+  }
+  if (u.phone !== undefined && (u.phone.trim().length < 6 || u.phone.trim().length > 30)) {
+    return invalid("Please enter a valid phone number.");
+  }
+  if (u.email !== undefined && u.email !== null) {
+    const email = u.email.trim();
+    if (email && (email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+      return invalid("Please enter a valid email address (or leave it empty).");
+    }
+  }
+  if (u.date !== undefined) {
+    if (!isValidDateString(u.date)) return invalid("Please choose a valid date.");
+    if (u.date > addDays(today(), MAX_ADVANCE_DAYS)) {
+      return invalid(`Bookings open up to ${MAX_ADVANCE_DAYS} days in advance.`);
+    }
+  }
+  if (u.guests !== undefined && (!Number.isInteger(u.guests) || u.guests < 1)) {
+    return invalid("Guests must be a whole number of 1 or more.");
+  }
+  if (u.notes !== undefined && u.notes !== null && u.notes.length > 500) {
+    return invalid("Notes are too long (500 characters max).");
+  }
+
+  const db = getDb();
+  const update = db.transaction((): DetailsUpdateResult => {
+    const booking = getBooking(id);
+    if (!booking) {
+      return { ok: false, reason: "not_found", message: "Booking not found." };
+    }
+
+    const name = u.name !== undefined ? u.name.trim() : booking.name;
+    const phone = u.phone !== undefined ? u.phone.trim() : booking.phone;
+    const email =
+      u.email !== undefined ? (u.email?.trim() || null) : booking.email;
+    const date = u.date ?? booking.date;
+    const guests = u.guests ?? booking.guests;
+    const notes =
+      u.notes !== undefined ? (u.notes?.trim() || null) : booking.notes;
+    const heardAbout =
+      u.heardAbout !== undefined
+        ? (u.heardAbout?.trim().slice(0, 200) || null)
+        : booking.heard_about;
+
+    // Moving day or growing the group takes spots — re-check capacity for
+    // bookings that count against it, on today or future days only.
+    const counts =
+      (booking.status === "pending" || booking.status === "approved") &&
+      booking.guest_status !== "cancelled" &&
+      booking.guest_status !== "cancelled_no_response";
+    if (counts && (date !== booking.date || guests > booking.guests) && date >= today()) {
+      const room =
+        date === booking.date
+          ? remainingOn(date) + booking.guests // this booking already counted
+          : remainingOn(date);
+      if (guests > room) {
+        return {
+          ok: false,
+          reason: "capacity",
+          message: `Not enough space on ${date}: this booking needs ${guests} ${guests === 1 ? "spot" : "spots"} but only ${Math.max(0, room)} ${room === 1 ? "is" : "are"} left.`,
+        };
+      }
+    }
+    if (guests < booking.checked_in_count) {
+      return invalid(
+        `${booking.checked_in_count} guests have already checked in — the group can't be smaller than that.`
+      );
+    }
+
+    const pricePerGuest =
+      date !== booking.date ? priceForDate(date) : booking.price_per_guest;
+    const totalPrice = pricePerGuest * guests;
+
+    const changes: string[] = [];
+    if (name !== booking.name) changes.push(`name ${booking.name} → ${name}`);
+    if (phone !== booking.phone) changes.push(`phone ${booking.phone} → ${phone}`);
+    if (email !== booking.email)
+      changes.push(`email ${booking.email ?? "—"} → ${email ?? "—"}`);
+    if (date !== booking.date) changes.push(`day ${booking.date} → ${date}`);
+    if (guests !== booking.guests)
+      changes.push(`guests ${booking.guests} → ${guests}`);
+    if (totalPrice !== booking.total_price)
+      changes.push(`total ${booking.total_price} → ${totalPrice} JOD`);
+    if (notes !== booking.notes) changes.push("notes updated");
+    if (heardAbout !== booking.heard_about) changes.push("heard-about updated");
+    if (changes.length === 0) return { ok: true, changed: false };
+
+    db.prepare(
+      `UPDATE bookings SET name = ?, phone = ?, email = ?, date = ?, guests = ?,
+         price_per_guest = ?, total_price = ?, notes = ?, heard_about = ?
+       WHERE id = ?`
+    ).run(name, phone, email, date, guests, pricePerGuest, totalPrice, notes, heardAbout, id);
+    logAction(
+      actor,
+      "edited",
+      `Booking #${id} (${booking.name}, ${booking.date}): ${changes.join(", ")}`,
+      id
+    );
+    return { ok: true, changed: true };
+  });
+  return update();
+}
+
 export type StatusUpdateResult =
   | { ok: true; changed: boolean }
   | { ok: false; reason: "not_found" | "capacity"; message: string };

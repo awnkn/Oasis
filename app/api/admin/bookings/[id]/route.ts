@@ -6,9 +6,11 @@ import {
   RATE_TYPES,
   setCheckedIn,
   setCheckedInCount,
+  updateBookingDetails,
   updateBookingPayment,
   updateBookingStatus,
   updateGuestStatus,
+  type BookingDetailsUpdate,
   type BookingStatus,
   type GuestStatus,
   type PaymentUpdate,
@@ -40,6 +42,41 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
   const b = (body ?? {}) as Record<string, unknown>;
+
+  // Booking detail edits (name, phone, email, day, guests, notes, source).
+  const DETAIL_KEYS = ["name", "phone", "email", "date", "guests", "notes", "heardAbout"] as const;
+  const hasDetails = DETAIL_KEYS.some((k) => b[k] !== undefined);
+  if (hasDetails) {
+    const details: BookingDetailsUpdate = {};
+    for (const key of ["name", "phone", "date"] as const) {
+      if (b[key] !== undefined) {
+        if (typeof b[key] !== "string") {
+          return NextResponse.json({ error: `Invalid ${key}.` }, { status: 400 });
+        }
+        details[key] = b[key] as string;
+      }
+    }
+    for (const key of ["email", "notes", "heardAbout"] as const) {
+      if (b[key] !== undefined) {
+        if (b[key] !== null && typeof b[key] !== "string") {
+          return NextResponse.json({ error: `Invalid ${key}.` }, { status: 400 });
+        }
+        details[key] = b[key] as string | null;
+      }
+    }
+    if (b.guests !== undefined) {
+      if (typeof b.guests !== "number") {
+        return NextResponse.json({ error: "Guests must be a number." }, { status: 400 });
+      }
+      details.guests = b.guests;
+    }
+    const result = updateBookingDetails(bookingId, details, actor);
+    if (!result.ok) {
+      const status =
+        result.reason === "not_found" ? 404 : result.reason === "capacity" ? 409 : 400;
+      return NextResponse.json({ error: result.message }, { status });
+    }
+  }
 
   // Status change (with the capacity re-check for restored bookings).
   if (b.status !== undefined) {
@@ -179,6 +216,7 @@ export async function PATCH(
   }
 
   if (
+    !hasDetails &&
     b.status === undefined &&
     b.guestStatus === undefined &&
     b.checkedIn === undefined &&
