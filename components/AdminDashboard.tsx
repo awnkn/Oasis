@@ -765,7 +765,8 @@ export default function AdminDashboard({
                   <th className="px-4 py-3.5">Guest</th>
                   <th className="px-4 py-3.5">Day</th>
                   <th className="px-4 py-3.5">Arrivals</th>
-                  <th className="px-4 py-3.5">Total</th>
+                  <th className="px-4 py-3.5">Paid</th>
+                  <th className="px-4 py-3.5">Pending</th>
                   <th className="px-4 py-3.5">Payment</th>
                   <th className="px-4 py-3.5">Status</th>
                   <th className="px-4 py-3.5">Actions</th>
@@ -774,7 +775,7 @@ export default function AdminDashboard({
               <tbody className="align-top">
                 {bookings.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-zinc-400">
+                    <td colSpan={8} className="px-4 py-12 text-center text-zinc-400">
                       No bookings match these filters.
                     </td>
                   </tr>
@@ -857,8 +858,36 @@ export default function AdminDashboard({
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3.5">
-                      <p className="font-medium">{b.total_price} JOD</p>
-                      <p className="text-xs text-zinc-400">{b.price_per_guest} each</p>
+                      <p
+                        className={`font-semibold ${
+                          (b.paid_amount ?? 0) > 0 ? "text-oasis-600" : "text-zinc-400"
+                        }`}
+                      >
+                        {b.paid_amount ?? 0} JOD
+                      </p>
+                      {(b.paid_amount ?? 0) > 0 && b.paid_account && (
+                        <p className="text-xs text-zinc-400">via {b.paid_account}</p>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3.5">
+                      {(() => {
+                        const pending =
+                          b.rate_type === "complimentary"
+                            ? 0
+                            : Math.max(0, b.total_price - (b.paid_amount ?? 0));
+                        return (
+                          <p
+                            className={`font-semibold ${
+                              pending > 0 ? "text-amber-600" : "text-zinc-400"
+                            }`}
+                          >
+                            {pending} JOD
+                          </p>
+                        );
+                      })()}
+                      <p className="text-xs text-zinc-400">
+                        of {b.total_price} · {b.price_per_guest} each
+                      </p>
                       {b.rate_type !== "standard" && (
                         <span
                           className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${RATE_BADGES[b.rate_type]}`}
