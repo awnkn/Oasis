@@ -41,6 +41,7 @@ const GUEST_STATUS_STYLES: Partial<Record<GuestStatus, string>> = {
 import type { StaffUser } from "@/lib/users";
 import AddBookingModal from "@/components/AddBookingModal";
 import AssistantWidget from "@/components/AssistantWidget";
+import EditBookingModal from "@/components/EditBookingModal";
 
 /** Pre-filled WhatsApp confirmation staff can send with one tap. */
 function waLink(b: Booking): string {
@@ -447,6 +448,7 @@ export default function AdminDashboard({
   const [message, setMessage] = useState("");
   const [searchInput, setSearchInput] = useState(filters.query);
   const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState<Booking | null>(null);
 
   // Debounced client search → URL param → server-filtered list.
   useEffect(() => {
@@ -1022,6 +1024,13 @@ export default function AdminDashboard({
                             Reset
                           </button>
                         )}
+                        <button
+                          onClick={() => setEditing(b)}
+                          disabled={busyBooking === b.id}
+                          className="rounded-full border border-oasis-950/10 px-3.5 py-1.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-40"
+                        >
+                          Edit
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -1049,6 +1058,15 @@ export default function AdminDashboard({
         onClose={() => setShowAdd(false)}
         onSaved={() => {
           setShowAdd(false);
+          setMessage("");
+          router.refresh();
+        }}
+      />
+      <EditBookingModal
+        booking={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null);
           setMessage("");
           router.refresh();
         }}
