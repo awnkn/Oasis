@@ -733,6 +733,12 @@ export default function AdminDashboard({
                 </Link>
               </>
             )}
+            <Link
+              href="/admin/events"
+              className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
+            >
+              Events
+            </Link>
             <button
               onClick={logout}
               className="text-sm font-medium text-oasis-800 hover:text-oasis-600"

@@ -175,3 +175,79 @@ export function waMeLink(b: Booking): string {
   const digits = b.phone.replace(/\D/g, "");
   return `https://wa.me/${digits}?text=${encodeURIComponent(confirmationText(b))}`;
 }
+
+// ---------- event ticket confirmations ----------
+
+interface EventTicketLike {
+  id: number;
+  name: string;
+  email: string | null;
+  quantity: number;
+  total_price: number;
+}
+interface EventLike {
+  title: string;
+  event_date: string | null;
+  start_time: string | null;
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Confirmation email for an approved event reservation. */
+export async function sendEventApprovalEmail(
+  ticket: EventTicketLike,
+  event: EventLike
+): Promise<void> {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  if (!key || !from || !ticket.email) return;
+
+  const first = escapeHtml(ticket.name.split(" ")[0]);
+  const when = [
+    event.event_date ? formatDateLong(event.event_date) : null,
+    event.start_time,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: `${CLUB_NAME} <${from}>`,
+        to: [ticket.email],
+        subject: `You're confirmed — ${escapeHtml(event.title)}`,
+        html: `
+          <div style="background:#fafafa;padding:32px 16px">
+            <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #ececec;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1c1e">
+              <img src="${SITE_URL}/images/email-header.jpg" alt="${CLUB_NAME}" width="560" style="width:100%;display:block" />
+              <div style="padding:36px 40px 40px">
+                <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:600">Your spot is confirmed 🎉</h1>
+                <p style="margin:14px 0 0;font-size:15px;line-height:1.6;color:#6b6b70">
+                  Dear ${first}, you're on the list for <strong>${escapeHtml(event.title)}</strong>.
+                </p>
+                <table style="width:100%;border-collapse:collapse;margin-top:24px;font-size:15px">
+                  <tr><td style="padding:12px 0;color:#8e8e93">Reference</td><td style="padding:12px 0;text-align:right;font-weight:600">#${String(ticket.id).padStart(4, "0")}</td></tr>
+                  ${when ? `<tr><td style="padding:12px 0;color:#8e8e93;border-top:1px solid #f2f2f2">When</td><td style="padding:12px 0;text-align:right;font-weight:600;border-top:1px solid #f2f2f2">${escapeHtml(when)}</td></tr>` : ""}
+                  <tr><td style="padding:12px 0;color:#8e8e93;border-top:1px solid #f2f2f2">Tickets</td><td style="padding:12px 0;text-align:right;font-weight:600;border-top:1px solid #f2f2f2">${ticket.quantity}</td></tr>
+                  <tr><td style="padding:14px 0 0;color:#8e8e93;border-top:1px solid #f2f2f2">Total at the gate</td><td style="padding:14px 0 0;text-align:right;border-top:1px solid #f2f2f2;font-weight:700;font-size:18px;color:#297c80">${ticket.total_price} JOD</td></tr>
+                </table>
+                <p style="margin:24px 0 0;font-size:15px">See you there 🌴<br/><span style="color:#6b6b70">${CLUB_NAME}</span></p>
+              </div>
+            </div>
+          </div>`,
+      }),
+    });
+    if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    logAction(SYSTEM, "notify", `Event reservation #${ticket.id} (${ticket.name}): confirmation emailed`);
+  } catch (err) {
+    logAction(SYSTEM, "notify_failed", `Event reservation #${ticket.id}: ${String(err).slice(0, 200)}`);
+  }
+}
