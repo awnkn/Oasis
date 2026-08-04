@@ -47,7 +47,7 @@ async function sendEmail(b: Booking): Promise<string | null> {
             <div style="padding:36px 40px 40px">
               <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:600;letter-spacing:-0.2px">Your booking at Oasis is confirmed!</h1>
               <p style="margin:14px 0 0;font-size:15px;line-height:1.6;color:#6b6b70">
-                Dear ${b.name.split(" ")[0]}, your day of stillness is set.
+                Dear ${escapeHtml(b.name.split(" ")[0])}, your day of stillness is set.
                 Bring this reference and we'll take care of the rest.
               </p>
               <table style="width:100%;border-collapse:collapse;margin-top:28px;font-size:15px">
