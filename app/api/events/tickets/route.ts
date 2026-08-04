@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
 import { createTicket } from "@/lib/events";
+import { clientIp, rateLimit } from "@/lib/ratelimit";
 
 // Public: reserve tickets for an event (approved later by staff, like a booking).
 export async function POST(request: Request) {
+  const limit = rateLimit(`evt:${clientIp(request)}`, 8, 10 * 60 * 1000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait a moment and try again." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } }
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();

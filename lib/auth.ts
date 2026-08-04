@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import { getDb } from "./db";
 
 export const ADMIN_COOKIE = "oasis_admin";
 const SESSION_DAYS = 7;
@@ -103,7 +104,22 @@ export function verifySessionToken(
 
 export async function getAdminSession(): Promise<AdminSession | null> {
   const store = await cookies();
-  return verifySessionToken(store.get(ADMIN_COOKIE)?.value);
+  const session = verifySessionToken(store.get(ADMIN_COOKIE)?.value);
+  if (!session) return null;
+
+  // Re-check personal team accounts against the live database on every
+  // request, so disabling someone (or changing their role) takes effect
+  // immediately instead of lingering until their cookie expires. Logins
+  // via the environment master passwords have no staff_users row and keep
+  // the role baked into their signed token.
+  const user = getDb()
+    .prepare("SELECT role, active FROM staff_users WHERE name = ? COLLATE NOCASE")
+    .get(session.name) as { role: AdminRole; active: number } | undefined;
+  if (user) {
+    if (!user.active) return null;
+    return { role: user.role, name: session.name };
+  }
+  return session;
 }
 
 export async function getAdminRole(): Promise<AdminRole | null> {

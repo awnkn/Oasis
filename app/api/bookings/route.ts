@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import { createBooking } from "@/lib/bookings";
+import { clientIp, rateLimit } from "@/lib/ratelimit";
 
 export async function POST(request: Request) {
+  // Stop automated spam from filling up availability with junk bookings.
+  const limit = rateLimit(`book:${clientIp(request)}`, 8, 10 * 60 * 1000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait a moment and try again." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } }
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
