@@ -1,0 +1,126 @@
+import Link from "next/link";
+import type { Metadata } from "next";
+import { listUpcomingEvents, remainingFor, type TicketedEvent } from "@/lib/events";
+import { formatDateLong } from "@/lib/dates";
+import { CURRENCY } from "@/lib/config";
+
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Events at Oasis" };
+
+function heroUrl(e: TicketedEvent): string | null {
+  return e.hero_updated_at
+    ? `/api/events/${e.id}/hero?v=${encodeURIComponent(e.hero_updated_at)}`
+    : null;
+}
+
+export default function EventsPage() {
+  const events = listUpcomingEvents();
+
+  return (
+    <div className="min-h-screen">
+      {/* Header */}
+      <div className="relative overflow-hidden bg-oasis-950 text-white">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/pool.jpg"
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-cover opacity-40"
+        />
+        <div className="relative z-10 mx-auto max-w-5xl px-6 py-6">
+          <header className="flex items-center justify-between">
+            <Link href="/">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/logo-white.png" alt="Oasis by Azara" className="h-10 w-auto" />
+            </Link>
+            <Link href="/" className="text-sm font-medium text-white/85 hover:text-white">
+              ← Back home
+            </Link>
+          </header>
+          <div className="py-16">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-200">
+              Ladies-only nights
+            </p>
+            <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
+              Events at Oasis
+            </h1>
+            <p className="mt-3 max-w-xl text-white/85">
+              Special evenings and ticketed activities — beyond the daily pool day.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <main className="mx-auto max-w-5xl px-6 py-16">
+        {events.length === 0 ? (
+          <div className="rounded-3xl border border-oasis-950/10 bg-white p-12 text-center">
+            <p className="font-display text-2xl font-semibold">No events right now</p>
+            <p className="mt-2 text-oasis-900/60">
+              We&apos;re planning something special. Check back soon — or{" "}
+              <Link href="/book?src=events-empty" className="text-oasis-600 underline">
+                book a pool day
+              </Link>{" "}
+              in the meantime.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-8 sm:grid-cols-2">
+            {events.map((e) => {
+              const hero = heroUrl(e);
+              const remaining = remainingFor(e);
+              const soldOut = remaining !== null && remaining <= 0;
+              return (
+                <Link
+                  key={e.id}
+                  href={`/events/${e.slug}`}
+                  className="group overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-oasis-950/5 transition hover:shadow-lg"
+                >
+                  <div className="relative aspect-[3/2] overflow-hidden bg-gradient-to-br from-oasis-800 to-oasis-950">
+                    {hero && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={hero}
+                        alt={e.title}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    )}
+                    {soldOut && (
+                      <span className="absolute right-4 top-4 rounded-full bg-blush-500 px-3 py-1 text-xs font-semibold text-white">
+                        Sold out
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-6">
+                    {e.tagline && (
+                      <p className="text-xs font-semibold uppercase tracking-wider text-oasis-500">
+                        {e.tagline}
+                      </p>
+                    )}
+                    <h2 className="mt-1.5 font-display text-2xl font-semibold">{e.title}</h2>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-oasis-900/60">
+                      {e.event_date && <span>{formatDateLong(e.event_date)}</span>}
+                      {e.start_time && <span>· {e.start_time}</span>}
+                    </div>
+                    <div className="mt-4 flex items-center justify-between">
+                      <span className="font-display text-xl font-semibold text-oasis-950">
+                        {e.price} {CURRENCY}
+                        {e.price_note && (
+                          <span className="ml-1.5 text-sm font-normal text-oasis-900/50">
+                            {e.price_note}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-sm font-medium text-oasis-600 group-hover:underline">
+                        View &amp; reserve →
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
