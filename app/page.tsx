@@ -163,7 +163,7 @@ export default function HomePage() {
                     href={`/events/${e.slug}`}
                     className="group overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-oasis-950/5 transition hover:shadow-lg"
                   >
-                    <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-oasis-700 to-oasis-950">
+                    <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-oasis-700 to-oasis-950">
                       {hero && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
