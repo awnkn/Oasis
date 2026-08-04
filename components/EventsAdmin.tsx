@@ -367,7 +367,7 @@ export default function EventsAdmin({
             <section key={event.id} className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5">
               {/* Event header */}
               <div className="flex flex-col gap-5 border-b border-zinc-100 p-6 sm:flex-row">
-                <div className="relative h-28 w-40 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-oasis-700 to-oasis-950">
+                <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-oasis-700 to-oasis-950">
                   {hero && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={hero} alt={event.title} className="h-full w-full object-cover" />
@@ -409,6 +409,11 @@ export default function EventsAdmin({
                     {event.start_time ? ` · ${event.start_time}` : ""} · {event.price} JOD
                     {event.capacity != null ? ` · cap ${event.capacity}` : " · unlimited"}
                   </p>
+                  {isManager && (
+                    <p className="mt-1 text-xs text-zinc-400">
+                      Hero photo shows as a square — a 1:1 image looks best.
+                    </p>
+                  )}
                   <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
                     <span className="text-zinc-500">Reservations <strong className="text-zinc-800">{summary.total}</strong></span>
                     <span className="text-zinc-500">Guests <strong className="text-zinc-800">{summary.guests}</strong></span>
