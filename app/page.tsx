@@ -97,45 +97,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Brand moment */}
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-24 md:grid-cols-2">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-600">
-            More than relaxation
-          </p>
-          <h2 className="mt-4 font-display text-4xl font-semibold leading-tight sm:text-5xl">
-            A place you return to, slowly.
-          </h2>
-          <p className="mt-6 text-lg leading-relaxed text-oasis-900/70">
-            Every element of {CLUB_NAME} is designed to let you be fully
-            present without compromise. Carefully designed for complete
-            privacy, so every moment feels lighter, freer and wholly your own.
-          </p>
-          <p className="mt-4 text-lg leading-relaxed text-oasis-900/70">
-            Oasis exists to remind every woman that caring for herself is not
-            a luxury reserved for special occasions — it is a rhythm worth
-            returning to, again and again.
-          </p>
-          <Link
-            href="/book?src=story"
-            className="mt-8 inline-block rounded-full bg-oasis-600 px-7 py-3 font-medium text-white shadow-md transition hover:bg-oasis-700"
-          >
-            Book your visit
-          </Link>
-        </div>
-        <div className="relative mx-auto w-full max-w-sm">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/sand-logo.jpg"
-            alt="The Oasis by Azara mark pressed into sand"
-            className="w-full rounded-3xl object-cover shadow-xl ring-1 ring-sand-200"
-          />
-        </div>
-      </section>
-
       {/* Upcoming events */}
       {events.length > 0 && (
-        <section id="events" className="border-t border-oasis-950/5 bg-sand-100 px-6 py-24">
+        <section id="events" className="border-b border-oasis-950/5 bg-sand-100 px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -192,6 +156,42 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* Brand moment */}
+      <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-24 md:grid-cols-2">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-600">
+            More than relaxation
+          </p>
+          <h2 className="mt-4 font-display text-4xl font-semibold leading-tight sm:text-5xl">
+            A place you return to, slowly.
+          </h2>
+          <p className="mt-6 text-lg leading-relaxed text-oasis-900/70">
+            Every element of {CLUB_NAME} is designed to let you be fully
+            present without compromise. Carefully designed for complete
+            privacy, so every moment feels lighter, freer and wholly your own.
+          </p>
+          <p className="mt-4 text-lg leading-relaxed text-oasis-900/70">
+            Oasis exists to remind every woman that caring for herself is not
+            a luxury reserved for special occasions — it is a rhythm worth
+            returning to, again and again.
+          </p>
+          <Link
+            href="/book?src=story"
+            className="mt-8 inline-block rounded-full bg-oasis-600 px-7 py-3 font-medium text-white shadow-md transition hover:bg-oasis-700"
+          >
+            Book your visit
+          </Link>
+        </div>
+        <div className="relative mx-auto w-full max-w-sm">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/sand-logo.jpg"
+            alt="The Oasis by Azara mark pressed into sand"
+            className="w-full rounded-3xl object-cover shadow-xl ring-1 ring-sand-200"
+          />
+        </div>
+      </section>
 
       {/* Why Oasis */}
       <section className="border-y border-oasis-950/5 bg-white px-6 py-24">

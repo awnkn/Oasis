@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type {
@@ -16,6 +16,10 @@ import {
   GUEST_STATUS_LABELS,
   PAYMENT_ACCOUNTS,
 } from "@/lib/config";
+import type { StaffUser } from "@/lib/users";
+import AddBookingModal from "@/components/AddBookingModal";
+import AssistantWidget from "@/components/AssistantWidget";
+import EditBookingModal from "@/components/EditBookingModal";
 
 const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   pending: "Pending",
@@ -23,8 +27,35 @@ const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   rejected: "Rejected",
 };
 
-// Staff-selectable guest statuses ("checked in" via the button,
-// "cancelled — no response" only via the automatic 24h sweep).
+// Booking-status badge colours (UX psychology: amber = awaiting action,
+// green = go/approved, red = stopped/rejected).
+const STATUS_STYLES: Record<BookingStatus, string> = {
+  pending: "bg-amber-100 text-amber-800",
+  approved: "bg-emerald-100 text-emerald-700",
+  rejected: "bg-rose-100 text-rose-600",
+};
+
+// Guest-status colour system. Each state reads at a glance:
+//   open        → slate  (neutral, new / no action yet)
+//   contacted   → blue   (informational, reached out / in progress)
+//   no response → amber  (caution, waiting on the guest)
+//   confirmed   → green  (positive, they're coming)
+//   checked in  → teal   (success, through the gate)
+//   cancelled   → red    (negative, spot released)
+const GUEST_STATUS_COLOR: Record<
+  GuestStatus,
+  { dot: string; pill: string; select: string }
+> = {
+  open: { dot: "bg-slate-400", pill: "bg-slate-100 text-slate-600", select: "border-slate-200 bg-slate-50 text-slate-700" },
+  contacted: { dot: "bg-sky-500", pill: "bg-sky-100 text-sky-700", select: "border-sky-200 bg-sky-50 text-sky-700" },
+  no_response: { dot: "bg-amber-500", pill: "bg-amber-100 text-amber-800", select: "border-amber-200 bg-amber-50 text-amber-800" },
+  confirmed: { dot: "bg-emerald-500", pill: "bg-emerald-100 text-emerald-700", select: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  checked_in: { dot: "bg-teal-600", pill: "bg-teal-100 text-teal-700", select: "border-teal-200 bg-teal-50 text-teal-700" },
+  cancelled: { dot: "bg-rose-500", pill: "bg-rose-100 text-rose-600", select: "border-rose-200 bg-rose-50 text-rose-600" },
+  cancelled_no_response: { dot: "bg-rose-400", pill: "bg-rose-100 text-rose-600", select: "border-rose-200 bg-rose-50 text-rose-600" },
+};
+
+// States a person can pick in the guest-status dropdown.
 const SELECTABLE_GUEST_STATUSES: GuestStatus[] = [
   "open",
   "contacted",
@@ -33,15 +64,16 @@ const SELECTABLE_GUEST_STATUSES: GuestStatus[] = [
   "cancelled",
 ];
 
-const GUEST_STATUS_STYLES: Partial<Record<GuestStatus, string>> = {
-  checked_in: "bg-oasis-100 text-oasis-700",
-  cancelled: "bg-blush-100 text-blush-500",
-  cancelled_no_response: "bg-blush-100 text-blush-500",
+const RATE_BADGES: Record<Exclude<RateType, "standard">, string> = {
+  discounted: "bg-amber-100 text-amber-800",
+  complimentary: "bg-rose-100 text-rose-600",
 };
-import type { StaffUser } from "@/lib/users";
-import AddBookingModal from "@/components/AddBookingModal";
-import AssistantWidget from "@/components/AssistantWidget";
-import EditBookingModal from "@/components/EditBookingModal";
+
+function pendingOf(b: Booking): number {
+  return b.rate_type === "complimentary"
+    ? 0
+    : Math.max(0, b.total_price - (b.paid_amount ?? 0));
+}
 
 /** Pre-filled WhatsApp confirmation staff can send with one tap. */
 function waLink(b: Booking): string {
@@ -52,6 +84,404 @@ function waLink(b: Booking): string {
     `${b.total_price} JOD payable at the gate. We can't wait to welcome you 🌸`;
   return `https://wa.me/${b.phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
 }
+
+// ---------- sorting ----------
+
+type SortKey = "name" | "date" | "arrivals" | "paid" | "pending" | "status";
+interface SortState {
+  key: SortKey | null;
+  dir: "asc" | "desc";
+}
+
+const GUEST_STATUS_ORDER: Record<GuestStatus, number> = {
+  open: 0,
+  contacted: 1,
+  no_response: 2,
+  confirmed: 3,
+  checked_in: 4,
+  cancelled: 5,
+  cancelled_no_response: 6,
+};
+
+function sortBookings(list: Booking[], sort: SortState): Booking[] {
+  if (!sort.key) return list;
+  const key = sort.key;
+  const factor = sort.dir === "asc" ? 1 : -1;
+  return [...list].sort((a, b) => {
+    let d = 0;
+    switch (key) {
+      case "name":
+        d = a.name.localeCompare(b.name);
+        break;
+      case "date":
+        d = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+        break;
+      case "arrivals":
+        d = a.checked_in_count - b.checked_in_count;
+        break;
+      case "paid":
+        d = (a.paid_amount ?? 0) - (b.paid_amount ?? 0);
+        break;
+      case "pending":
+        d = pendingOf(a) - pendingOf(b);
+        break;
+      case "status":
+        d = GUEST_STATUS_ORDER[a.guest_status] - GUEST_STATUS_ORDER[b.guest_status];
+        break;
+    }
+    if (d === 0) d = a.id - b.id;
+    return d * factor;
+  });
+}
+
+const COLUMNS: { label: string; key: SortKey | null }[] = [
+  { label: "Guest", key: "name" },
+  { label: "Day", key: "date" },
+  { label: "Arrivals", key: "arrivals" },
+  { label: "Paid", key: "paid" },
+  { label: "Pending", key: "pending" },
+  { label: "Payment", key: null },
+  { label: "Status", key: "status" },
+  { label: "Actions", key: null },
+];
+
+function SortableHead({
+  sort,
+  onSort,
+}: {
+  sort: SortState;
+  onSort: (key: SortKey) => void;
+}) {
+  return (
+    <thead className="sticky top-0 z-10">
+      <tr className="border-b border-zinc-200/70 bg-white text-[11px] uppercase tracking-wider text-zinc-400">
+        {COLUMNS.map((c) => (
+          <th key={c.label} className="bg-white px-4 py-3.5">
+            {c.key ? (
+              <button
+                onClick={() => onSort(c.key as SortKey)}
+                className={`flex items-center gap-1 uppercase tracking-wider transition hover:text-zinc-700 ${
+                  sort.key === c.key ? "text-oasis-600" : ""
+                }`}
+              >
+                {c.label}
+                <span className="text-[9px]">
+                  {sort.key === c.key ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}
+                </span>
+              </button>
+            ) : (
+              c.label
+            )}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+}
+
+// ---------- one editable booking row (shared by both views) ----------
+
+interface RowCtx {
+  busyBooking: number | null;
+  patch: (id: number, body: Record<string, unknown>) => void;
+  setStatus: (id: number, s: BookingStatus) => void;
+  onEdit: (b: Booking) => void;
+  onWhatsApp: (b: Booking) => void;
+  waUsed: (b: Booking) => boolean;
+  onError: (m: string) => void;
+  onRefresh: () => void;
+}
+
+/** Options for the status dropdown; keeps a locked value (checked in /
+ * cancelled — no response) visible but not re-selectable. */
+function statusOptions(b: Booking): { value: GuestStatus; disabled?: boolean }[] {
+  const base = SELECTABLE_GUEST_STATUSES.map((v) => ({ value: v }));
+  if (!SELECTABLE_GUEST_STATUSES.includes(b.guest_status)) {
+    return [{ value: b.guest_status, disabled: true }, ...base];
+  }
+  return base;
+}
+
+function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
+  const allIn = b.status === "approved" && b.checked_in_count >= b.guests;
+  const pending = pendingOf(b);
+  const used = ctx.waUsed(b);
+
+  return (
+    <tr className={`border-b border-zinc-100 last:border-0 ${allIn ? "bg-zinc-50/70" : ""}`}>
+      {/* Guest */}
+      <td className="px-4 py-3.5">
+        <p className="text-xs text-zinc-400">#{String(b.id).padStart(4, "0")}</p>
+        <p className="font-medium">{b.name}</p>
+        <p className="text-xs text-zinc-500">{b.phone}</p>
+        {b.email && <p className="text-xs text-zinc-500">{b.email}</p>}
+        {b.heard_about && <p className="text-xs text-zinc-400">via {b.heard_about}</p>}
+        {b.notes && (
+          <p className="mt-0.5 max-w-44 text-xs italic text-zinc-400">“{b.notes}”</p>
+        )}
+      </td>
+
+      {/* Day */}
+      <td className="whitespace-nowrap px-4 py-3.5" title={formatDateLong(b.date)}>
+        {formatDateShort(b.date)}
+      </td>
+
+      {/* Arrivals */}
+      <td className="px-4 py-3.5">
+        {b.status === "approved" ? (
+          <div>
+            <div className="flex items-center gap-1.5">
+              <button
+                aria-label="One guest left"
+                onClick={() => ctx.patch(b.id, { checkedInCount: b.checked_in_count - 1 })}
+                disabled={ctx.busyBooking === b.id || b.checked_in_count === 0}
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-30"
+              >
+                −
+              </button>
+              <span
+                className={`min-w-12 text-center text-sm font-semibold ${
+                  b.checked_in_count === b.guests
+                    ? "text-teal-600"
+                    : b.checked_in_count > 0
+                      ? "text-amber-600"
+                      : "text-zinc-400"
+                }`}
+              >
+                {b.checked_in_count} / {b.guests}
+              </span>
+              <button
+                aria-label="One guest arrived"
+                onClick={() => ctx.patch(b.id, { checkedInCount: b.checked_in_count + 1 })}
+                disabled={ctx.busyBooking === b.id || b.checked_in_count >= b.guests}
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-30"
+              >
+                +
+              </button>
+            </div>
+            <p className="mt-1 text-[11px] text-zinc-400">
+              {b.checked_in_count === 0
+                ? "no one in yet"
+                : b.checked_in_count === b.guests
+                  ? "all in"
+                  : `${b.guests - b.checked_in_count} still expected`}
+            </p>
+          </div>
+        ) : (
+          <span className="text-sm text-zinc-400">{b.guests} booked</span>
+        )}
+      </td>
+
+      {/* Paid */}
+      <td className="whitespace-nowrap px-4 py-3.5">
+        <p className={`font-semibold ${(b.paid_amount ?? 0) > 0 ? "text-emerald-600" : "text-zinc-400"}`}>
+          {b.paid_amount ?? 0} JOD
+        </p>
+        {(b.paid_amount ?? 0) > 0 && b.paid_account && (
+          <p className="text-xs text-zinc-400">via {b.paid_account}</p>
+        )}
+      </td>
+
+      {/* Pending */}
+      <td className="whitespace-nowrap px-4 py-3.5">
+        <p className={`font-semibold ${pending > 0 ? "text-amber-600" : "text-zinc-400"}`}>
+          {pending} JOD
+        </p>
+        <p className="text-xs text-zinc-400">
+          of {b.total_price} · {b.price_per_guest} each
+        </p>
+        {b.rate_type !== "standard" && (
+          <span
+            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${RATE_BADGES[b.rate_type]}`}
+          >
+            {b.rate_type}
+          </span>
+        )}
+      </td>
+
+      {/* Payment editor */}
+      <td className="px-4 py-3.5">
+        <PaymentEditor booking={b} onError={ctx.onError} onSaved={ctx.onRefresh} />
+      </td>
+
+      {/* Status */}
+      <td className="px-4 py-3.5">
+        <div className="flex flex-col items-start gap-1.5">
+          <span
+            className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[b.status]}`}
+          >
+            {BOOKING_STATUS_LABELS[b.status]}
+          </span>
+          <select
+            aria-label={`Guest status for booking ${b.id}`}
+            value={b.guest_status}
+            disabled={ctx.busyBooking === b.id}
+            onChange={(e) => ctx.patch(b.id, { guestStatus: e.target.value })}
+            className={`rounded-lg border px-2 py-1 text-xs font-medium outline-none ${GUEST_STATUS_COLOR[b.guest_status].select}`}
+          >
+            {statusOptions(b).map((o) => (
+              <option key={o.value} value={o.value} disabled={o.disabled}>
+                {GUEST_STATUS_LABELS[o.value]}
+              </option>
+            ))}
+          </select>
+        </div>
+      </td>
+
+      {/* Actions */}
+      <td className="px-4 py-3.5">
+        <div className="flex max-w-36 flex-wrap gap-1.5">
+          {b.status === "approved" && b.checked_in_count < b.guests && (
+            <button
+              onClick={() => ctx.patch(b.id, { checkedInCount: b.guests })}
+              disabled={ctx.busyBooking === b.id}
+              className="rounded-full bg-oasis-900 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-800 disabled:opacity-40"
+            >
+              All in
+            </button>
+          )}
+          {b.status === "approved" && (
+            <a
+              href={waLink(b)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => ctx.onWhatsApp(b)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                used
+                  ? "border border-emerald-500 bg-emerald-50 text-emerald-700"
+                  : "border border-oasis-950/10 text-oasis-700 hover:bg-oasis-50"
+              }`}
+            >
+              {used ? "WhatsApp ✓" : "WhatsApp ↗"}
+            </a>
+          )}
+          {b.status !== "approved" && (
+            <button
+              onClick={() => ctx.setStatus(b.id, "approved")}
+              disabled={ctx.busyBooking === b.id}
+              className="rounded-full bg-oasis-600 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
+            >
+              Approve
+            </button>
+          )}
+          {b.status !== "rejected" && (
+            <button
+              onClick={() => ctx.setStatus(b.id, "rejected")}
+              disabled={ctx.busyBooking === b.id}
+              className="rounded-full border border-rose-300 px-3.5 py-1.5 text-xs font-medium text-rose-500 transition hover:bg-rose-50 disabled:opacity-40"
+            >
+              Reject
+            </button>
+          )}
+          {b.status !== "pending" && (
+            <button
+              onClick={() => ctx.setStatus(b.id, "pending")}
+              disabled={ctx.busyBooking === b.id}
+              className="rounded-full border border-oasis-200 px-3.5 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
+            >
+              Reset
+            </button>
+          )}
+          <button
+            onClick={() => ctx.onEdit(b)}
+            disabled={ctx.busyBooking === b.id}
+            className="rounded-full border border-oasis-950/10 px-3.5 py-1.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-40"
+          >
+            Edit
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ---------- grouped-by-status view (same editable layout) ----------
+
+function BookingsByStatus({
+  bookings,
+  ctx,
+  sort,
+  onSort,
+}: {
+  bookings: Booking[];
+  ctx: RowCtx;
+  sort: SortState;
+  onSort: (k: SortKey) => void;
+}) {
+  const [openGroups, setOpenGroups] = useState<Partial<Record<GuestStatus, boolean>>>({});
+
+  const groups = (Object.keys(GUEST_STATUS_LABELS) as GuestStatus[]).map((s) => ({
+    status: s,
+    items: bookings.filter((b) => b.guest_status === s),
+  }));
+
+  return (
+    <section className="mt-10">
+      <h2 className="text-lg font-semibold tracking-tight">Bookings by status</h2>
+      <p className="mt-1 text-sm text-zinc-500">
+        The same bookings, grouped by status and fully editable here too. Click a
+        status to open it; the filters, search and sorting above apply here.
+      </p>
+
+      <div className="mt-4 max-h-[75vh] space-y-2 overflow-y-auto pr-1">
+        {groups.map(({ status, items }) => {
+          const guests = items.reduce((sum, b) => sum + b.guests, 0);
+          const isOpen = openGroups[status] === true && items.length > 0;
+          const c = GUEST_STATUS_COLOR[status];
+          return (
+            <div key={status} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+              <button
+                onClick={() => setOpenGroups((g) => ({ ...g, [status]: !g[status] }))}
+                disabled={items.length === 0}
+                aria-expanded={isOpen}
+                className="flex w-full items-center justify-between px-5 py-3.5 text-left transition enabled:hover:bg-zinc-50 disabled:cursor-default"
+              >
+                <span className="flex items-center gap-2.5">
+                  <span className={`h-2 w-2 rounded-full ${c.dot}`} />
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.pill}`}>
+                    {GUEST_STATUS_LABELS[status]}
+                  </span>
+                  <span className="text-sm text-zinc-400">
+                    {items.length === 0
+                      ? "none"
+                      : `${items.length} ${items.length === 1 ? "booking" : "bookings"} · ${guests} ${guests === 1 ? "guest" : "guests"}`}
+                  </span>
+                </span>
+                {items.length > 0 && (
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden
+                    className={`shrink-0 text-zinc-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                  >
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+
+              {isOpen && (
+                <div className="overflow-x-auto border-t border-zinc-100">
+                  <table className="w-full text-left text-sm">
+                    <SortableHead sort={sort} onSort={onSort} />
+                    <tbody className="align-top">
+                      {items.map((b) => (
+                        <BookingRow key={b.id} b={b} ctx={ctx} />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ---------- team management (unchanged) ----------
 
 function TeamSection({
   team,
@@ -94,11 +524,11 @@ function TeamSection({
 
   return (
     <section className="mt-10">
-      <h2 className="text-lg font-semibold tracking-tight">Team & access</h2>
+      <h2 className="text-lg font-semibold tracking-tight">Team &amp; access</h2>
       <p className="mt-1 text-sm text-zinc-500">
         Each person signs in with their own name and password. Staff manage
-        bookings and payments; managers also control capacity, insights and
-        this team list. Every action is recorded under their name.
+        bookings and payments; managers also control capacity, insights and this
+        team list. Every action is recorded under their name.
       </p>
 
       <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-950/5">
@@ -127,19 +557,17 @@ function TeamSection({
                     aria-label={`Role for ${u.name}`}
                     value={u.role}
                     disabled={busy}
-                    onChange={(e) =>
-                      call(`/api/admin/users/${u.id}`, "PATCH", { role: e.target.value })
-                    }
+                    onChange={(e) => call(`/api/admin/users/${u.id}`, "PATCH", { role: e.target.value })}
                     className="rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-950/25"
                   >
-                    <option value="staff">Staff — bookings & payments</option>
+                    <option value="staff">Staff — bookings &amp; payments</option>
                     <option value="manager">Manager — full access</option>
                   </select>
                 </td>
                 <td className="px-5 py-3">
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      u.active ? "bg-oasis-100 text-oasis-700" : "bg-blush-100 text-blush-500"
+                      u.active ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-600"
                     }`}
                   >
                     {u.active ? "Active" : "Disabled"}
@@ -149,9 +577,7 @@ function TeamSection({
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       disabled={busy}
-                      onClick={() =>
-                        call(`/api/admin/users/${u.id}`, "PATCH", { active: !u.active })
-                      }
+                      onClick={() => call(`/api/admin/users/${u.id}`, "PATCH", { active: !u.active })}
                       className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
                     >
                       {u.active ? "Disable" : "Enable"}
@@ -169,11 +595,7 @@ function TeamSection({
                         <button
                           disabled={busy || newPassword.length < 6}
                           onClick={async () => {
-                            if (
-                              await call(`/api/admin/users/${u.id}`, "PATCH", {
-                                password: newPassword,
-                              })
-                            ) {
+                            if (await call(`/api/admin/users/${u.id}`, "PATCH", { password: newPassword })) {
                               setResettingId(null);
                               setNewPassword("");
                             }
@@ -221,9 +643,7 @@ function TeamSection({
         className="mt-4 flex flex-wrap items-end gap-3 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-oasis-950/5"
       >
         <div>
-          <label htmlFor="new-member-name" className="mb-1 block text-xs font-medium text-zinc-500">
-            Name
-          </label>
+          <label htmlFor="new-member-name" className="mb-1 block text-xs font-medium text-zinc-500">Name</label>
           <input
             id="new-member-name"
             required
@@ -236,9 +656,7 @@ function TeamSection({
           />
         </div>
         <div>
-          <label htmlFor="new-member-password" className="mb-1 block text-xs font-medium text-zinc-500">
-            Password
-          </label>
+          <label htmlFor="new-member-password" className="mb-1 block text-xs font-medium text-zinc-500">Password</label>
           <input
             id="new-member-password"
             type="password"
@@ -251,16 +669,14 @@ function TeamSection({
           />
         </div>
         <div>
-          <label htmlFor="new-member-role" className="mb-1 block text-xs font-medium text-zinc-500">
-            Access
-          </label>
+          <label htmlFor="new-member-role" className="mb-1 block text-xs font-medium text-zinc-500">Access</label>
           <select
             id="new-member-role"
             value={role}
             onChange={(e) => setRole(e.target.value as "staff" | "manager")}
             className="rounded-xl border border-oasis-950/10 bg-white px-3 py-2 text-sm outline-none focus:border-oasis-950/25"
           >
-            <option value="staff">Staff — bookings & payments</option>
+            <option value="staff">Staff — bookings &amp; payments</option>
             <option value="manager">Manager — full access</option>
           </select>
         </div>
@@ -276,165 +692,7 @@ function TeamSection({
   );
 }
 
-const STATUS_STYLES: Record<BookingStatus, string> = {
-  pending: "bg-amber-100 text-amber-800",
-  approved: "bg-oasis-100 text-oasis-700",
-  rejected: "bg-blush-100 text-blush-500",
-};
-
-// Dot colours for the grouped-by-status view.
-const GUEST_STATUS_DOTS: Record<GuestStatus, string> = {
-  open: "bg-zinc-400",
-  contacted: "bg-sky-500",
-  no_response: "bg-amber-500",
-  confirmed: "bg-oasis-500",
-  checked_in: "bg-oasis-600",
-  cancelled: "bg-blush-400",
-  cancelled_no_response: "bg-blush-400",
-};
-
-/** The same bookings, grouped by guest status, each group collapsible. */
-function BookingsByStatus({
-  bookings,
-  onEdit,
-}: {
-  bookings: Booking[];
-  onEdit: (b: Booking) => void;
-}) {
-  const [openGroups, setOpenGroups] = useState<Partial<Record<GuestStatus, boolean>>>({});
-
-  const groups = (Object.keys(GUEST_STATUS_LABELS) as GuestStatus[]).map((s) => ({
-    status: s,
-    items: bookings.filter((b) => b.guest_status === s),
-  }));
-
-  return (
-    <section className="mt-10">
-      <h2 className="text-lg font-semibold tracking-tight">Bookings by status</h2>
-      <p className="mt-1 text-sm text-zinc-500">
-        The same bookings as above, grouped by guest status. Click a status to
-        open it — the filters and search up there apply here too.
-      </p>
-
-      <div className="mt-4 space-y-2">
-        {groups.map(({ status, items }) => {
-          const guests = items.reduce((sum, b) => sum + b.guests, 0);
-          const isOpen = openGroups[status] === true && items.length > 0;
-          return (
-            <div
-              key={status}
-              className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5"
-            >
-              <button
-                onClick={() =>
-                  setOpenGroups((g) => ({ ...g, [status]: !g[status] }))
-                }
-                disabled={items.length === 0}
-                aria-expanded={isOpen}
-                className="flex w-full items-center justify-between px-5 py-3.5 text-left transition enabled:hover:bg-zinc-50 disabled:cursor-default"
-              >
-                <span className="flex items-center gap-2.5">
-                  <span
-                    className={`h-2 w-2 rounded-full ${GUEST_STATUS_DOTS[status]}`}
-                  />
-                  <span className="text-sm font-semibold">
-                    {GUEST_STATUS_LABELS[status]}
-                  </span>
-                  <span className="text-sm text-zinc-400">
-                    {items.length === 0
-                      ? "none"
-                      : `${items.length} ${items.length === 1 ? "booking" : "bookings"} · ${guests} ${guests === 1 ? "guest" : "guests"}`}
-                  </span>
-                </span>
-                {items.length > 0 && (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden
-                    className={`shrink-0 text-zinc-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                  >
-                    <path
-                      d="M6 9l6 6 6-6"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </button>
-
-              {isOpen && (
-                <ul className="border-t border-zinc-100">
-                  {items.map((b) => {
-                    const pending =
-                      b.rate_type === "complimentary"
-                        ? 0
-                        : Math.max(0, b.total_price - (b.paid_amount ?? 0));
-                    return (
-                      <li
-                        key={b.id}
-                        className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-zinc-100 px-5 py-3 text-sm last:border-0"
-                      >
-                        <span className="w-32 shrink-0">
-                          <span className="block truncate font-medium">{b.name}</span>
-                          <span className="text-xs text-zinc-400">
-                            #{String(b.id).padStart(4, "0")}
-                          </span>
-                        </span>
-                        <span
-                          className="w-20 shrink-0 whitespace-nowrap text-zinc-600"
-                          title={formatDateLong(b.date)}
-                        >
-                          {formatDateShort(b.date)}
-                        </span>
-                        <span className="w-16 shrink-0 text-zinc-600">
-                          {b.guest_status === "checked_in"
-                            ? `${b.checked_in_count}/${b.guests} in`
-                            : `${b.guests} ${b.guests === 1 ? "guest" : "guests"}`}
-                        </span>
-                        <span className="w-24 shrink-0">
-                          <span className="font-semibold text-oasis-600">
-                            {b.paid_amount ?? 0} JOD
-                          </span>{" "}
-                          <span className="text-xs text-zinc-400">paid</span>
-                        </span>
-                        <span className="w-28 shrink-0">
-                          <span
-                            className={`font-semibold ${pending > 0 ? "text-amber-600" : "text-zinc-400"}`}
-                          >
-                            {pending} JOD
-                          </span>{" "}
-                          <span className="text-xs text-zinc-400">pending</span>
-                        </span>
-                        <span className="hidden text-xs text-zinc-400 sm:inline">
-                          {b.phone}
-                        </span>
-                        <button
-                          onClick={() => onEdit(b)}
-                          className="ml-auto rounded-full border border-oasis-950/10 px-3 py-1 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50"
-                        >
-                          Edit
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-const RATE_BADGES: Record<Exclude<RateType, "standard">, string> = {
-  discounted: "bg-amber-100 text-amber-800",
-  complimentary: "bg-blush-100 text-blush-500",
-};
+// ---------- payment editor (unchanged behaviour) ----------
 
 function PaymentEditor({
   booking,
@@ -445,24 +703,20 @@ function PaymentEditor({
   onError: (message: string) => void;
   onSaved: () => void;
 }) {
-  const propPaid =
-    booking.paid_amount === null ? "" : String(booking.paid_amount);
-  const propAccount =
-    booking.paid_account ?? booking.payment_method ?? "Cash";
+  const propPaid = booking.paid_amount === null ? "" : String(booking.paid_amount);
+  const propAccount = booking.paid_account ?? booking.payment_method ?? "Cash";
   const [rate, setRate] = useState<RateType>(booking.rate_type);
   const [paid, setPaid] = useState(propPaid);
   const [account, setAccount] = useState(propAccount);
   const [saving, setSaving] = useState(false);
 
-  // Resync after a refresh brings new server values.
   useEffect(() => {
     setRate(booking.rate_type);
     setPaid(booking.paid_amount === null ? "" : String(booking.paid_amount));
     setAccount(booking.paid_account ?? booking.payment_method ?? "Cash");
   }, [booking.rate_type, booking.paid_amount, booking.paid_account, booking.payment_method]);
 
-  const dirty =
-    rate !== booking.rate_type || paid !== propPaid || account !== propAccount;
+  const dirty = rate !== booking.rate_type || paid !== propPaid || account !== propAccount;
 
   async function save() {
     const trimmed = paid.trim();
@@ -530,16 +784,12 @@ function PaymentEditor({
           className="rounded-lg border border-oasis-950/10 bg-white px-1.5 py-1.5 text-xs outline-none focus:border-oasis-500"
         >
           {PAYMENT_ACCOUNTS.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
+            <option key={a} value={a}>{a}</option>
           ))}
         </select>
       </div>
       {booking.payment_method && (
-        <p className="text-xs text-zinc-400">
-          Guest chose {booking.payment_method}
-        </p>
+        <p className="text-xs text-zinc-400">Guest chose {booking.payment_method}</p>
       )}
       {dirty && (
         <button
@@ -598,8 +848,9 @@ export default function AdminDashboard({
   const [searchInput, setSearchInput] = useState(filters.query);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Booking | null>(null);
+  const [sort, setSort] = useState<SortState>({ key: null, dir: "asc" });
+  const [waClicked, setWaClicked] = useState<Set<number>>(new Set());
 
-  // Debounced client search → URL param → server-filtered list.
   useEffect(() => {
     if (searchInput === filters.query) return;
     const timer = setTimeout(() => applyFilters({ query: searchInput }), 350);
@@ -607,15 +858,19 @@ export default function AdminDashboard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput, filters.query]);
 
-  // Another admin (or a router.refresh after an action) may have changed the
-  // capacity — keep the input in step so a stale Save can't revert it.
   useEffect(() => {
     setCapacityInput(String(capacity));
   }, [capacity]);
 
+  const sortedBookings = useMemo(() => sortBookings(bookings, sort), [bookings, sort]);
+
+  function onSort(key: SortKey) {
+    setSort((s) =>
+      s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }
+    );
+  }
+
   function applyFilters(next: Partial<Filters>) {
-    // Merge on top of the live URL, not the server-render prop — two quick
-    // filter changes would otherwise clobber each other.
     const current: Filters = {
       status: searchParams.get("status") ?? "",
       guestStatus: searchParams.get("gs") ?? "",
@@ -660,9 +915,37 @@ export default function AdminDashboard({
     return patchBooking(id, { status });
   }
 
-  function setCheckedIn(id: number, checkedIn: boolean) {
-    return patchBooking(id, { checkedIn });
+  // Opening WhatsApp marks the button "used" and moves an untouched guest
+  // straight to "Contacted" (without downgrading a further-along status).
+  function onWhatsApp(b: Booking) {
+    setWaClicked((prev) => new Set(prev).add(b.id));
+    if (b.guest_status === "open" || b.guest_status === "no_response") {
+      patchBooking(b.id, { guestStatus: "contacted" });
+    }
   }
+
+  function waUsed(b: Booking): boolean {
+    return (
+      waClicked.has(b.id) ||
+      b.guest_status === "contacted" ||
+      b.guest_status === "confirmed" ||
+      b.guest_status === "checked_in"
+    );
+  }
+
+  const ctx: RowCtx = {
+    busyBooking,
+    patch: patchBooking,
+    setStatus,
+    onEdit: setEditing,
+    onWhatsApp,
+    waUsed,
+    onError: setMessage,
+    onRefresh: () => {
+      setMessage("");
+      router.refresh();
+    },
+  };
 
   async function saveCapacity(e: React.FormEvent) {
     e.preventDefault();
@@ -700,17 +983,12 @@ export default function AdminDashboard({
 
   return (
     <div className="min-h-screen bg-zinc-50 pb-20">
-      {/* Top bar */}
       <header className="border-b border-zinc-200/70 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Link href="/">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/logo-black.png"
-                alt="Oasis by Azara"
-                className="h-7 w-auto"
-              />
+              <img src="/images/logo-black.png" alt="Oasis by Azara" className="h-7 w-auto" />
             </Link>
             <span className="rounded-full bg-oasis-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-oasis-700">
               {role === "manager" ? "Manager" : "Staff"}
@@ -723,7 +1001,7 @@ export default function AdminDashboard({
                   href="/admin/insights"
                   className="rounded-full bg-oasis-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-700"
                 >
-                  Insights & accounting
+                  Insights &amp; accounting
                 </Link>
                 <Link
                   href="/admin/activity"
@@ -739,10 +1017,7 @@ export default function AdminDashboard({
             >
               Events
             </Link>
-            <button
-              onClick={logout}
-              className="text-sm font-medium text-oasis-800 hover:text-oasis-600"
-            >
+            <button onClick={logout} className="text-sm font-medium text-oasis-800 hover:text-oasis-600">
               Sign out
             </button>
           </div>
@@ -752,9 +1027,9 @@ export default function AdminDashboard({
       <main className="mx-auto max-w-6xl px-6 pt-8">
         {showPasswordWarning && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-            <strong>Security note:</strong> the admin password is still the
-            default. Set <code className="rounded bg-amber-100 px-1">ADMIN_PASSWORD</code>{" "}
-            in your environment before going live.
+            <strong>Security note:</strong> the admin password is still the default.
+            Set <code className="rounded bg-amber-100 px-1">ADMIN_PASSWORD</code> in
+            your environment before going live.
           </div>
         )}
 
@@ -762,15 +1037,11 @@ export default function AdminDashboard({
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
             <p className="text-sm text-zinc-500">Pending requests</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight">
-              {pendingCount}
-            </p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight">{pendingCount}</p>
           </div>
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
             <p className="text-sm text-zinc-500">Bookings today</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight">
-              {bookingsToday}
-            </p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight">{bookingsToday}</p>
           </div>
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
             <p className="text-sm text-zinc-500">Guests today</p>
@@ -781,19 +1052,14 @@ export default function AdminDashboard({
           </div>
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
             <p className="text-sm text-zinc-500">Checked in today</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight text-oasis-600">
+            <p className="mt-1 text-3xl font-semibold tracking-tight text-teal-600">
               {checkedInToday}
               <span className="text-xl text-zinc-400"> / {guestsToday}</span>
             </p>
           </div>
           {role === "manager" ? (
-            <form
-              onSubmit={saveCapacity}
-              className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5"
-            >
-              <label htmlFor="capacity" className="text-sm text-zinc-500">
-                Daily capacity
-              </label>
+            <form onSubmit={saveCapacity} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+              <label htmlFor="capacity" className="text-sm text-zinc-500">Daily capacity</label>
               <div className="mt-2 flex gap-2">
                 <input
                   id="capacity"
@@ -812,17 +1078,13 @@ export default function AdminDashboard({
                   {savingCapacity ? "Saving…" : "Save"}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-zinc-400">
-                Applies to every day. Lower it to limit guests.
-              </p>
+              <p className="mt-2 text-xs text-zinc-400">Applies to every day. Lower it to limit guests.</p>
             </form>
           ) : (
             <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
               <p className="text-sm text-zinc-500">Daily capacity</p>
               <p className="mt-1 text-3xl font-semibold tracking-tight">{capacity}</p>
-              <p className="mt-2 text-xs text-zinc-400">
-                Set by the manager.
-              </p>
+              <p className="mt-2 text-xs text-zinc-400">Set by the manager.</p>
             </div>
           )}
         </div>
@@ -837,9 +1099,7 @@ export default function AdminDashboard({
               return (
                 <button
                   key={day.date}
-                  onClick={() =>
-                    applyFilters({ date: filters.date === day.date ? "" : day.date })
-                  }
+                  onClick={() => applyFilters({ date: filters.date === day.date ? "" : day.date })}
                   className={`min-w-32 shrink-0 rounded-2xl border p-4 text-left transition ${
                     filters.date === day.date
                       ? "border-oasis-600 bg-oasis-600 text-white"
@@ -858,7 +1118,7 @@ export default function AdminDashboard({
                       filters.date === day.date
                         ? "text-white/70"
                         : full
-                          ? "text-blush-500"
+                          ? "text-rose-500"
                           : ratio > 0.8
                             ? "text-amber-600"
                             : "text-oasis-600"
@@ -910,9 +1170,7 @@ export default function AdminDashboard({
               >
                 <option value="">All guest statuses</option>
                 {(Object.keys(GUEST_STATUS_LABELS) as GuestStatus[]).map((s) => (
-                  <option key={s} value={s}>
-                    {GUEST_STATUS_LABELS[s]}
-                  </option>
+                  <option key={s} value={s}>{GUEST_STATUS_LABELS[s]}</option>
                 ))}
               </select>
               <input
@@ -935,267 +1193,29 @@ export default function AdminDashboard({
           </div>
 
           {message && (
-            <p className="mt-4 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">
-              {message}
-            </p>
+            <p className="mt-4 rounded-xl bg-rose-100 px-4 py-3 text-sm text-rose-600">{message}</p>
           )}
 
-          <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+          <div className="mt-4 max-h-[65vh] overflow-auto rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
             <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-zinc-200/70 text-[11px] uppercase tracking-wider text-zinc-400">
-                  <th className="px-4 py-3.5">Guest</th>
-                  <th className="px-4 py-3.5">Day</th>
-                  <th className="px-4 py-3.5">Arrivals</th>
-                  <th className="px-4 py-3.5">Paid</th>
-                  <th className="px-4 py-3.5">Pending</th>
-                  <th className="px-4 py-3.5">Payment</th>
-                  <th className="px-4 py-3.5">Status</th>
-                  <th className="px-4 py-3.5">Actions</th>
-                </tr>
-              </thead>
+              <SortableHead sort={sort} onSort={onSort} />
               <tbody className="align-top">
-                {bookings.length === 0 && (
+                {sortedBookings.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-zinc-400">
                       No bookings match these filters.
                     </td>
                   </tr>
                 )}
-                {bookings.map((b) => (
-                  <tr
-                    key={b.id}
-                    className={`border-b border-zinc-100 last:border-0 ${
-                      b.status === "approved" && b.checked_in_count >= b.guests
-                        ? "bg-zinc-50/70"
-                        : ""
-                    }`}
-                  >
-                    <td className="px-4 py-3.5">
-                      <p className="text-xs text-zinc-400">
-                        #{String(b.id).padStart(4, "0")}
-                      </p>
-                      <p className="font-medium">{b.name}</p>
-                      <p className="text-xs text-zinc-500">{b.phone}</p>
-                      {b.email && <p className="text-xs text-zinc-500">{b.email}</p>}
-                      {b.heard_about && (
-                        <p className="text-xs text-zinc-400">via {b.heard_about}</p>
-                      )}
-                      {b.notes && (
-                        <p className="mt-0.5 max-w-44 text-xs italic text-zinc-400">
-                          “{b.notes}”
-                        </p>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3.5" title={formatDateLong(b.date)}>
-                      {formatDateShort(b.date)}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      {b.status === "approved" ? (
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              aria-label="One guest left"
-                              onClick={() =>
-                                patchBooking(b.id, {
-                                  checkedInCount: b.checked_in_count - 1,
-                                })
-                              }
-                              disabled={busyBooking === b.id || b.checked_in_count === 0}
-                              className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-30"
-                            >
-                              −
-                            </button>
-                            <span
-                              className={`min-w-12 text-center text-sm font-semibold ${
-                                b.checked_in_count === b.guests
-                                  ? "text-oasis-600"
-                                  : b.checked_in_count > 0
-                                    ? "text-amber-600"
-                                    : "text-zinc-400"
-                              }`}
-                            >
-                              {b.checked_in_count} / {b.guests}
-                            </span>
-                            <button
-                              aria-label="One guest arrived"
-                              onClick={() =>
-                                patchBooking(b.id, {
-                                  checkedInCount: b.checked_in_count + 1,
-                                })
-                              }
-                              disabled={
-                                busyBooking === b.id || b.checked_in_count >= b.guests
-                              }
-                              className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-30"
-                            >
-                              +
-                            </button>
-                          </div>
-                          <p className="mt-1 text-[11px] text-zinc-400">
-                            {b.checked_in_count === 0
-                              ? "no one in yet"
-                              : b.checked_in_count === b.guests
-                                ? "all in"
-                                : `${b.guests - b.checked_in_count} still expected`}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-zinc-400">
-                          {b.guests} booked
-                        </span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3.5">
-                      <p
-                        className={`font-semibold ${
-                          (b.paid_amount ?? 0) > 0 ? "text-oasis-600" : "text-zinc-400"
-                        }`}
-                      >
-                        {b.paid_amount ?? 0} JOD
-                      </p>
-                      {(b.paid_amount ?? 0) > 0 && b.paid_account && (
-                        <p className="text-xs text-zinc-400">via {b.paid_account}</p>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3.5">
-                      {(() => {
-                        const pending =
-                          b.rate_type === "complimentary"
-                            ? 0
-                            : Math.max(0, b.total_price - (b.paid_amount ?? 0));
-                        return (
-                          <p
-                            className={`font-semibold ${
-                              pending > 0 ? "text-amber-600" : "text-zinc-400"
-                            }`}
-                          >
-                            {pending} JOD
-                          </p>
-                        );
-                      })()}
-                      <p className="text-xs text-zinc-400">
-                        of {b.total_price} · {b.price_per_guest} each
-                      </p>
-                      {b.rate_type !== "standard" && (
-                        <span
-                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${RATE_BADGES[b.rate_type]}`}
-                        >
-                          {b.rate_type}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <PaymentEditor
-                        booking={b}
-                        onError={setMessage}
-                        onSaved={() => {
-                          setMessage("");
-                          router.refresh();
-                        }}
-                      />
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex flex-col items-start gap-1.5">
-                        <span
-                          className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[b.status]}`}
-                        >
-                          {BOOKING_STATUS_LABELS[b.status]}
-                        </span>
-                        {b.guest_status === "checked_in" ||
-                        b.guest_status === "cancelled_no_response" ? (
-                          <span
-                            className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${GUEST_STATUS_STYLES[b.guest_status]}`}
-                          >
-                            {GUEST_STATUS_LABELS[b.guest_status]}
-                          </span>
-                        ) : (
-                          <select
-                            aria-label={`Guest status for booking ${b.id}`}
-                            value={b.guest_status}
-                            disabled={busyBooking === b.id}
-                            onChange={(e) =>
-                              patchBooking(b.id, { guestStatus: e.target.value })
-                            }
-                            className="rounded-lg border border-oasis-950/10 bg-white px-2 py-1 text-xs outline-none focus:border-oasis-950/25"
-                          >
-                            {SELECTABLE_GUEST_STATUSES.map((s) => (
-                              <option key={s} value={s}>
-                                {GUEST_STATUS_LABELS[s]}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex max-w-36 flex-wrap gap-1.5">
-                        {b.status === "approved" &&
-                          b.checked_in_count < b.guests && (
-                            <button
-                              onClick={() =>
-                                patchBooking(b.id, { checkedInCount: b.guests })
-                              }
-                              disabled={busyBooking === b.id}
-                              className="rounded-full bg-oasis-900 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-800 disabled:opacity-40"
-                            >
-                              All in
-                            </button>
-                          )}
-                        {b.status === "approved" && (
-                          <a
-                            href={waLink(b)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="rounded-full border border-oasis-950/10 px-3.5 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50"
-                          >
-                            WhatsApp ↗
-                          </a>
-                        )}
-                        {b.status !== "approved" && (
-                          <button
-                            onClick={() => setStatus(b.id, "approved")}
-                            disabled={busyBooking === b.id}
-                            className="rounded-full bg-oasis-600 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
-                          >
-                            Approve
-                          </button>
-                        )}
-                        {b.status !== "rejected" && (
-                          <button
-                            onClick={() => setStatus(b.id, "rejected")}
-                            disabled={busyBooking === b.id}
-                            className="rounded-full border border-blush-300 px-3.5 py-1.5 text-xs font-medium text-blush-500 transition hover:bg-blush-100 disabled:opacity-40"
-                          >
-                            Reject
-                          </button>
-                        )}
-                        {b.status !== "pending" && (
-                          <button
-                            onClick={() => setStatus(b.id, "pending")}
-                            disabled={busyBooking === b.id}
-                            className="rounded-full border border-oasis-200 px-3.5 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
-                          >
-                            Reset
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setEditing(b)}
-                          disabled={busyBooking === b.id}
-                          className="rounded-full border border-oasis-950/10 px-3.5 py-1.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-40"
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                {sortedBookings.map((b) => (
+                  <BookingRow key={b.id} b={b} ctx={ctx} />
                 ))}
               </tbody>
             </table>
           </div>
         </section>
 
-        <BookingsByStatus bookings={bookings} onEdit={setEditing} />
+        <BookingsByStatus bookings={sortedBookings} ctx={ctx} sort={sort} onSort={onSort} />
 
         {role === "manager" && (
           <TeamSection

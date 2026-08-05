@@ -139,11 +139,13 @@ export function setDailyCapacity(capacity: number, actor: Actor): void {
 
 // ---------- today's front-desk stats ----------
 
-/** Bookings for today, excluding rejected ones. */
+/** Live bookings for today (excludes rejected and cancelled ones). */
 export function bookingsTodayCount(): number {
   const row = getDb()
     .prepare(
-      "SELECT COUNT(*) AS n FROM bookings WHERE date = ? AND status != 'rejected'"
+      `SELECT COUNT(*) AS n FROM bookings
+       WHERE date = ? AND status != 'rejected'
+         AND guest_status NOT IN ${RELEASING_GUEST_STATUSES}`
     )
     .get(today()) as { n: number };
   return row.n;
@@ -154,7 +156,7 @@ export function checkedInGuestsToday(): number {
   const row = getDb()
     .prepare(
       `SELECT COALESCE(SUM(checked_in_count), 0) AS total FROM bookings
-       WHERE date = ?`
+       WHERE date = ? AND guest_status NOT IN ${RELEASING_GUEST_STATUSES}`
     )
     .get(today()) as { total: number };
   return row.total;
