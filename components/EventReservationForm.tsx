@@ -51,7 +51,7 @@ export default function EventReservationForm({
     setError("");
     if (phoneDigits.length < country.min) {
       setError(
-        `Please enter a valid ${country.name} phone number (${country.min}–${country.max} digits after +${country.dial}).`
+        `Please enter a valid ${country.name} phone number (${country.min} to ${country.max} digits after +${country.dial}).`
       );
       return;
     }
@@ -128,7 +128,7 @@ export default function EventReservationForm({
           This event is fully booked
         </p>
         <p className="mt-2 text-sm text-oasis-900/70">
-          Keep an eye out — more evenings are on the way.
+          Keep an eye out, more evenings are on the way.
         </p>
       </div>
     );
@@ -141,8 +141,8 @@ export default function EventReservationForm({
     >
       <h2 className="font-display text-2xl font-semibold">Reserve your spot</h2>
       <p className="mt-1 text-sm text-oasis-900/60">
-        Send your request — we confirm every reservation. Nothing is charged
-        online; you pay at the entrance.
+        Send your request and we confirm every reservation. Nothing is charged
+        online, and you pay at the entrance.
       </p>
 
       <div className="mt-6">
@@ -186,7 +186,7 @@ export default function EventReservationForm({
                   </option>
                 ))}
               </optgroup>
-              <optgroup label="── Rest of the world">
+              <optgroup label="Other countries">
                 {OTHER_COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>
                     {c.flag} {c.name} (+{c.dial})
@@ -264,7 +264,7 @@ export default function EventReservationForm({
           className="mt-1 h-4 w-4 shrink-0 accent-oasis-600"
         />
         <span>
-          I understand this is a reservation request — our team will confirm my
+          I understand this is a reservation request. Our team will confirm my
           spot, and the {price} JOD per ticket is paid at the entrance.{" "}
           <span className="text-blush-500">*</span>
         </span>

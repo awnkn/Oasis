@@ -48,8 +48,8 @@ export default async function BookPage({
             Reserve your day
           </h1>
           <p className="mt-3 max-w-xl text-white/85">
-            Send your request below — our team reviews every booking and will
-            call you to confirm. Nothing is charged online; you pay at the gate.
+            Send your request below. Our team reviews every booking and will
+            call you to confirm. Nothing is charged online, and you pay at the gate.
           </p>
         </div>
       </div>

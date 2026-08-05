@@ -60,7 +60,7 @@ export default function AddBookingModal({
     e.preventDefault();
     if (phoneDigits.length < country.min) {
       setError(
-        `Please enter a valid ${country.name} phone number (${country.min}–${country.max} digits after +${country.dial}).`
+        `Please enter a valid ${country.name} phone number (${country.min} to ${country.max} digits after +${country.dial}).`
       );
       return;
     }
@@ -107,7 +107,7 @@ export default function AddBookingModal({
           <div>
             <h2 className="text-lg font-semibold tracking-tight">Add booking</h2>
             <p className="mt-1 text-sm text-zinc-500">
-              For walk-ins and phone bookings — created as already approved.
+              For walk in and phone bookings, created as already approved.
             </p>
           </div>
           <button
@@ -163,7 +163,7 @@ export default function AddBookingModal({
                     </option>
                   ))}
                 </optgroup>
-                <optgroup label="── Rest of the world">
+                <optgroup label="Other countries">
                   {OTHER_COUNTRIES.map((c) => (
                     <option key={c.code} value={c.code}>
                       {c.flag} {c.name} (+{c.dial})
