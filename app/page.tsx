@@ -127,7 +127,7 @@ export default function HomePage() {
             A sanctuary for women · Ladies only
           </p>
           <h1 className="max-w-4xl font-display text-4xl font-semibold leading-[1.12] [text-shadow:0_2px_30px_rgba(0,0,0,0.4)] sm:text-6xl lg:text-7xl">
-            A space where you are fully&nbsp;present.
+            A sanctuary designed around&nbsp;you.
           </h1>
           <p className="mt-6 max-w-xl text-lg text-white/90 [text-shadow:0_1px_16px_rgba(0,0,0,0.35)]">
             Sunlit pools, complete privacy and slow days, designed
@@ -300,13 +300,15 @@ export default function HomePage() {
             ].map((point) => (
               <div
                 key={point.title}
-                className="rounded-3xl border border-oasis-950/5 bg-sand-50 p-7 transition hover:border-oasis-200 hover:shadow-sm"
+                className="rounded-3xl border border-blue-100 bg-blue-50/60 p-7 transition hover:border-blue-300 hover:shadow-sm"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-oasis-50 text-oasis-600 ring-1 ring-oasis-500/10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm shadow-blue-600/25 ring-1 ring-blue-500/20">
                   {point.icon}
                 </div>
-                <h3 className="mt-5 font-display text-xl font-semibold">{point.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-oasis-900/60">
+                <h3 className="mt-5 font-display text-xl font-semibold text-blue-950">
+                  {point.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-blue-900/60">
                   {point.text}
                 </p>
               </div>
