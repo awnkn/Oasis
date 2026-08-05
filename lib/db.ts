@@ -223,6 +223,31 @@ function createDatabase(): Database.Database {
     ).run();
   }
 
+  // Repair any event slugs that aren't URL-safe ASCII. An earlier version
+  // let non-Latin titles (e.g. Arabic) produce non-ASCII slugs, which broke
+  // the event page URLs. Idempotent: valid slugs are skipped.
+  const eventsToCheck = db
+    .prepare("SELECT id, title, slug FROM ticketed_events")
+    .all() as { id: number; title: string; slug: string }[];
+  for (const e of eventsToCheck) {
+    if (/^[a-z0-9-]+$/.test(e.slug)) continue;
+    let base = e.title
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60);
+    if (!base) base = e.title === FIRST_EVENT.title ? FIRST_EVENT.slug : `event-${e.id}`;
+    let slug = base;
+    let n = 2;
+    while (
+      db.prepare("SELECT id FROM ticketed_events WHERE slug = ? AND id != ?").get(slug, e.id)
+    ) {
+      slug = `${base}-${n++}`;
+    }
+    db.prepare("UPDATE ticketed_events SET slug = ? WHERE id = ?").run(slug, e.id);
+  }
+
   return db;
 }
 
