@@ -15,7 +15,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const event = getEventBySlug(slug);
-  return { title: event ? `${event.title} — Oasis` : "Event — Oasis" };
+  return { title: event ? `${event.title} · Oasis` : "Event · Oasis" };
 }
 
 function heroUrl(e: TicketedEvent): string | null {

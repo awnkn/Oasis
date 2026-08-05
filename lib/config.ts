@@ -2,7 +2,7 @@
 
 export const CLUB_NAME = "Oasis by Azara";
 export const CLUB_TAGLINE =
-  "A sanctuary for women — a ladies-only pool retreat in Jordan.";
+  "A sanctuary for women, a ladies only pool retreat in Jordan.";
 
 export const CURRENCY = "JOD";
 
@@ -60,7 +60,7 @@ export const GUEST_STATUS_LABELS: Record<GuestStatus, string> = {
   confirmed: "Confirmed",
   checked_in: "Checked in",
   cancelled: "Cancelled",
-  cancelled_no_response: "Cancelled — no response",
+  cancelled_no_response: "Cancelled (no response)",
 };
 
 // How long a booking may sit at "No response" before it auto-cancels.
@@ -75,8 +75,8 @@ export const GUEST_PAYMENT_METHODS = ["Cash", "CliQ"] as const;
 // Acknowledgements every guest must accept before booking.
 export const BOOKING_TERMS = [
   "I understand that booking changes must be made at least 24 hours before my reservation. If cancelled in time, my booking can be transferred to a new booking date.",
-  "I understand that same-day cancellations and no-shows will result in the loss of my booking.",
+  "I understand that same day cancellations and no shows will result in the loss of my booking.",
   `I understand that Oasis is exclusively for guests aged ${AGE_OTHER_DAYS} and above, except Mondays where ages ${AGE_MONDAY}+ are welcome.`,
   `I acknowledge the entrance fee of ${WEEKDAY_PRICE} JOD on weekdays and ${WEEKEND_PRICE} JOD on weekends.`,
-  "Seating at all pool areas, including the Shisha Pool, is available on a first-come, first-served basis and cannot be reserved or guaranteed.",
+  "Seating at all pool areas, including the Shisha Pool, is available on a first come, first served basis and cannot be reserved or guaranteed.",
 ] as const;

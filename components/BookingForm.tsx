@@ -114,7 +114,7 @@ export default function BookingForm({
     setError("");
     if (phoneDigits.length < country.min) {
       setError(
-        `Please enter a valid ${country.name} phone number (${country.min}–${country.max} digits after +${country.dial}).`
+        `Please enter a valid ${country.name} phone number (${country.min} to ${country.max} digits after +${country.dial}).`
       );
       return;
     }
@@ -257,7 +257,7 @@ export default function BookingForm({
               </button>
             </span>
           ) : !availability.bookable ? (
-            <span>This date can’t be booked online — please pick another day.</span>
+            <span>This date can’t be booked online. Please pick another day.</span>
           ) : soldOut ? (
             <span>
               <strong>{formatDateLong(date)}</strong> is fully booked. Please
@@ -337,7 +337,7 @@ export default function BookingForm({
                   </option>
                 ))}
               </optgroup>
-              <optgroup label="── Rest of the world">
+              <optgroup label="Other countries">
                 {OTHER_COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>
                     {c.flag} {c.name} (+{c.dial})

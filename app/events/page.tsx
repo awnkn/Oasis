@@ -39,13 +39,13 @@ export default function EventsPage() {
           </header>
           <div className="py-16">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-200">
-              Ladies-only nights
+              Ladies only nights
             </p>
             <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
               Events at Oasis
             </h1>
             <p className="mt-3 max-w-xl text-white/85">
-              Special evenings and ticketed activities — beyond the daily pool day.
+              Special evenings and ticketed activities, beyond the daily pool day.
             </p>
           </div>
         </div>
@@ -56,7 +56,7 @@ export default function EventsPage() {
           <div className="rounded-3xl border border-oasis-950/10 bg-white p-12 text-center">
             <p className="font-display text-2xl font-semibold">No events right now</p>
             <p className="mt-2 text-oasis-900/60">
-              We&apos;re planning something special. Check back soon — or{" "}
+              We&apos;re planning something special. Check back soon, or{" "}
               <Link href="/book?src=events-empty" className="text-oasis-600 underline">
                 book a pool day
               </Link>{" "}

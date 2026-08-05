@@ -19,6 +19,69 @@ function eventHeroUrl(e: TicketedEvent): string | null {
     : null;
 }
 
+// Soft outline icons for the features section (thin stroke, rounded caps).
+const iconProps = {
+  width: 24,
+  height: 24,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.6,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true,
+};
+
+const FEATURE_ICONS = {
+  // Ladies only — a single figure
+  ladies: (
+    <svg {...iconProps}>
+      <circle cx="12" cy="8" r="3.2" />
+      <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+    </svg>
+  ),
+  // No cameras — camera with a slash
+  privacy: (
+    <svg {...iconProps}>
+      <path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2L8 5h5l.7 1" />
+      <path d="M21 8v9.5a1.5 1.5 0 0 1-1.5 1.5H6" />
+      <path d="M9.2 10.4A3 3 0 0 0 12 15a3 3 0 0 0 2.3-1.1" />
+      <path d="M4 4l16 16" />
+    </svg>
+  ),
+  // Never crowded — a small calm group
+  calm: (
+    <svg {...iconProps}>
+      <circle cx="9" cy="8" r="2.8" />
+      <path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
+      <path d="M16 5.6a2.8 2.8 0 0 1 0 5.2" />
+      <path d="M17.2 13.6a5.5 5.5 0 0 1 3.3 5.4" />
+    </svg>
+  ),
+  // Pools — water waves
+  pools: (
+    <svg {...iconProps}>
+      <path d="M2 8c1.8 0 1.8 1.4 3.7 1.4S7.5 8 9.3 8s1.8 1.4 3.7 1.4S14.8 8 16.6 8s1.8 1.4 3.7 1.4" />
+      <path d="M2 13c1.8 0 1.8 1.4 3.7 1.4S7.5 13 9.3 13s1.8 1.4 3.7 1.4S14.8 13 16.6 13s1.8 1.4 3.7 1.4" />
+      <path d="M2 18c1.8 0 1.8 1.4 3.7 1.4S7.5 18 9.3 18s1.8 1.4 3.7 1.4S14.8 18 16.6 18s1.8 1.4 3.7 1.4" />
+    </svg>
+  ),
+  // Book in a minute — clock
+  quick: (
+    <svg {...iconProps}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 1.8" />
+    </svg>
+  ),
+  // Personally confirmed — check inside a circle
+  confirmed: (
+    <svg {...iconProps}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8.5 12.2l2.3 2.3 4.7-4.8" />
+    </svg>
+  ),
+};
+
 function Wordmark({ light = false }: { light?: boolean }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -42,7 +105,10 @@ export default function HomePage() {
           alt="The pool at golden hour"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-oasis-950/60 via-oasis-950/20 to-oasis-950/70" />
+        {/* Readability: a deep vertical gradient plus a soft scrim pooled
+            behind the centred text. */}
+        <div className="absolute inset-0 bg-gradient-to-b from-oasis-950/75 via-oasis-950/55 to-oasis-950/90" />
+        <div className="absolute inset-0 [background:radial-gradient(ellipse_60%_50%_at_50%_50%,_rgba(16,44,48,0.55)_0%,_transparent_75%)]" />
 
         <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
           <Link href="/">
@@ -60,11 +126,11 @@ export default function HomePage() {
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.35em] text-sand-200">
             A sanctuary for women · Ladies only
           </p>
-          <h1 className="max-w-4xl font-display text-4xl font-semibold leading-[1.12] sm:text-6xl lg:text-7xl">
+          <h1 className="max-w-4xl font-display text-4xl font-semibold leading-[1.12] [text-shadow:0_2px_30px_rgba(0,0,0,0.4)] sm:text-6xl lg:text-7xl">
             A space where you are fully&nbsp;present.
           </h1>
-          <p className="mt-6 max-w-xl text-lg text-white/85">
-            Sun-washed pools, complete privacy and slow days — designed
+          <p className="mt-6 max-w-xl text-lg text-white/90 [text-shadow:0_1px_16px_rgba(0,0,0,0.35)]">
+            Sunlit pools, complete privacy and slow days, designed
             exclusively for women, at every hour.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -81,16 +147,16 @@ export default function HomePage() {
               See prices
             </a>
           </div>
-          <p className="mt-5 text-sm text-white/60">
-            Takes under a minute · No online payment — pay at the gate
+          <p className="mt-5 text-sm text-white/75">
+            Takes under a minute · No online payment · pay at the gate
           </p>
         </div>
 
         <div className="relative z-10 border-t border-white/15 bg-oasis-950/40 backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-10 gap-y-2 px-6 py-4 text-sm text-white/85">
-            <span>Sun – Thu · {WEEKDAY_PRICE} {CURRENCY} per guest</span>
+            <span>Sunday to Thursday · {WEEKDAY_PRICE} {CURRENCY} per guest</span>
             <span className="hidden text-white/30 sm:block">✦</span>
-            <span>Fri & Sat · {WEEKEND_PRICE} {CURRENCY} per guest</span>
+            <span>Friday & Saturday · {WEEKEND_PRICE} {CURRENCY} per guest</span>
             <span className="hidden text-white/30 sm:block">✦</span>
             <span>Limited guests each day, for your calm</span>
           </div>
@@ -173,7 +239,7 @@ export default function HomePage() {
           </p>
           <p className="mt-4 text-lg leading-relaxed text-oasis-900/70">
             Oasis exists to remind every woman that caring for herself is not
-            a luxury reserved for special occasions — it is a rhythm worth
+            a luxury reserved for special occasions. It is a rhythm worth
             returning to, again and again.
           </p>
           <Link
@@ -199,35 +265,47 @@ export default function HomePage() {
           <h2 className="text-center font-display text-4xl font-semibold sm:text-5xl">
             Why women choose Oasis
           </h2>
-          <div className="mx-auto mt-14 grid max-w-5xl gap-x-12 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mx-auto mt-14 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
+                icon: FEATURE_ICONS.ladies,
                 title: "Ladies only. Always.",
-                text: "Every hour of every day — no exceptions, no “family times”.",
+                text: "Every hour of every day, no exceptions, no “family times”.",
               },
               {
+                icon: FEATURE_ICONS.privacy,
                 title: "No cameras inside",
                 text: "Complete privacy in every interior space, so you can simply be.",
               },
               {
+                icon: FEATURE_ICONS.calm,
                 title: "Never crowded",
-                text: "Entry is capped every single day — your calm is protected.",
+                text: "Entry is capped every single day, so your calm is protected.",
               },
               {
+                icon: FEATURE_ICONS.pools,
                 title: "Pools for every mood",
-                text: "Sun-soaked lagoons, still water, shaded corners — choose by feeling.",
+                text: "Sunlit lagoons, still water, shaded corners, choose by feeling.",
               },
               {
+                icon: FEATURE_ICONS.quick,
                 title: "Book in a minute",
-                text: "No online payment, no cards — reserve now, pay at the gate.",
+                text: "No online payment, no cards. Reserve now, pay at the gate.",
               },
               {
+                icon: FEATURE_ICONS.confirmed,
                 title: "Personally confirmed",
                 text: "A real person calls you to confirm every single booking.",
               },
             ].map((point) => (
-              <div key={point.title} className="border-t border-oasis-950/10 pt-5">
-                <h3 className="font-display text-xl font-semibold">{point.title}</h3>
+              <div
+                key={point.title}
+                className="rounded-3xl border border-oasis-950/5 bg-sand-50 p-7 transition hover:border-oasis-200 hover:shadow-sm"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-oasis-50 text-oasis-600 ring-1 ring-oasis-500/10">
+                  {point.icon}
+                </div>
+                <h3 className="mt-5 font-display text-xl font-semibold">{point.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-oasis-900/60">
                   {point.text}
                 </p>
@@ -282,14 +360,14 @@ export default function HomePage() {
             Book Your Spot
           </h2>
           <p className="mt-3 text-center text-oasis-900/60">
-            One entry price per guest — swim, lounge and relax from open to close.
+            One entry price per guest. Swim, lounge and relax from open to close.
           </p>
           <div className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2">
             <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5">
               <p className="text-sm font-semibold uppercase tracking-widest text-oasis-500">
                 Weekdays
               </p>
-              <p className="mt-1 text-sm text-oasis-900/50">Sunday – Thursday</p>
+              <p className="mt-1 text-sm text-oasis-900/50">Sunday to Thursday</p>
               <p className="mt-6 font-display text-6xl font-semibold">
                 {WEEKDAY_PRICE}
                 <span className="ml-2 text-2xl text-oasis-500">{CURRENCY}</span>
@@ -385,7 +463,7 @@ export default function HomePage() {
             Your day of stillness is waiting.
           </h2>
           <p className="mt-4 text-lg text-white/80">
-            Pick your day — we&apos;ll hold the calm for you.
+            Pick your day, and we&apos;ll hold the calm for you.
           </p>
           <Link
             href="/book?src=closing"
