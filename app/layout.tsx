@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
-import { CLUB_NAME, CLUB_TAGLINE } from "@/lib/config";
+import { CLUB_NAME } from "@/lib/config";
+import {
+  SEO_KEYWORDS,
+  SITE_DESCRIPTION,
+  SITE_URL,
+  businessJsonLd,
+  websiteJsonLd,
+} from "@/lib/seo";
+import JsonLd from "@/components/JsonLd";
 import PageViewTracker from "@/components/PageViewTracker";
 import "./globals.css";
 
@@ -17,20 +25,47 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://oasisjo.com"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: CLUB_NAME,
+    default: `${CLUB_NAME} · Ladies Only Pool Retreat in Amman, Jordan`,
     template: `%s · ${CLUB_NAME}`,
   },
-  description: CLUB_TAGLINE,
+  description: SITE_DESCRIPTION,
+  keywords: SEO_KEYWORDS,
+  applicationName: CLUB_NAME,
+  authors: [{ name: CLUB_NAME }],
+  creator: CLUB_NAME,
+  publisher: CLUB_NAME,
+  category: "Health & Beauty",
+  alternates: { canonical: "/" },
+  formatDetection: { telephone: false, email: false, address: false },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
-    title: CLUB_NAME,
-    description: CLUB_TAGLINE,
-    url: "https://oasisjo.com",
+    title: `${CLUB_NAME} · A sanctuary designed around you`,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
     siteName: CLUB_NAME,
-    images: [{ url: "/images/hero.jpg", width: 1920, height: 815 }],
+    images: [
+      { url: "/images/hero.jpg", width: 1920, height: 815, alt: CLUB_NAME },
+    ],
     locale: "en_US",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${CLUB_NAME} · Ladies Only Pool Retreat in Amman`,
+    description: SITE_DESCRIPTION,
+    images: ["/images/hero.jpg"],
   },
 };
 
@@ -40,6 +75,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${display.variable} ${body.variable}`}>
+        <JsonLd data={businessJsonLd()} />
+        <JsonLd data={websiteJsonLd()} />
         <PageViewTracker />
         {children}
       </body>

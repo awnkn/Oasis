@@ -490,6 +490,9 @@ export default function HomePage() {
             <Link href="/events" className="hover:text-oasis-600">
               Events
             </Link>
+            <Link href="/faq" className="hover:text-oasis-600">
+              FAQ
+            </Link>
             <Link href="/admin" className="hover:text-oasis-600">
               Staff login
             </Link>

@@ -6,7 +6,20 @@ import { recordEvent } from "@/lib/bookings";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Book your day" };
+export const metadata = {
+  title: "Book Your Day",
+  description:
+    "Reserve a ladies only day at Oasis by Azara in Amman. Choose your date, tell us your group size, and pay at the gate. No online payment, and our team confirms every booking by phone.",
+  alternates: { canonical: "/book" },
+  openGraph: {
+    title: "Book your day at Oasis by Azara",
+    description:
+      "Reserve a ladies only pool day in Amman. Takes under a minute, and you pay at the gate.",
+    url: "/book",
+    type: "website",
+    images: [{ url: "/images/lagoon.jpg", width: 1600, height: 1067 }],
+  },
+};
 
 export default async function BookPage({
   searchParams,
