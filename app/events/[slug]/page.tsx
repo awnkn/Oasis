@@ -4,7 +4,9 @@ import type { Metadata } from "next";
 import { getEventBySlug, remainingFor, type TicketedEvent } from "@/lib/events";
 import { today, formatDateLong } from "@/lib/dates";
 import { CURRENCY } from "@/lib/config";
+import { eventJsonLd } from "@/lib/seo";
 import EventReservationForm from "@/components/EventReservationForm";
+import JsonLd from "@/components/JsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,26 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const event = getEventBySlug(slug);
-  return { title: event ? `${event.title} · Oasis` : "Event · Oasis" };
+  if (!event) return { title: "Event" };
+  const desc =
+    event.tagline ||
+    (event.description ?? "").split(/\n{2,}/)[0] ||
+    `A ladies only event at Oasis by Azara in Amman.`;
+  const img = event.hero_updated_at
+    ? `/api/events/${event.id}/hero`
+    : "/images/hero.jpg";
+  return {
+    title: event.title,
+    description: desc.slice(0, 200),
+    alternates: { canonical: `/events/${event.slug}` },
+    openGraph: {
+      title: event.title,
+      description: desc.slice(0, 200),
+      url: `/events/${event.slug}`,
+      type: "website",
+      images: [{ url: img }],
+    },
+  };
 }
 
 function heroUrl(e: TicketedEvent): string | null {
@@ -41,6 +62,8 @@ export default async function EventDetailPage({
 
   return (
     <div className="min-h-screen bg-sand-100/40">
+      <JsonLd data={eventJsonLd(event)} />
+
       {/* Top bar */}
       <div className="bg-oasis-950">
         <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5 text-white">

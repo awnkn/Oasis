@@ -5,7 +5,20 @@ import { formatDateLong } from "@/lib/dates";
 import { CURRENCY } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Events at Oasis" };
+export const metadata: Metadata = {
+  title: "Events",
+  description:
+    "Ladies only evenings and ticketed activities at Oasis by Azara in Amman, Jordan. Live music, markets and more, beyond the daily pool day.",
+  alternates: { canonical: "/events" },
+  openGraph: {
+    title: "Events at Oasis by Azara",
+    description:
+      "Ladies only evenings and ticketed activities in Amman, beyond the daily pool day.",
+    url: "/events",
+    type: "website",
+    images: [{ url: "/images/pool.jpg", width: 1600, height: 1067 }],
+  },
+};
 
 function heroUrl(e: TicketedEvent): string | null {
   return e.hero_updated_at
