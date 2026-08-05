@@ -83,10 +83,12 @@ function parseRow(row: EventRow | undefined): TicketedEvent | undefined {
 // ---------- slugs ----------
 
 function slugify(title: string): string {
+  // ASCII-only: non-Latin titles (e.g. Arabic) would otherwise produce
+  // slugs that break in URLs, so they fall back to "event".
   const base = title
     .toLowerCase()
     .normalize("NFKD")
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
   return base || "event";
@@ -277,7 +279,9 @@ export function updateEvent(id: number, input: EventInput, actor: Actor): EventR
   if (input.title !== undefined) {
     const title = input.title.trim();
     set("title", title);
-    set("slug", uniqueSlug(title, id));
+    // Only mint a new slug when the title actually changed, so editing
+    // other fields never breaks an already-shared event link.
+    if (title !== existing.title) set("slug", uniqueSlug(title, id));
   }
   if (input.tagline !== undefined) set("tagline", input.tagline?.trim() || null);
   if (input.description !== undefined) set("description", input.description?.trim() || null);
