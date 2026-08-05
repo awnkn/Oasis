@@ -21,8 +21,8 @@ function eventHeroUrl(e: TicketedEvent): string | null {
 
 // Soft outline icons for the features section (thin stroke, rounded caps).
 const iconProps = {
-  width: 24,
-  height: 24,
+  width: 28,
+  height: 28,
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
@@ -265,7 +265,7 @@ export default function HomePage() {
           <h2 className="text-center font-display text-4xl font-semibold sm:text-5xl">
             Why women choose Oasis
           </h2>
-          <div className="mx-auto mt-14 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mx-auto mt-14 grid max-w-5xl gap-x-12 gap-y-11 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 icon: FEATURE_ICONS.ladies,
@@ -298,17 +298,12 @@ export default function HomePage() {
                 text: "A real person calls you to confirm every single booking.",
               },
             ].map((point) => (
-              <div
-                key={point.title}
-                className="rounded-3xl border border-blue-100 bg-blue-50/60 p-7 transition hover:border-blue-300 hover:shadow-sm"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm shadow-blue-600/25 ring-1 ring-blue-500/20">
-                  {point.icon}
-                </div>
-                <h3 className="mt-5 font-display text-xl font-semibold text-blue-950">
+              <div key={point.title} className="border-t border-oasis-950/10 pt-6">
+                <div className="text-oasis-600">{point.icon}</div>
+                <h3 className="mt-4 font-display text-xl font-semibold">
                   {point.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-blue-900/60">
+                <p className="mt-2 text-sm leading-relaxed text-oasis-900/60">
                   {point.text}
                 </p>
               </div>
