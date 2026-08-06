@@ -83,7 +83,7 @@ export interface FaqItem {
 
 export const FAQ_ITEMS: FaqItem[] = [
   {
-    q: "Is Oasis really ladies only?",
+    q: "Is Oasis ladies only at all times?",
     a: `Yes. ${CLUB_NAME} is exclusively for women, every hour of every day, with no exceptions. Interior spaces have no cameras, so your privacy stays complete.`,
   },
   {

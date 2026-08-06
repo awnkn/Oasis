@@ -41,8 +41,8 @@ export default function FaqPage() {
             Frequently asked questions
           </h1>
           <p className="mt-3 max-w-xl text-white/85">
-            Everything you need before your day at {CLUB_NAME}. Still curious?
-            Send a booking request and our team will call you.
+            Everything to know before your day at {CLUB_NAME}. If a question is
+            missing, send a booking request and our team will call you.
           </p>
         </div>
       </div>

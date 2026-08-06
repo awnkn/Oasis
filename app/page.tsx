@@ -124,14 +124,14 @@ export default function HomePage() {
 
         <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6 py-20 text-center text-white">
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.35em] text-sand-200">
-            A sanctuary for women · Ladies only
+            Ladies only · Every hour of every day
           </p>
           <h1 className="max-w-4xl font-display text-4xl font-semibold leading-[1.12] [text-shadow:0_2px_30px_rgba(0,0,0,0.4)] sm:text-6xl lg:text-7xl">
             A sanctuary designed around&nbsp;you.
           </h1>
           <p className="mt-6 max-w-xl text-lg text-white/90 [text-shadow:0_1px_16px_rgba(0,0,0,0.35)]">
-            Sunlit pools, complete privacy and slow days, designed
-            exclusively for women, at every hour.
+            Sunlit pools, complete privacy and slow days, made for women
+            only, at every hour.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
@@ -148,7 +148,7 @@ export default function HomePage() {
             </a>
           </div>
           <p className="mt-5 text-sm text-white/75">
-            Takes under a minute · No online payment · pay at the gate
+            Takes under a minute · No online payment · Pay at the gate
           </p>
         </div>
 
@@ -233,14 +233,13 @@ export default function HomePage() {
             A place you return to, slowly.
           </h2>
           <p className="mt-6 text-lg leading-relaxed text-oasis-900/70">
-            Every element of {CLUB_NAME} is designed to let you be fully
-            present without compromise. Carefully designed for complete
-            privacy, so every moment feels lighter, freer and wholly your own.
+            Every corner of {CLUB_NAME} is shaped around one thing: your
+            ease, without compromise. Complete privacy in every space, so each
+            moment feels lighter, freer and wholly your own.
           </p>
           <p className="mt-4 text-lg leading-relaxed text-oasis-900/70">
-            Oasis exists to remind every woman that caring for herself is not
-            a luxury reserved for special occasions. It is a rhythm worth
-            returning to, again and again.
+            Caring for yourself is not a luxury saved for special occasions.
+            It is a rhythm worth returning to, again and again.
           </p>
           <Link
             href="/book?src=story"
@@ -354,10 +353,10 @@ export default function HomePage() {
       <section id="prices" className="px-6 py-24">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-center font-display text-4xl font-semibold sm:text-5xl">
-            Book Your Spot
+            Book your spot
           </h2>
           <p className="mt-3 text-center text-oasis-900/60">
-            One entry price per guest. Swim, lounge and relax from open to close.
+            One price per guest. Swim, lounge and unwind from open to close.
           </p>
           <div className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2">
             <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5">
@@ -400,9 +399,9 @@ export default function HomePage() {
           <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-blush-200 bg-blush-100/60 px-7 py-5 text-center">
             <p className="text-sm leading-relaxed text-oasis-900/80">
               <span className="mr-1.5">🌸</span>
-              <strong className="font-semibold">A little note on ages</strong> —
-              Mondays welcome ladies {AGE_MONDAY}+, and every other day is for
-              ages {AGE_OTHER_DAYS}+. Guests under {AGE_GUARDIAN} join with a
+              <strong className="font-semibold">A little note on ages.</strong>{" "}
+              Mondays welcome ladies {AGE_MONDAY}+, every other day is for ages{" "}
+              {AGE_OTHER_DAYS}+, and guests under {AGE_GUARDIAN} join with a
               guardian aged {AGE_GUARDIAN}+.
             </p>
           </div>
@@ -413,7 +412,7 @@ export default function HomePage() {
       <section id="how" className="bg-sand-100 px-6 py-24">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-center font-display text-4xl font-semibold">
-            Booking is easy
+            How booking works
           </h2>
           <div className="mx-auto mt-12 grid max-w-4xl gap-8 sm:grid-cols-3">
             {[
