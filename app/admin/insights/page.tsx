@@ -16,6 +16,7 @@ import {
   GUEST_STATUS_LABELS,
   PAYMENT_ACCOUNTS,
 } from "@/lib/config";
+import { ArrowLeft } from "@/components/icons";
 
 /** SQLite UTC timestamp → Amman-local display. */
 function formatWhen(utc: string): string {
@@ -33,9 +34,9 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Insights" };
 
 const STATUS_COLORS: Record<string, string> = {
-  approved: "#33999c",
-  pending: "#d9a23b",
-  rejected: "#d17b90",
+  approved: "var(--color-oasis-600)",
+  pending: "var(--color-status-caution)",
+  rejected: "var(--color-status-critical)",
 };
 
 function sum(rows: DailyAccountingRow[], key: keyof DailyAccountingRow): number {
@@ -76,20 +77,19 @@ function BarChart({
           </rect>
         );
       })}
-      <text x={pad} y={H + 16} fontSize={11} fill="#22454a" opacity={0.55}>
+      <text x={pad} y={H + 16} fontSize={11} fill="var(--color-ink-muted)">
         {formatDateShort(rows[0].date)}
       </text>
       <text
         x={W - pad}
         y={H + 16}
         fontSize={11}
-        fill="#22454a"
-        opacity={0.55}
+        fill="var(--color-ink-muted)"
         textAnchor="end"
       >
         {formatDateShort(rows[rows.length - 1].date)}
       </text>
-      <text x={W - pad} y={12} fontSize={11} fill="#22454a" opacity={0.55} textAnchor="end">
+      <text x={W - pad} y={12} fontSize={11} fill="var(--color-ink-muted)" textAnchor="end">
         peak {max}
       </text>
     </svg>
@@ -111,22 +111,22 @@ function RevenueChart({ rows }: { rows: DailyAccountingRow[] }) {
         const w = Math.max(2, (bw - 4) / 2);
         return (
           <g key={r.date}>
-            <rect x={x + 1} y={H - he} width={w} height={Math.max(r.expectedRevenue > 0 ? 2 : 0, he)} rx={2} fill="#245257" opacity={r.expectedRevenue > 0 ? 0.9 : 0.12}>
+            <rect x={x + 1} y={H - he} width={w} height={Math.max(r.expectedRevenue > 0 ? 2 : 0, he)} rx={2} fill="var(--color-oasis-800)" opacity={r.expectedRevenue > 0 ? 0.9 : 0.12}>
               <title>{`${formatDateShort(r.date)} approved: ${r.expectedRevenue} JOD`}</title>
             </rect>
-            <rect x={x + 2 + w} y={H - hc} width={w} height={Math.max(r.collected > 0 ? 2 : 0, hc)} rx={2} fill="#c59c63" opacity={r.collected > 0 ? 0.95 : 0.12}>
+            <rect x={x + 2 + w} y={H - hc} width={w} height={Math.max(r.collected > 0 ? 2 : 0, hc)} rx={2} fill="var(--color-sand-600)" opacity={r.collected > 0 ? 0.95 : 0.12}>
               <title>{`${formatDateShort(r.date)} collected: ${r.collected} JOD`}</title>
             </rect>
           </g>
         );
       })}
-      <text x={pad} y={H + 16} fontSize={11} fill="#22454a" opacity={0.55}>
+      <text x={pad} y={H + 16} fontSize={11} fill="var(--color-ink-muted)">
         {formatDateShort(rows[0].date)}
       </text>
-      <text x={W - pad} y={H + 16} fontSize={11} fill="#22454a" opacity={0.55} textAnchor="end">
+      <text x={W - pad} y={H + 16} fontSize={11} fill="var(--color-ink-muted)" textAnchor="end">
         {formatDateShort(rows[rows.length - 1].date)}
       </text>
-      <text x={W - pad} y={12} fontSize={11} fill="#22454a" opacity={0.55} textAnchor="end">
+      <text x={W - pad} y={12} fontSize={11} fill="var(--color-ink-muted)" textAnchor="end">
         peak {max} JOD
       </text>
     </svg>
@@ -141,7 +141,7 @@ function Donut({ segments }: { segments: { label: string; count: number; color: 
   return (
     <div className="flex items-center gap-6">
       <svg viewBox="0 0 140 140" className="h-36 w-36 shrink-0">
-        <circle cx={70} cy={70} r={R} fill="none" stroke="#f6f0e4" strokeWidth={22} />
+        <circle cx={70} cy={70} r={R} fill="none" stroke="var(--color-sand-100)" strokeWidth={22} />
         {segments.map((s) => {
           const frac = s.count / total;
           const el = (
@@ -168,7 +168,7 @@ function Donut({ segments }: { segments: { label: string; count: number; color: 
         {segments.map((s) => (
           <li key={s.label} className="flex items-center gap-2.5">
             <span className="h-3 w-3 rounded-full" style={{ backgroundColor: s.color }} />
-            <span className="capitalize text-zinc-700">{s.label}</span>
+            <span className="capitalize text-ink">{s.label}</span>
             <span className="font-semibold">{s.count}</span>
           </li>
         ))}
@@ -188,7 +188,7 @@ function AccountingTable({ rows, caption }: { rows: DailyAccountingRow[]; captio
     <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead>
-          <tr className="border-b border-zinc-200/70 text-xs uppercase tracking-wider text-zinc-500">
+          <tr className="border-b border-line/70 text-xs uppercase tracking-wider text-ink-muted">
             <th className="px-5 py-3.5">{caption}</th>
             <th className="px-5 py-3.5">Bookings</th>
             <th className="px-5 py-3.5">Guests</th>
@@ -204,21 +204,21 @@ function AccountingTable({ rows, caption }: { rows: DailyAccountingRow[]; captio
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.date} className="border-b border-zinc-100 last:border-0">
+            <tr key={r.date} className="border-b border-line-soft last:border-0">
               <td className="px-5 py-2.5">{formatDateShort(r.date)}</td>
               <td className="px-5 py-2.5">{r.bookings}</td>
               <td className="px-5 py-2.5">{r.guests}</td>
               <td className="px-5 py-2.5">{r.expectedRevenue} JOD</td>
               <td className="px-5 py-2.5 font-medium">{r.collected} JOD</td>
               {PAYMENT_ACCOUNTS.map((a) => (
-                <td key={a} className="px-5 py-2.5 text-zinc-500">
+                <td key={a} className="px-5 py-2.5 text-ink-muted">
                   {r.byAccount[a] ?? 0}
                 </td>
               ))}
               <td className="px-5 py-2.5">{Math.max(0, r.expectedRevenue - r.collected)} JOD</td>
             </tr>
           ))}
-          <tr className="bg-zinc-50 font-semibold">
+          <tr className="bg-surface-sunken font-semibold">
             <td className="px-5 py-3">Total</td>
             <td className="px-5 py-3">{totals.bookings}</td>
             <td className="px-5 py-3">{totals.guests}</td>
@@ -314,8 +314,8 @@ export default async function InsightsPage() {
   const heardMax = Math.max(1, ...heardAbout.map((h) => h.count));
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-20">
-      <header className="border-b border-zinc-200/70 bg-white">
+    <div className="min-h-screen bg-surface-sunken pb-20">
+      <header className="border-b border-line/70 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Link href="/">
@@ -337,21 +337,22 @@ export default async function InsightsPage() {
             >
               Download backup
             </a>
-            <Link href="/admin" className="text-sm font-medium text-oasis-800 hover:text-oasis-600">
-              ← Back to dashboard
+            <Link href="/admin" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-oasis-800 hover:text-oasis-600">
+              <ArrowLeft className="h-4 w-4" />
+            Back to dashboard
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 pt-8">
+      <main id="main" className="mx-auto max-w-6xl px-6 pt-8">
         {/* KPIs */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {kpis.map((k) => (
             <div key={k.label} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-              <p className="text-sm text-zinc-500">{k.label}</p>
+              <p className="text-sm text-ink-muted">{k.label}</p>
               <p className="mt-1 text-2xl font-semibold tracking-tight">{k.value}</p>
-              {k.sub && <p className="mt-1 text-xs text-zinc-400">{k.sub}</p>}
+              {k.sub && <p className="mt-1 text-xs text-ink-subtle">{k.sub}</p>}
             </div>
           ))}
         </div>
@@ -360,13 +361,13 @@ export default async function InsightsPage() {
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5 lg:col-span-2">
             <h2 className="text-base font-semibold tracking-tight">Guests per day — last 30 days</h2>
-            <p className="mb-4 text-xs text-zinc-400">Pending + approved guests by visit day.</p>
-            <BarChart rows={past} value={(r) => r.guests} color="#33999c" />
+            <p className="mb-4 text-xs text-ink-subtle">Pending + approved guests by visit day.</p>
+            <BarChart rows={past} value={(r) => r.guests} color="var(--color-oasis-600)" />
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5 lg:col-span-2">
             <h2 className="text-base font-semibold tracking-tight">Revenue per day — last 30 days</h2>
-            <p className="mb-4 text-xs text-zinc-400">
+            <p className="mb-4 text-xs text-ink-subtle">
               <span className="mr-4 inline-flex items-center gap-1.5">
                 <span className="inline-block h-2.5 w-2.5 rounded-sm bg-oasis-800" /> Approved bookings
               </span>
@@ -379,7 +380,7 @@ export default async function InsightsPage() {
 
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
             <h2 className="text-base font-semibold tracking-tight">Booking statuses</h2>
-            <p className="mb-4 text-xs text-zinc-400">All bookings, all time.</p>
+            <p className="mb-4 text-xs text-ink-subtle">All bookings, all time.</p>
             <Donut
               segments={["approved", "pending", "rejected"].map((s) => ({
                 label: s,
@@ -393,22 +394,22 @@ export default async function InsightsPage() {
             <h2 className="text-base font-semibold tracking-tight">
               Where guests press “Book”
             </h2>
-            <p className="mb-4 text-xs text-zinc-400">
+            <p className="mb-4 text-xs text-ink-subtle">
               Clicks by page section, last 30 days.
             </p>
             {bookClicks.length === 0 ? (
-              <p className="text-sm text-zinc-400">No clicks recorded yet.</p>
+              <p className="text-sm text-ink-subtle">No clicks recorded yet.</p>
             ) : (
               <ul className="space-y-3">
                 {bookClicks.map((c) => (
                   <li key={c.source}>
                     <div className="mb-1 flex justify-between text-sm">
-                      <span className="capitalize text-zinc-700">
+                      <span className="capitalize text-ink">
                         {c.source.replace(/-/g, " ")}
                       </span>
                       <span className="font-semibold">{c.count}</span>
                     </div>
-                    <div className="h-2.5 rounded-full bg-zinc-100">
+                    <div className="h-2.5 rounded-full bg-surface-muted">
                       <div
                         className="h-2.5 rounded-full bg-oasis-500"
                         style={{ width: `${(c.count / clickMax) * 100}%` }}
@@ -422,15 +423,15 @@ export default async function InsightsPage() {
 
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
             <h2 className="text-base font-semibold tracking-tight">Collected by account</h2>
-            <p className="mb-4 text-xs text-zinc-400">Last 30 days, from recorded payments.</p>
+            <p className="mb-4 text-xs text-ink-subtle">Last 30 days, from recorded payments.</p>
             <ul className="space-y-3">
               {accountTotals.map((a) => (
                 <li key={a.account}>
                   <div className="mb-1 flex justify-between text-sm">
-                    <span className="text-zinc-700">{a.account}</span>
+                    <span className="text-ink">{a.account}</span>
                     <span className="font-semibold">{a.total} JOD</span>
                   </div>
-                  <div className="h-2.5 rounded-full bg-sand-100">
+                  <div className="h-2.5 rounded-full bg-mist-100">
                     <div
                       className="h-2.5 rounded-full bg-sand-500"
                       style={{ width: `${(a.total / accountMax) * 100}%` }}
@@ -443,18 +444,18 @@ export default async function InsightsPage() {
 
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
             <h2 className="text-base font-semibold tracking-tight">Where guests hear about you</h2>
-            <p className="mb-4 text-xs text-zinc-400">From the booking form.</p>
+            <p className="mb-4 text-xs text-ink-subtle">From the booking form.</p>
             {heardAbout.length === 0 ? (
-              <p className="text-sm text-zinc-400">No answers yet.</p>
+              <p className="text-sm text-ink-subtle">No answers yet.</p>
             ) : (
               <ul className="space-y-3">
                 {heardAbout.map((h) => (
                   <li key={h.source}>
                     <div className="mb-1 flex justify-between text-sm">
-                      <span className="text-zinc-700">{h.source}</span>
+                      <span className="text-ink">{h.source}</span>
                       <span className="font-semibold">{h.count}</span>
                     </div>
-                    <div className="h-2.5 rounded-full bg-sand-100">
+                    <div className="h-2.5 rounded-full bg-mist-100">
                       <div
                         className="h-2.5 rounded-full bg-oasis-500"
                         style={{ width: `${(h.count / heardMax) * 100}%` }}
@@ -501,7 +502,7 @@ export default async function InsightsPage() {
         {/* Guest journey — partner reports */}
         <section className="mt-10">
           <h2 className="text-lg font-semibold tracking-tight">Guest journey</h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-ink-muted">
             Bookings by visit date, broken down by guest status — how many were
             contacted, confirmed, checked in, cancelled or auto-cancelled.
           </p>
@@ -531,7 +532,7 @@ export default async function InsightsPage() {
               <div className="mt-3 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-950/5">
                 <table className="w-full min-w-[980px] text-left text-sm">
                   <thead>
-                    <tr className="border-b border-zinc-200/70 text-xs uppercase tracking-wider text-zinc-500">
+                    <tr className="border-b border-line/70 text-xs uppercase tracking-wider text-ink-muted">
                       <th className="px-4 py-3">
                         {unit === "day" ? "Date" : unit === "week" ? "Week" : "Month"}
                       </th>
@@ -550,14 +551,14 @@ export default async function InsightsPage() {
                       <tr>
                         <td
                           colSpan={GUEST_STATUSES.length + 4}
-                          className="px-4 py-8 text-center text-zinc-400"
+                          className="px-4 py-8 text-center text-ink-subtle"
                         >
                           No bookings in this period.
                         </td>
                       </tr>
                     )}
                     {rows.map((r) => (
-                      <tr key={r.period} className="border-b border-zinc-100 last:border-0">
+                      <tr key={r.period} className="border-b border-line-soft last:border-0">
                         <td className="px-4 py-2.5 font-medium">
                           {unit === "day" ? formatDateShort(r.period) : r.period}
                         </td>
@@ -565,7 +566,7 @@ export default async function InsightsPage() {
                         {GUEST_STATUSES.map((s) => (
                           <td
                             key={s}
-                            className={`px-4 py-2.5 ${r.counts[s] === 0 ? "text-zinc-300" : ""}`}
+                            className={`px-4 py-2.5 ${r.counts[s] === 0 ? "text-ink-subtle" : ""}`}
                           >
                             {r.counts[s]}
                           </td>
@@ -573,7 +574,7 @@ export default async function InsightsPage() {
                         <td className="px-4 py-2.5 font-medium text-oasis-600">
                           {r.checkedInGuests}
                         </td>
-                        <td className={`px-4 py-2.5 ${r.rejected === 0 ? "text-zinc-300" : ""}`}>
+                        <td className={`px-4 py-2.5 ${r.rejected === 0 ? "text-ink-subtle" : ""}`}>
                           {r.rejected}
                         </td>
                       </tr>
@@ -588,14 +589,14 @@ export default async function InsightsPage() {
         {/* Activity log */}
         <section className="mt-10">
           <h2 className="text-lg font-semibold tracking-tight">Activity log</h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-ink-muted">
             Every sign-in, status change, payment, check-in and capacity change
             — permanent and uneditable.
           </p>
           <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead>
-                <tr className="border-b border-zinc-200/70 text-xs uppercase tracking-wider text-zinc-500">
+                <tr className="border-b border-line/70 text-xs uppercase tracking-wider text-ink-muted">
                   <th className="px-5 py-3.5">When</th>
                   <th className="px-5 py-3.5">Who</th>
                   <th className="px-5 py-3.5">Action</th>
@@ -605,14 +606,14 @@ export default async function InsightsPage() {
               <tbody>
                 {activity.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-5 py-10 text-center text-zinc-400">
+                    <td colSpan={4} className="px-5 py-10 text-center text-ink-subtle">
                       No activity recorded yet.
                     </td>
                   </tr>
                 )}
                 {activity.map((entry) => (
-                  <tr key={entry.id} className="border-b border-zinc-100 last:border-0">
-                    <td className="whitespace-nowrap px-5 py-2.5 text-zinc-500">
+                  <tr key={entry.id} className="border-b border-line-soft last:border-0">
+                    <td className="whitespace-nowrap px-5 py-2.5 text-ink-muted">
                       {formatWhen(entry.created_at)}
                     </td>
                     <td className="whitespace-nowrap px-5 py-2.5">
@@ -621,13 +622,13 @@ export default async function InsightsPage() {
                         className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${
                           entry.actor_role === "manager"
                             ? "bg-oasis-100 text-oasis-700"
-                            : "bg-zinc-100 text-zinc-600"
+                            : "bg-surface-muted text-ink-muted"
                         }`}
                       >
                         {entry.actor_role}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-5 py-2.5 capitalize text-zinc-500">
+                    <td className="whitespace-nowrap px-5 py-2.5 capitalize text-ink-muted">
                       {entry.action.replace("_", "-")}
                     </td>
                     <td className="px-5 py-2.5">{entry.details}</td>

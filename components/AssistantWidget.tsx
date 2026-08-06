@@ -72,7 +72,7 @@ export default function AssistantWidget() {
     <>
       {open && (
         <div className="fixed bottom-24 right-5 z-50 flex max-h-[min(34rem,calc(100vh-8rem))] w-[min(24rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/10">
-          <div className="border-b border-zinc-100 bg-oasis-950 px-5 py-4 text-white">
+          <div className="border-b border-line-soft bg-oasis-950 px-5 py-4 text-white">
             <p className="text-sm font-semibold tracking-tight">Oasis assistant</p>
             <p className="mt-0.5 text-xs text-white/60">
               Answers come only from your booking system — nothing online.
@@ -82,7 +82,7 @@ export default function AssistantWidget() {
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {messages.length === 0 && (
               <div>
-                <p className="px-1 text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <p className="px-1 text-xs font-medium uppercase tracking-wider text-ink-subtle">
                   Try asking
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -109,14 +109,14 @@ export default function AssistantWidget() {
               ) : (
                 <p
                   key={i}
-                  className="mr-6 w-fit whitespace-pre-line rounded-2xl rounded-bl-md bg-zinc-100 px-3.5 py-2 text-sm text-zinc-800"
+                  className="mr-6 w-fit whitespace-pre-line rounded-2xl rounded-bl-md bg-surface-muted px-3.5 py-2 text-sm text-ink"
                 >
                   {m.text}
                 </p>
               )
             )}
             {busy && (
-              <p className="mr-6 w-fit rounded-2xl rounded-bl-md bg-zinc-100 px-3.5 py-2 text-sm text-zinc-400">
+              <p className="mr-6 w-fit rounded-2xl rounded-bl-md bg-surface-muted px-3.5 py-2 text-sm text-ink-subtle">
                 Looking it up…
               </p>
             )}
@@ -127,7 +127,7 @@ export default function AssistantWidget() {
               e.preventDefault();
               ask(input);
             }}
-            className="flex items-center gap-2 border-t border-zinc-100 px-3 py-3"
+            className="flex items-center gap-2 border-t border-line-soft px-3 py-3"
           >
             <input
               ref={inputRef}

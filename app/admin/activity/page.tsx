@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminRole } from "@/lib/auth";
 import { recentActivity } from "@/lib/bookings";
+import { ArrowLeft } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +27,8 @@ export default async function ActivityPage() {
   const activity = recentActivity(200);
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-20">
-      <header className="border-b border-zinc-200/70 bg-white">
+    <div className="min-h-screen bg-surface-sunken pb-20">
+      <header className="border-b border-line/70 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Link href="/">
@@ -38,21 +39,22 @@ export default async function ActivityPage() {
                 className="h-7 w-auto"
               />
             </Link>
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+            <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">
               Activity log
             </span>
           </div>
           <Link
             href="/admin"
-            className="text-sm font-medium text-oasis-800 hover:text-oasis-600"
+            className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-oasis-800 hover:text-oasis-600"
           >
-            ← Back to dashboard
+            <ArrowLeft className="h-4 w-4" />
+            Back to dashboard
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 pt-8">
-        <p className="text-sm text-zinc-500">
+      <main id="main" className="mx-auto max-w-5xl px-6 pt-8">
+        <p className="text-sm text-ink-muted">
           Every sign-in, approval, rejection, guest-status change, payment,
           check-in, capacity change and team change — permanent and uneditable,
           recorded under each person&apos;s name. Times are Amman local time.
@@ -61,7 +63,7 @@ export default async function ActivityPage() {
 
         <div className="mt-4 space-y-2">
           {activity.length === 0 && (
-            <div className="rounded-2xl bg-white px-6 py-12 text-center text-sm text-zinc-400 shadow-sm ring-1 ring-black/5">
+            <div className="rounded-2xl bg-white px-6 py-12 text-center text-sm text-ink-subtle shadow-sm ring-1 ring-black/5">
               No activity recorded yet.
             </div>
           )}
@@ -70,7 +72,7 @@ export default async function ActivityPage() {
               key={entry.id}
               className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-xl bg-white px-5 py-3 text-sm shadow-sm ring-1 ring-black/5"
             >
-              <span className="w-28 shrink-0 text-xs text-zinc-400">
+              <span className="w-28 shrink-0 text-xs text-ink-subtle">
                 {formatWhen(entry.created_at)}
               </span>
               <span className="font-medium">{entry.actor_name}</span>
@@ -79,13 +81,13 @@ export default async function ActivityPage() {
                   entry.actor_role === "manager"
                     ? "bg-oasis-100 text-oasis-700"
                     : entry.actor_role === "system"
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-zinc-100 text-zinc-600"
+                      ? "bg-status-caution-tint text-status-caution"
+                      : "bg-surface-muted text-ink-muted"
                 }`}
               >
                 {entry.actor_role}
               </span>
-              <span className="min-w-0 flex-1 text-zinc-700">{entry.details}</span>
+              <span className="min-w-0 flex-1 text-ink">{entry.details}</span>
             </div>
           ))}
         </div>

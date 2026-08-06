@@ -7,6 +7,7 @@ import { CURRENCY } from "@/lib/config";
 import { eventJsonLd } from "@/lib/seo";
 import EventReservationForm from "@/components/EventReservationForm";
 import JsonLd from "@/components/JsonLd";
+import { ArrowLeft, ArrowRight, Calendar, MapPin, Ticket } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ export default async function EventDetailPage({
   const paragraphs = (event.description ?? "").split(/\n{2,}/).filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-sand-100/40">
+    <div className="min-h-screen bg-mist-100/40">
       <JsonLd data={eventJsonLd(event)} />
 
       {/* Top bar */}
@@ -71,8 +72,9 @@ export default async function EventDetailPage({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/logo-white.png" alt="Oasis by Azara" className="h-9 w-auto" />
           </Link>
-          <Link href="/events" className="text-sm font-medium text-white/85 hover:text-white">
-            ← All events
+          <Link href="/events" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-white/85 hover:text-white">
+            <ArrowLeft className="h-4 w-4" />
+            All events
           </Link>
         </header>
       </div>
@@ -93,54 +95,55 @@ export default async function EventDetailPage({
 
           <div>
             {event.tagline && (
-              <p className="text-sm font-medium uppercase tracking-[0.2em] text-oasis-500">
+              <p className="text-sm font-medium uppercase tracking-[0.2em] text-oasis-600">
                 {event.tagline}
               </p>
             )}
             <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
               {event.title}
             </h1>
-            <div className="mt-6 space-y-2.5 text-oasis-900/75">
+            <div className="mt-6 space-y-2.5 text-ink">
               {event.event_date && (
                 <p className="flex items-center gap-2.5">
-                  <span aria-hidden>📅</span>
+                  <Calendar className="h-4.5 w-4.5 shrink-0 text-oasis-600" />
                   {formatDateLong(event.event_date)}
                   {event.start_time ? ` · ${event.start_time}` : ""}
                 </p>
               )}
               {event.location && (
                 <p className="flex items-center gap-2.5">
-                  <span aria-hidden>📍</span>
+                  <MapPin className="h-4.5 w-4.5 shrink-0 text-oasis-600" />
                   {event.location}
                 </p>
               )}
               <p className="flex items-center gap-2.5">
-                <span aria-hidden>🎟️</span>
+                <Ticket className="h-4.5 w-4.5 shrink-0 text-oasis-600" />
                 <span className="font-semibold text-oasis-950">
                   {event.price} {CURRENCY}
                 </span>
                 {event.price_note ? (
-                  <span className="text-oasis-900/60">· {event.price_note}</span>
+                  <span className="text-ink-muted">· {event.price_note}</span>
                 ) : null}
               </p>
             </div>
             <a
               href="#reserve"
-              className="mt-7 inline-block rounded-full bg-oasis-600 px-7 py-3 text-sm font-medium text-white shadow-md transition hover:bg-oasis-700"
+              className="mt-7 inline-flex items-center gap-2 rounded-full bg-oasis-600 px-7 py-3 text-sm font-medium text-white shadow-md transition hover:bg-oasis-700"
             >
-              Reserve your spot →
+              Reserve your spot
+                <ArrowRight className="h-4 w-4" />
             </a>
           </div>
         </div>
       </div>
 
       {/* Details + reservation */}
-      <main className="mx-auto grid max-w-5xl gap-12 px-6 py-14 lg:grid-cols-[1fr_minmax(360px,420px)]">
+      <main id="main" className="mx-auto grid max-w-5xl gap-12 px-6 py-14 lg:grid-cols-[1fr_minmax(360px,420px)]">
         <div>
           {paragraphs.map((p, i) => (
             <p
               key={i}
-              className="mb-4 whitespace-pre-line text-lg leading-relaxed text-oasis-900/75"
+              className="mb-4 whitespace-pre-line text-lg leading-relaxed text-ink"
             >
               {p}
             </p>
@@ -153,7 +156,7 @@ export default async function EventDetailPage({
               </h2>
               <ul className="mt-4 space-y-2.5">
                 {event.highlights.map((h, i) => (
-                  <li key={i} className="flex items-start gap-3 text-oasis-900/80">
+                  <li key={i} className="flex items-start gap-3 text-ink">
                     <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-oasis-500" />
                     <span>{h}</span>
                   </li>

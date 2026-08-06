@@ -106,14 +106,14 @@ export default function AddBookingModal({
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-lg font-semibold tracking-tight">Add booking</h2>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-ink-muted">
               For walk in and phone bookings, created as already approved.
             </p>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-full p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
+            className="rounded-full p-1.5 text-ink-subtle transition hover:bg-surface-muted hover:text-ink"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -123,7 +123,7 @@ export default function AddBookingModal({
 
         <form onSubmit={submit} className="mt-5 space-y-4">
           <div>
-            <label htmlFor="mb-name" className="mb-1 block text-xs font-medium text-zinc-500">
+            <label htmlFor="mb-name" className="mb-1 block text-xs font-medium text-ink-muted">
               Guest name
             </label>
             <input
@@ -139,7 +139,7 @@ export default function AddBookingModal({
           </div>
 
           <div>
-            <label htmlFor="mb-phone" className="mb-1 block text-xs font-medium text-zinc-500">
+            <label htmlFor="mb-phone" className="mb-1 block text-xs font-medium text-ink-muted">
               Phone (WhatsApp)
             </label>
             <div className="flex gap-2">
@@ -187,8 +187,8 @@ export default function AddBookingModal({
           </div>
 
           <div>
-            <label htmlFor="mb-email" className="mb-1 block text-xs font-medium text-zinc-500">
-              Email <span className="font-normal text-zinc-400">(optional)</span>
+            <label htmlFor="mb-email" className="mb-1 block text-xs font-medium text-ink-muted">
+              Email <span className="font-normal text-ink-subtle">(optional)</span>
             </label>
             <input
               id="mb-email"
@@ -203,7 +203,7 @@ export default function AddBookingModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="mb-date" className="mb-1 block text-xs font-medium text-zinc-500">
+              <label htmlFor="mb-date" className="mb-1 block text-xs font-medium text-ink-muted">
                 Day
               </label>
               <input
@@ -217,7 +217,7 @@ export default function AddBookingModal({
               />
             </div>
             <div>
-              <label htmlFor="mb-guests" className="mb-1 block text-xs font-medium text-zinc-500">
+              <label htmlFor="mb-guests" className="mb-1 block text-xs font-medium text-ink-muted">
                 Guests
               </label>
               <input
@@ -234,8 +234,8 @@ export default function AddBookingModal({
           </div>
 
           <div>
-            <label htmlFor="mb-notes" className="mb-1 block text-xs font-medium text-zinc-500">
-              Notes <span className="font-normal text-zinc-400">(optional)</span>
+            <label htmlFor="mb-notes" className="mb-1 block text-xs font-medium text-ink-muted">
+              Notes <span className="font-normal text-ink-subtle">(optional)</span>
             </label>
             <input
               id="mb-notes"
@@ -247,7 +247,7 @@ export default function AddBookingModal({
             />
           </div>
 
-          <label className="flex items-center gap-2.5 text-sm text-zinc-600">
+          <label className="flex items-center gap-2.5 text-sm text-ink-muted">
             <input
               type="checkbox"
               checked={sendConfirmation}
@@ -258,16 +258,16 @@ export default function AddBookingModal({
           </label>
 
           {error && (
-            <p className="rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">{error}</p>
+            <p role="alert" className="rounded-xl border border-status-critical/30 bg-status-critical-tint px-4 py-3 text-sm text-status-critical">{error}</p>
           )}
 
-          <div className="flex items-center justify-between border-t border-zinc-100 pt-4">
-            <p className="text-sm text-zinc-500">
+          <div className="flex items-center justify-between border-t border-line-soft pt-4">
+            <p className="text-sm text-ink-muted">
               Total{" "}
               <span className="text-base font-semibold text-oasis-950">
                 {total} JOD
               </span>{" "}
-              <span className="text-xs text-zinc-400">payable at the gate</span>
+              <span className="text-xs text-ink-subtle">payable at the gate</span>
             </p>
             <button
               type="submit"

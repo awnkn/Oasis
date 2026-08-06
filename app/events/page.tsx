@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { listUpcomingEvents, remainingFor, type TicketedEvent } from "@/lib/events";
 import { formatDateLong } from "@/lib/dates";
 import { CURRENCY } from "@/lib/config";
+import { ArrowLeft, ArrowRight } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -46,8 +47,9 @@ export default function EventsPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/images/logo-white.png" alt="Oasis by Azara" className="h-10 w-auto" />
             </Link>
-            <Link href="/" className="text-sm font-medium text-white/85 hover:text-white">
-              ← Back home
+            <Link href="/" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-white/85 hover:text-white">
+              <ArrowLeft className="h-4 w-4" />
+            Back home
             </Link>
           </header>
           <div className="py-16">
@@ -64,11 +66,11 @@ export default function EventsPage() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-5xl px-6 py-16">
+      <main id="main" className="mx-auto max-w-5xl px-6 py-16">
         {events.length === 0 ? (
           <div className="rounded-3xl border border-oasis-950/10 bg-white p-12 text-center">
             <p className="font-display text-2xl font-semibold">No events right now</p>
-            <p className="mt-2 text-oasis-900/60">
+            <p className="mt-2 text-ink-muted">
               We&apos;re planning something special. Check back soon, or{" "}
               <Link href="/book?src=events-empty" className="text-oasis-600 underline">
                 book a pool day
@@ -98,19 +100,19 @@ export default function EventsPage() {
                       />
                     )}
                     {soldOut && (
-                      <span className="absolute right-4 top-4 rounded-full bg-blush-500 px-3 py-1 text-xs font-semibold text-white">
+                      <span className="absolute right-4 top-4 rounded-full bg-status-critical px-3 py-1 text-xs font-semibold text-white">
                         Sold out
                       </span>
                     )}
                   </div>
                   <div className="p-6">
                     {e.tagline && (
-                      <p className="text-xs font-semibold uppercase tracking-wider text-oasis-500">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-oasis-600">
                         {e.tagline}
                       </p>
                     )}
                     <h2 className="mt-1.5 font-display text-2xl font-semibold">{e.title}</h2>
-                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-oasis-900/60">
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
                       {e.event_date && <span>{formatDateLong(e.event_date)}</span>}
                       {e.start_time && <span>· {e.start_time}</span>}
                     </div>
@@ -118,13 +120,14 @@ export default function EventsPage() {
                       <span className="font-display text-xl font-semibold text-oasis-950">
                         {e.price} {CURRENCY}
                         {e.price_note && (
-                          <span className="ml-1.5 text-sm font-normal text-oasis-900/50">
+                          <span className="ml-1.5 text-sm font-normal text-ink-subtle">
                             {e.price_note}
                           </span>
                         )}
                       </span>
-                      <span className="text-sm font-medium text-oasis-600 group-hover:underline">
-                        View &amp; reserve →
+                      <span className="inline-flex items-center gap-1.5 text-sm font-medium text-oasis-600 group-hover:underline">
+                        View &amp; reserve
+                      <ArrowRight className="h-4 w-4" />
                       </span>
                     </div>
                   </div>

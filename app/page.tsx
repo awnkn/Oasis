@@ -10,6 +10,7 @@ import {
 } from "@/lib/config";
 import { listUpcomingEvents, type TicketedEvent } from "@/lib/events";
 import { formatDateLong } from "@/lib/dates";
+import { ArrowRight, Blossom, Diamond } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +98,22 @@ export default function HomePage() {
   const events = listUpcomingEvents().slice(0, 3);
   return (
     <div className="min-h-screen">
+      {/* Site banner. Lifted out of the hero <section> so it is a real banner
+          landmark rather than a descendant of <main>; the hero compensates
+          with matching top padding so the composition is unchanged. */}
+      <header className="absolute inset-x-0 top-0 z-20 mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
+        <Link href="/">
+          <Wordmark light />
+        </Link>
+        <Link
+          href="/book?src=header"
+          className="inline-flex min-h-11 items-center rounded-full bg-white/95 px-5 py-2.5 text-sm font-medium text-oasis-900 shadow-md transition hover:bg-white"
+        >
+          Book your day
+        </Link>
+      </header>
+
+      <main id="main">
       {/* Hero */}
       <section className="relative flex min-h-[92svh] flex-col overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -110,19 +127,9 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-oasis-950/75 via-oasis-950/55 to-oasis-950/90" />
         <div className="absolute inset-0 [background:radial-gradient(ellipse_60%_50%_at_50%_50%,_rgba(16,44,48,0.55)_0%,_transparent_75%)]" />
 
-        <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
-          <Link href="/">
-            <Wordmark light />
-          </Link>
-          <Link
-            href="/book?src=header"
-            className="rounded-full bg-white/95 px-5 py-2.5 text-sm font-medium text-oasis-900 shadow-md transition hover:bg-white"
-          >
-            Book your day
-          </Link>
-        </header>
-
-        <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6 py-20 text-center text-white">
+        {/* pt-44 = the 20 of py-20 plus the 96px the banner used to occupy in
+            flow, so the hero text stays optically where it was. */}
+        <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6 pb-20 pt-44 text-center text-white">
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.35em] text-sand-200">
             A sanctuary for women · Ladies only
           </p>
@@ -136,7 +143,7 @@ export default function HomePage() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/book?src=hero"
-              className="rounded-full bg-oasis-500 px-8 py-3.5 text-base font-medium text-white shadow-lg transition hover:bg-oasis-400"
+              className="rounded-full bg-oasis-600 px-8 py-3.5 text-base font-medium text-white shadow-lg transition hover:bg-oasis-700"
             >
               Reserve your day
             </Link>
@@ -155,9 +162,9 @@ export default function HomePage() {
         <div className="relative z-10 border-t border-white/15 bg-oasis-950/40 backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-10 gap-y-2 px-6 py-4 text-sm text-white/85">
             <span>Sunday to Thursday · {WEEKDAY_PRICE} {CURRENCY} per guest</span>
-            <span className="hidden text-white/30 sm:block">✦</span>
+            <Diamond className="hidden h-3 w-3 text-white/40 sm:block" />
             <span>Friday & Saturday · {WEEKEND_PRICE} {CURRENCY} per guest</span>
-            <span className="hidden text-white/30 sm:block">✦</span>
+            <Diamond className="hidden h-3 w-3 text-white/40 sm:block" />
             <span>Limited guests each day, for your calm</span>
           </div>
         </div>
@@ -165,11 +172,11 @@ export default function HomePage() {
 
       {/* Upcoming events */}
       {events.length > 0 && (
-        <section id="events" className="border-b border-oasis-950/5 bg-sand-100 px-6 py-24">
+        <section id="events" className="border-b border-oasis-950/5 bg-mist-100 px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-600">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-800">
                   Beyond the pool day
                 </p>
                 <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
@@ -178,9 +185,10 @@ export default function HomePage() {
               </div>
               <Link
                 href="/events"
-                className="rounded-full border border-oasis-300 px-6 py-2.5 text-sm font-medium text-oasis-700 transition hover:border-oasis-500 hover:bg-white"
+                className="inline-flex items-center gap-2 rounded-full border border-oasis-300 px-6 py-2.5 text-sm font-medium text-oasis-700 transition hover:border-oasis-600 hover:bg-white"
               >
-                See all events →
+                See all events
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
 
@@ -206,13 +214,14 @@ export default function HomePage() {
                     <div className="p-6">
                       <h3 className="font-display text-2xl font-semibold">{e.title}</h3>
                       {e.event_date && (
-                        <p className="mt-2 text-sm text-oasis-900/60">
+                        <p className="mt-2 text-sm text-ink-muted">
                           {formatDateLong(e.event_date)}
                           {e.start_time ? ` · ${e.start_time}` : ""}
                         </p>
                       )}
-                      <p className="mt-4 font-medium text-oasis-600 group-hover:underline">
-                        {e.price} {CURRENCY} · Reserve →
+                      <p className="mt-4 inline-flex items-center gap-1.5 font-medium text-oasis-600 group-hover:underline">
+                        {e.price} {CURRENCY} · Reserve
+                        <ArrowRight className="h-4 w-4" />
                       </p>
                     </div>
                   </Link>
@@ -226,18 +235,18 @@ export default function HomePage() {
       {/* Brand moment */}
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-24 md:grid-cols-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-800">
             More than relaxation
           </p>
           <h2 className="mt-4 font-display text-4xl font-semibold leading-tight sm:text-5xl">
             A place you return to, slowly.
           </h2>
-          <p className="mt-6 text-lg leading-relaxed text-oasis-900/70">
+          <p className="mt-6 text-lg leading-relaxed text-ink-muted">
             Every element of {CLUB_NAME} is designed to let you be fully
             present without compromise. Carefully designed for complete
             privacy, so every moment feels lighter, freer and wholly your own.
           </p>
-          <p className="mt-4 text-lg leading-relaxed text-oasis-900/70">
+          <p className="mt-4 text-lg leading-relaxed text-ink-muted">
             Oasis exists to remind every woman that caring for herself is not
             a luxury reserved for special occasions. It is a rhythm worth
             returning to, again and again.
@@ -300,15 +309,15 @@ export default function HomePage() {
             ].map((point) => (
               <div
                 key={point.title}
-                className="rounded-3xl border border-blue-100 bg-blue-50/60 p-7 transition hover:border-blue-300 hover:shadow-sm"
+                className="rounded-3xl border border-mist-200 bg-mist-50 p-7 transition hover:border-mist-300 hover:shadow-sm"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm shadow-blue-600/25 ring-1 ring-blue-500/20">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mist-600 text-white shadow-sm shadow-mist-600/25 ring-1 ring-mist-600/20">
                   {point.icon}
                 </div>
-                <h3 className="mt-5 font-display text-xl font-semibold text-blue-950">
+                <h3 className="mt-5 font-display text-xl font-semibold text-mist-950">
                   {point.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-blue-900/60">
+                <p className="mt-2 text-sm leading-relaxed text-mist-700">
                   {point.text}
                 </p>
               </div>
@@ -347,9 +356,10 @@ export default function HomePage() {
           <div className="mt-12 text-center">
             <Link
               href="/book?src=gallery"
-              className="inline-block rounded-full border border-white/40 bg-white/10 px-8 py-3.5 font-medium text-white backdrop-blur transition hover:bg-white/20"
+              className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-8 py-3.5 font-medium text-white backdrop-blur transition hover:bg-white/20"
             >
-              Come see it for yourself →
+              Come see it for yourself
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -361,20 +371,20 @@ export default function HomePage() {
           <h2 className="text-center font-display text-4xl font-semibold sm:text-5xl">
             Book Your Spot
           </h2>
-          <p className="mt-3 text-center text-oasis-900/60">
+          <p className="mt-3 text-center text-ink-muted">
             One entry price per guest. Swim, lounge and relax from open to close.
           </p>
           <div className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2">
             <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5">
-              <p className="text-sm font-semibold uppercase tracking-widest text-oasis-500">
+              <p className="text-sm font-semibold uppercase tracking-widest text-oasis-600">
                 Weekdays
               </p>
-              <p className="mt-1 text-sm text-oasis-900/50">Sunday to Thursday</p>
+              <p className="mt-1 text-sm text-ink-subtle">Sunday to Thursday</p>
               <p className="mt-6 font-display text-6xl font-semibold">
                 {WEEKDAY_PRICE}
-                <span className="ml-2 text-2xl text-oasis-500">{CURRENCY}</span>
+                <span className="ml-2 text-2xl text-oasis-600">{CURRENCY}</span>
               </p>
-              <p className="mt-2 text-sm text-oasis-900/60">per guest, all day</p>
+              <p className="mt-2 text-sm text-ink-muted">per guest, all day</p>
               <Link
                 href="/book?src=pricing-weekday"
                 className="mt-6 inline-block rounded-full border border-oasis-300 px-6 py-2.5 text-sm font-medium text-oasis-700 transition hover:border-oasis-500 hover:bg-oasis-50"
@@ -403,8 +413,8 @@ export default function HomePage() {
 
           {/* Age note */}
           <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-blush-200 bg-blush-100/60 px-7 py-5 text-center">
-            <p className="text-sm leading-relaxed text-oasis-900/80">
-              <span className="mr-1.5">🌸</span>
+            <p className="text-sm leading-relaxed text-ink">
+              <Blossom className="mr-1.5 inline h-4 w-4 -translate-y-px text-blush-500" />
               <strong className="font-semibold">A little note on ages</strong> —
               Mondays welcome ladies {AGE_MONDAY}+, and every other day is for
               ages {AGE_OTHER_DAYS}+. Guests under {AGE_GUARDIAN} join with a
@@ -415,7 +425,7 @@ export default function HomePage() {
       </section>
 
       {/* How it works */}
-      <section id="how" className="bg-sand-100 px-6 py-24">
+      <section id="how" className="bg-mist-100 px-6 py-24">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-center font-display text-4xl font-semibold">
             Booking is easy
@@ -443,7 +453,7 @@ export default function HomePage() {
                   {item.step}
                 </div>
                 <h3 className="mt-4 font-display text-2xl font-semibold">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-oasis-900/60">{item.text}</p>
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">{item.text}</p>
               </div>
             ))}
           </div>
@@ -469,16 +479,17 @@ export default function HomePage() {
           </p>
           <Link
             href="/book?src=closing"
-            className="mt-9 inline-block rounded-full bg-white px-9 py-4 text-base font-medium text-oasis-900 shadow-lg transition hover:bg-sand-100"
+            className="mt-9 inline-block rounded-full bg-white px-9 py-4 text-base font-medium text-oasis-900 shadow-lg transition hover:bg-mist-100"
           >
             Reserve your spot
           </Link>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-sand-200 px-6 py-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm text-oasis-900/50 sm:flex-row">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm text-ink-subtle sm:flex-row">
           <div className="flex items-center gap-3">
             <Wordmark />
           </div>

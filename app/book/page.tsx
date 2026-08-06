@@ -3,6 +3,7 @@ import BookingForm from "@/components/BookingForm";
 import { MAX_ADVANCE_DAYS } from "@/lib/config";
 import { addDays, today } from "@/lib/dates";
 import { recordEvent } from "@/lib/bookings";
+import { ArrowLeft } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +53,9 @@ export default async function BookPage({
               className="h-10 w-auto"
             />
           </Link>
-          <Link href="/" className="text-sm font-medium text-white/85 hover:text-white">
-            ← Back home
+          <Link href="/" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-white/85 hover:text-white">
+            <ArrowLeft className="h-4 w-4" />
+            Back home
           </Link>
         </header>
         <div className="relative z-10 mx-auto max-w-3xl px-6 pb-12 pt-6 text-white">
@@ -67,7 +69,7 @@ export default async function BookPage({
         </div>
       </div>
 
-      <main className="mx-auto max-w-3xl px-6 pb-24">
+      <main id="main" className="mx-auto max-w-3xl px-6 pb-24">
         <div className="-mt-6 relative z-10">
           <BookingForm
             minDate={todayStr}

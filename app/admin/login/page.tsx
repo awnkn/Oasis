@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "@/components/icons";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6">
+    <main id="main" className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-8 flex flex-col items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -45,7 +46,7 @@ export default function AdminLoginPage() {
             alt="Oasis by Azara"
             className="h-12 w-auto"
           />
-          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
             Team sign in
           </span>
         </Link>
@@ -80,7 +81,10 @@ export default function AdminLoginPage() {
             className="w-full rounded-xl border border-oasis-950/10 bg-white px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
           />
           {error && (
-            <p className="mt-4 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">
+            <p
+              role="alert"
+              className="mt-4 rounded-xl border border-status-critical/30 bg-status-critical-tint px-4 py-3 text-sm text-status-critical"
+            >
               {error}
             </p>
           )}
@@ -92,12 +96,13 @@ export default function AdminLoginPage() {
             {submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-zinc-500">
-          <Link href="/" className="hover:text-oasis-600">
-            ← Back to the website
+        <p className="mt-6 text-center text-sm text-ink-muted">
+          <Link href="/" className="inline-flex min-h-11 items-center gap-2 hover:text-oasis-600">
+            <ArrowLeft className="h-4 w-4" />
+            Back to the website
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

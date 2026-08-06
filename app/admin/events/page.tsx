@@ -7,6 +7,7 @@ import {
   ticketSummary,
 } from "@/lib/events";
 import EventsAdmin from "@/components/EventsAdmin";
+import { ArrowLeft } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Events — Admin" };
@@ -22,8 +23,8 @@ export default async function AdminEventsPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-20">
-      <header className="border-b border-zinc-200/70 bg-white">
+    <div className="min-h-screen bg-surface-sunken pb-20">
+      <header className="border-b border-line/70 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Link href="/admin">
@@ -36,14 +37,15 @@ export default async function AdminEventsPage() {
           </div>
           <Link
             href="/admin"
-            className="text-sm font-medium text-oasis-800 hover:text-oasis-600"
+            className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-oasis-800 hover:text-oasis-600"
           >
-            ← Back to dashboard
+            <ArrowLeft className="h-4 w-4" />
+            Back to dashboard
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 pt-8">
+      <main id="main" className="mx-auto max-w-6xl px-6 pt-8">
         <EventsAdmin events={events} role={role} />
       </main>
     </div>

@@ -78,6 +78,14 @@ export default function RootLayout({
         <JsonLd data={businessJsonLd()} />
         <JsonLd data={websiteJsonLd()} />
         <PageViewTracker />
+        {/* Every page renders a <main id="main">, so one skip link here covers
+            the whole site. It stays off-screen until focused. */}
+        <a
+          href="#main"
+          className="skip-link rounded-full bg-oasis-700 px-5 py-3 text-sm font-medium text-white shadow-lg"
+        >
+          Skip to main content
+        </a>
         {children}
       </body>
     </html>

@@ -20,6 +20,7 @@ import type { StaffUser } from "@/lib/users";
 import AddBookingModal from "@/components/AddBookingModal";
 import AssistantWidget from "@/components/AssistantWidget";
 import EditBookingModal from "@/components/EditBookingModal";
+import { Check, SortAscending, SortDescending, SortNone, Whatsapp } from "@/components/icons";
 
 const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   pending: "Pending",
@@ -30,29 +31,30 @@ const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
 // Booking-status badge colours (UX psychology: amber = awaiting action,
 // green = go/approved, red = stopped/rejected).
 const STATUS_STYLES: Record<BookingStatus, string> = {
-  pending: "bg-amber-100 text-amber-800",
-  approved: "bg-emerald-100 text-emerald-700",
-  rejected: "bg-rose-100 text-rose-600",
+  pending: "bg-status-caution-tint text-status-caution",
+  approved: "bg-status-positive-tint text-status-positive",
+  rejected: "bg-status-critical-tint text-status-critical",
 };
 
 // Guest-status colour system. Each state reads at a glance:
-//   open        → slate  (neutral, new / no action yet)
-//   contacted   → blue   (informational, reached out / in progress)
-//   no response → amber  (caution, waiting on the guest)
-//   confirmed   → green  (positive, they're coming)
-//   checked in  → teal   (success, through the gate)
-//   cancelled   → red    (negative, spot released)
+//   open        -> status-neutral   (new / no action yet)
+//   contacted   -> status-info      (reached out / in progress)
+//   no response -> status-caution   (waiting on the guest)
+//   confirmed   -> status-positive  (they're coming)
+//   checked in  -> oasis-700        (through the gate)
+//   cancelled   -> status-critical  (spot released)
+// Colour never carries the state alone: every pill also renders its label.
 const GUEST_STATUS_COLOR: Record<
   GuestStatus,
   { dot: string; pill: string; select: string }
 > = {
-  open: { dot: "bg-slate-400", pill: "bg-slate-100 text-slate-600", select: "border-slate-200 bg-slate-50 text-slate-700" },
-  contacted: { dot: "bg-sky-500", pill: "bg-sky-100 text-sky-700", select: "border-sky-200 bg-sky-50 text-sky-700" },
-  no_response: { dot: "bg-amber-500", pill: "bg-amber-100 text-amber-800", select: "border-amber-200 bg-amber-50 text-amber-800" },
-  confirmed: { dot: "bg-emerald-500", pill: "bg-emerald-100 text-emerald-700", select: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-  checked_in: { dot: "bg-teal-600", pill: "bg-teal-100 text-teal-700", select: "border-teal-200 bg-teal-50 text-teal-700" },
-  cancelled: { dot: "bg-rose-500", pill: "bg-rose-100 text-rose-600", select: "border-rose-200 bg-rose-50 text-rose-600" },
-  cancelled_no_response: { dot: "bg-rose-400", pill: "bg-rose-100 text-rose-600", select: "border-rose-200 bg-rose-50 text-rose-600" },
+  open: { dot: "bg-status-neutral", pill: "bg-status-neutral-tint text-ink-muted", select: "border-line bg-surface-sunken text-ink" },
+  contacted: { dot: "bg-status-info", pill: "bg-status-info-tint text-status-info", select: "border-status-info/30 bg-status-info-tint text-status-info" },
+  no_response: { dot: "bg-status-caution", pill: "bg-status-caution-tint text-status-caution", select: "border-status-caution/30 bg-status-caution-tint text-status-caution" },
+  confirmed: { dot: "bg-status-positive", pill: "bg-status-positive-tint text-status-positive", select: "border-status-positive/30 bg-status-positive-tint text-status-positive" },
+  checked_in: { dot: "bg-oasis-600", pill: "bg-oasis-100 text-oasis-700", select: "border-oasis-200 bg-oasis-50 text-oasis-700" },
+  cancelled: { dot: "bg-status-critical", pill: "bg-status-critical-tint text-status-critical", select: "border-status-critical/30 bg-status-critical-tint text-status-critical" },
+  cancelled_no_response: { dot: "bg-status-critical/70", pill: "bg-status-critical-tint text-status-critical", select: "border-status-critical/30 bg-status-critical-tint text-status-critical" },
 };
 
 // States a person can pick in the guest-status dropdown.
@@ -65,8 +67,8 @@ const SELECTABLE_GUEST_STATUSES: GuestStatus[] = [
 ];
 
 const RATE_BADGES: Record<Exclude<RateType, "standard">, string> = {
-  discounted: "bg-amber-100 text-amber-800",
-  complimentary: "bg-rose-100 text-rose-600",
+  discounted: "bg-status-caution-tint text-status-caution",
+  complimentary: "bg-status-critical-tint text-status-critical",
 };
 
 function pendingOf(b: Booking): number {
@@ -154,20 +156,39 @@ function SortableHead({
 }) {
   return (
     <thead className="sticky top-0 z-10">
-      <tr className="border-b border-zinc-200/70 bg-white text-[11px] uppercase tracking-wider text-zinc-400">
+      <tr className="border-b border-line/70 bg-white text-[11px] uppercase tracking-wider text-ink-subtle">
         {COLUMNS.map((c) => (
-          <th key={c.label} className="bg-white px-4 py-3.5">
+          <th
+            key={c.label}
+            className="bg-white px-4 py-3.5"
+            aria-sort={
+              c.key && sort.key === c.key
+                ? sort.dir === "asc"
+                  ? "ascending"
+                  : "descending"
+                : c.key
+                  ? "none"
+                  : undefined
+            }
+          >
             {c.key ? (
               <button
                 onClick={() => onSort(c.key as SortKey)}
-                className={`flex items-center gap-1 uppercase tracking-wider transition hover:text-zinc-700 ${
+                aria-label={`Sort by ${c.label}`}
+                className={`flex min-h-8 items-center gap-1 uppercase tracking-wider transition hover:text-ink ${
                   sort.key === c.key ? "text-oasis-600" : ""
                 }`}
               >
                 {c.label}
-                <span className="text-[9px]">
-                  {sort.key === c.key ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}
-                </span>
+                {sort.key === c.key ? (
+                  sort.dir === "asc" ? (
+                    <SortAscending className="h-3.5 w-3.5" />
+                  ) : (
+                    <SortDescending className="h-3.5 w-3.5" />
+                  )
+                ) : (
+                  <SortNone className="h-3.5 w-3.5 opacity-60" />
+                )}
               </button>
             ) : (
               c.label
@@ -208,16 +229,16 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
   const used = ctx.waUsed(b);
 
   return (
-    <tr className={`border-b border-zinc-100 last:border-0 ${allIn ? "bg-zinc-50/70" : ""}`}>
+    <tr className={`border-b border-line-soft last:border-0 ${allIn ? "bg-surface-sunken/70" : ""}`}>
       {/* Guest */}
       <td className="px-4 py-3.5">
-        <p className="text-xs text-zinc-400">#{String(b.id).padStart(4, "0")}</p>
+        <p className="text-xs text-ink-subtle">#{String(b.id).padStart(4, "0")}</p>
         <p className="font-medium">{b.name}</p>
-        <p className="text-xs text-zinc-500">{b.phone}</p>
-        {b.email && <p className="text-xs text-zinc-500">{b.email}</p>}
-        {b.heard_about && <p className="text-xs text-zinc-400">via {b.heard_about}</p>}
+        <p className="text-xs text-ink-muted">{b.phone}</p>
+        {b.email && <p className="text-xs text-ink-muted">{b.email}</p>}
+        {b.heard_about && <p className="text-xs text-ink-subtle">via {b.heard_about}</p>}
         {b.notes && (
-          <p className="mt-0.5 max-w-44 text-xs italic text-zinc-400">“{b.notes}”</p>
+          <p className="mt-0.5 max-w-44 text-xs italic text-ink-subtle">“{b.notes}”</p>
         )}
       </td>
 
@@ -235,17 +256,17 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
                 aria-label="One guest left"
                 onClick={() => ctx.patch(b.id, { checkedInCount: b.checked_in_count - 1 })}
                 disabled={ctx.busyBooking === b.id || b.checked_in_count === 0}
-                className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-30"
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-ink-muted transition hover:bg-surface-sunken disabled:opacity-30"
               >
                 −
               </button>
               <span
                 className={`min-w-12 text-center text-sm font-semibold ${
                   b.checked_in_count === b.guests
-                    ? "text-teal-600"
+                    ? "text-oasis-600"
                     : b.checked_in_count > 0
-                      ? "text-amber-600"
-                      : "text-zinc-400"
+                      ? "text-status-caution"
+                      : "text-ink-subtle"
                 }`}
               >
                 {b.checked_in_count} / {b.guests}
@@ -254,12 +275,12 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
                 aria-label="One guest arrived"
                 onClick={() => ctx.patch(b.id, { checkedInCount: b.checked_in_count + 1 })}
                 disabled={ctx.busyBooking === b.id || b.checked_in_count >= b.guests}
-                className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-30"
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-ink-muted transition hover:bg-surface-sunken disabled:opacity-30"
               >
                 +
               </button>
             </div>
-            <p className="mt-1 text-[11px] text-zinc-400">
+            <p className="mt-1 text-[11px] text-ink-subtle">
               {b.checked_in_count === 0
                 ? "no one in yet"
                 : b.checked_in_count === b.guests
@@ -268,26 +289,26 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
             </p>
           </div>
         ) : (
-          <span className="text-sm text-zinc-400">{b.guests} booked</span>
+          <span className="text-sm text-ink-subtle">{b.guests} booked</span>
         )}
       </td>
 
       {/* Paid */}
       <td className="whitespace-nowrap px-4 py-3.5">
-        <p className={`font-semibold ${(b.paid_amount ?? 0) > 0 ? "text-emerald-600" : "text-zinc-400"}`}>
+        <p className={`font-semibold ${(b.paid_amount ?? 0) > 0 ? "text-status-positive" : "text-ink-subtle"}`}>
           {b.paid_amount ?? 0} JOD
         </p>
         {(b.paid_amount ?? 0) > 0 && b.paid_account && (
-          <p className="text-xs text-zinc-400">via {b.paid_account}</p>
+          <p className="text-xs text-ink-subtle">via {b.paid_account}</p>
         )}
       </td>
 
       {/* Pending */}
       <td className="whitespace-nowrap px-4 py-3.5">
-        <p className={`font-semibold ${pending > 0 ? "text-amber-600" : "text-zinc-400"}`}>
+        <p className={`font-semibold ${pending > 0 ? "text-status-caution" : "text-ink-subtle"}`}>
           {pending} JOD
         </p>
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-ink-subtle">
           of {b.total_price} · {b.price_per_guest} each
         </p>
         {b.rate_type !== "standard" && (
@@ -317,7 +338,7 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
             value={b.guest_status}
             disabled={ctx.busyBooking === b.id}
             onChange={(e) => ctx.patch(b.id, { guestStatus: e.target.value })}
-            className={`rounded-lg border px-2 py-1 text-xs font-medium outline-none ${GUEST_STATUS_COLOR[b.guest_status].select}`}
+            className={`rounded-lg border min-h-8 px-2 py-1 text-xs font-medium outline-none ${GUEST_STATUS_COLOR[b.guest_status].select}`}
           >
             {statusOptions(b).map((o) => (
               <option key={o.value} value={o.value} disabled={o.disabled}>
@@ -335,7 +356,7 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
             <button
               onClick={() => ctx.patch(b.id, { checkedInCount: b.guests })}
               disabled={ctx.busyBooking === b.id}
-              className="rounded-full bg-oasis-900 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-800 disabled:opacity-40"
+              className="rounded-full bg-oasis-900 min-h-8 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-800 disabled:opacity-40"
             >
               All in
             </button>
@@ -346,20 +367,25 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => ctx.onWhatsApp(b)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+              className={`inline-flex min-h-8 items-center gap-1.5 rounded-full min-h-8 px-3.5 py-1.5 text-xs font-medium transition ${
                 used
-                  ? "border border-emerald-500 bg-emerald-50 text-emerald-700"
+                  ? "border border-status-positive bg-status-positive-tint text-status-positive"
                   : "border border-oasis-950/10 text-oasis-700 hover:bg-oasis-50"
               }`}
             >
-              {used ? "WhatsApp ✓" : "WhatsApp ↗"}
+              {used ? (
+              <Check className="h-3.5 w-3.5" />
+            ) : (
+              <Whatsapp className="h-3.5 w-3.5" />
+            )}
+            WhatsApp
             </a>
           )}
           {b.status !== "approved" && (
             <button
               onClick={() => ctx.setStatus(b.id, "approved")}
               disabled={ctx.busyBooking === b.id}
-              className="rounded-full bg-oasis-600 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
+              className="rounded-full bg-oasis-600 min-h-8 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
             >
               Approve
             </button>
@@ -368,7 +394,7 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
             <button
               onClick={() => ctx.setStatus(b.id, "rejected")}
               disabled={ctx.busyBooking === b.id}
-              className="rounded-full border border-rose-300 px-3.5 py-1.5 text-xs font-medium text-rose-500 transition hover:bg-rose-50 disabled:opacity-40"
+              className="rounded-full border border-status-critical/40 min-h-8 px-3.5 py-1.5 text-xs font-medium text-status-critical transition hover:bg-status-critical-tint disabled:opacity-40"
             >
               Reject
             </button>
@@ -377,7 +403,7 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
             <button
               onClick={() => ctx.setStatus(b.id, "pending")}
               disabled={ctx.busyBooking === b.id}
-              className="rounded-full border border-oasis-200 px-3.5 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
+              className="rounded-full border border-oasis-200 min-h-8 px-3.5 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
             >
               Reset
             </button>
@@ -385,7 +411,7 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
           <button
             onClick={() => ctx.onEdit(b)}
             disabled={ctx.busyBooking === b.id}
-            className="rounded-full border border-oasis-950/10 px-3.5 py-1.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-40"
+            className="rounded-full border border-oasis-950/10 min-h-8 px-3.5 py-1.5 text-xs font-medium text-ink-muted transition hover:bg-surface-sunken disabled:opacity-40"
           >
             Edit
           </button>
@@ -418,7 +444,7 @@ function BookingsByStatus({
   return (
     <section className="mt-10">
       <h2 className="text-lg font-semibold tracking-tight">Bookings by status</h2>
-      <p className="mt-1 text-sm text-zinc-500">
+      <p className="mt-1 text-sm text-ink-muted">
         The same bookings, grouped by status and fully editable here too. Click a
         status to open it; the filters, search and sorting above apply here.
       </p>
@@ -434,14 +460,14 @@ function BookingsByStatus({
                 onClick={() => setOpenGroups((g) => ({ ...g, [status]: !g[status] }))}
                 disabled={items.length === 0}
                 aria-expanded={isOpen}
-                className="flex w-full items-center justify-between px-5 py-3.5 text-left transition enabled:hover:bg-zinc-50 disabled:cursor-default"
+                className="flex w-full items-center justify-between px-5 py-3.5 text-left transition enabled:hover:bg-surface-sunken disabled:cursor-default"
               >
                 <span className="flex items-center gap-2.5">
                   <span className={`h-2 w-2 rounded-full ${c.dot}`} />
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.pill}`}>
                     {GUEST_STATUS_LABELS[status]}
                   </span>
-                  <span className="text-sm text-zinc-400">
+                  <span className="text-sm text-ink-subtle">
                     {items.length === 0
                       ? "none"
                       : `${items.length} ${items.length === 1 ? "booking" : "bookings"} · ${guests} ${guests === 1 ? "guest" : "guests"}`}
@@ -454,7 +480,7 @@ function BookingsByStatus({
                     viewBox="0 0 24 24"
                     fill="none"
                     aria-hidden
-                    className={`shrink-0 text-zinc-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    className={`shrink-0 text-ink-subtle transition-transform ${isOpen ? "rotate-180" : ""}`}
                   >
                     <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -462,7 +488,7 @@ function BookingsByStatus({
               </button>
 
               {isOpen && (
-                <div className="overflow-x-auto border-t border-zinc-100">
+                <div className="overflow-x-auto border-t border-line-soft">
                   <table className="w-full text-left text-sm">
                     <SortableHead sort={sort} onSort={onSort} />
                     <tbody className="align-top">
@@ -525,7 +551,7 @@ function TeamSection({
   return (
     <section className="mt-10">
       <h2 className="text-lg font-semibold tracking-tight">Team &amp; access</h2>
-      <p className="mt-1 text-sm text-zinc-500">
+      <p className="mt-1 text-sm text-ink-muted">
         Each person signs in with their own name and password. Staff manage
         bookings and payments; managers also control capacity, insights and this
         team list. Every action is recorded under their name.
@@ -534,7 +560,7 @@ function TeamSection({
       <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-oasis-950/5">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr className="border-b border-zinc-200/70 text-xs uppercase tracking-wider text-zinc-500">
+            <tr className="border-b border-line/70 text-xs uppercase tracking-wider text-ink-muted">
               <th className="px-5 py-3.5">Name</th>
               <th className="px-5 py-3.5">Access</th>
               <th className="px-5 py-3.5">Status</th>
@@ -544,13 +570,13 @@ function TeamSection({
           <tbody>
             {team.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-5 py-8 text-center text-zinc-400">
+                <td colSpan={4} className="px-5 py-8 text-center text-ink-subtle">
                   No team accounts yet — add your first below.
                 </td>
               </tr>
             )}
             {team.map((u) => (
-              <tr key={u.id} className="border-b border-zinc-100 last:border-0">
+              <tr key={u.id} className="border-b border-line-soft last:border-0">
                 <td className="px-5 py-3 font-medium">{u.name}</td>
                 <td className="px-5 py-3">
                   <select
@@ -558,7 +584,7 @@ function TeamSection({
                     value={u.role}
                     disabled={busy}
                     onChange={(e) => call(`/api/admin/users/${u.id}`, "PATCH", { role: e.target.value })}
-                    className="rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-950/25"
+                    className="rounded-lg border border-oasis-950/10 bg-white min-h-8 px-2 py-1.5 text-xs outline-none focus:border-oasis-950/25"
                   >
                     <option value="staff">Staff — bookings &amp; payments</option>
                     <option value="manager">Manager — full access</option>
@@ -567,7 +593,7 @@ function TeamSection({
                 <td className="px-5 py-3">
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      u.active ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-600"
+                      u.active ? "bg-status-positive-tint text-status-positive" : "bg-status-critical-tint text-status-critical"
                     }`}
                   >
                     {u.active ? "Active" : "Disabled"}
@@ -578,7 +604,7 @@ function TeamSection({
                     <button
                       disabled={busy}
                       onClick={() => call(`/api/admin/users/${u.id}`, "PATCH", { active: !u.active })}
-                      className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
+                      className="rounded-full border border-oasis-950/10 min-h-8 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
                     >
                       {u.active ? "Disable" : "Enable"}
                     </button>
@@ -590,7 +616,7 @@ function TeamSection({
                           placeholder="New password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-32 rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-950/25"
+                          className="w-32 rounded-lg border border-oasis-950/10 bg-white min-h-8 px-2 py-1.5 text-xs outline-none focus:border-oasis-950/25"
                         />
                         <button
                           disabled={busy || newPassword.length < 6}
@@ -600,7 +626,7 @@ function TeamSection({
                               setNewPassword("");
                             }
                           }}
-                          className="rounded-full bg-oasis-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+                          className="rounded-full bg-oasis-600 min-h-8 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
                         >
                           Save
                         </button>
@@ -609,7 +635,7 @@ function TeamSection({
                             setResettingId(null);
                             setNewPassword("");
                           }}
-                          className="text-xs text-zinc-500 hover:text-oasis-900"
+                          className="text-xs text-ink-muted hover:text-oasis-900"
                         >
                           Cancel
                         </button>
@@ -618,7 +644,7 @@ function TeamSection({
                       <button
                         disabled={busy}
                         onClick={() => setResettingId(u.id)}
-                        className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
+                        className="rounded-full border border-oasis-950/10 min-h-8 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
                       >
                         Reset password
                       </button>
@@ -643,7 +669,7 @@ function TeamSection({
         className="mt-4 flex flex-wrap items-end gap-3 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-oasis-950/5"
       >
         <div>
-          <label htmlFor="new-member-name" className="mb-1 block text-xs font-medium text-zinc-500">Name</label>
+          <label htmlFor="new-member-name" className="mb-1 block text-xs font-medium text-ink-muted">Name</label>
           <input
             id="new-member-name"
             required
@@ -656,7 +682,7 @@ function TeamSection({
           />
         </div>
         <div>
-          <label htmlFor="new-member-password" className="mb-1 block text-xs font-medium text-zinc-500">Password</label>
+          <label htmlFor="new-member-password" className="mb-1 block text-xs font-medium text-ink-muted">Password</label>
           <input
             id="new-member-password"
             type="password"
@@ -669,7 +695,7 @@ function TeamSection({
           />
         </div>
         <div>
-          <label htmlFor="new-member-role" className="mb-1 block text-xs font-medium text-zinc-500">Access</label>
+          <label htmlFor="new-member-role" className="mb-1 block text-xs font-medium text-ink-muted">Access</label>
           <select
             id="new-member-role"
             value={role}
@@ -759,7 +785,7 @@ function PaymentEditor({
           setRate(next);
           if (next === "complimentary") setPaid("0");
         }}
-        className="w-36 rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
+        className="w-36 rounded-lg border border-oasis-950/10 bg-white min-h-8 px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
       >
         <option value="standard">Standard</option>
         <option value="discounted">Discounted</option>
@@ -774,14 +800,14 @@ function PaymentEditor({
           placeholder="—"
           value={paid}
           onChange={(e) => setPaid(e.target.value)}
-          className="w-20 rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
+          className="w-20 rounded-lg border border-oasis-950/10 bg-white min-h-8 px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
         />
-        <span className="text-xs text-zinc-500">JOD via</span>
+        <span className="text-xs text-ink-muted">JOD via</span>
         <select
           aria-label={`Account for booking ${booking.id}`}
           value={account}
           onChange={(e) => setAccount(e.target.value)}
-          className="rounded-lg border border-oasis-950/10 bg-white px-1.5 py-1.5 text-xs outline-none focus:border-oasis-500"
+          className="rounded-lg border border-oasis-950/10 bg-white min-h-8 px-1.5 py-1.5 text-xs outline-none focus:border-oasis-500"
         >
           {PAYMENT_ACCOUNTS.map((a) => (
             <option key={a} value={a}>{a}</option>
@@ -789,7 +815,7 @@ function PaymentEditor({
         </select>
       </div>
       {booking.payment_method && (
-        <p className="text-xs text-zinc-400">Guest chose {booking.payment_method}</p>
+        <p className="text-xs text-ink-subtle">Guest chose {booking.payment_method}</p>
       )}
       {dirty && (
         <button
@@ -982,8 +1008,8 @@ export default function AdminDashboard({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-20">
-      <header className="border-b border-zinc-200/70 bg-white">
+    <div className="min-h-screen bg-surface-sunken pb-20">
+      <header className="border-b border-line/70 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Link href="/">
@@ -1024,11 +1050,11 @@ export default function AdminDashboard({
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 pt-8">
+      <main id="main" className="mx-auto max-w-6xl px-6 pt-8">
         {showPasswordWarning && (
-          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+          <div className="mb-6 rounded-2xl border border-status-caution/30 bg-status-caution-tint px-5 py-4 text-sm text-status-caution">
             <strong>Security note:</strong> the admin password is still the default.
-            Set <code className="rounded bg-amber-100 px-1">ADMIN_PASSWORD</code> in
+            Set <code className="rounded bg-status-caution-tint px-1">ADMIN_PASSWORD</code> in
             your environment before going live.
           </div>
         )}
@@ -1036,30 +1062,30 @@ export default function AdminDashboard({
         {/* Stats + capacity */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-            <p className="text-sm text-zinc-500">Pending requests</p>
+            <p className="text-sm text-ink-muted">Pending requests</p>
             <p className="mt-1 text-3xl font-semibold tracking-tight">{pendingCount}</p>
           </div>
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-            <p className="text-sm text-zinc-500">Bookings today</p>
+            <p className="text-sm text-ink-muted">Bookings today</p>
             <p className="mt-1 text-3xl font-semibold tracking-tight">{bookingsToday}</p>
           </div>
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-            <p className="text-sm text-zinc-500">Guests today</p>
+            <p className="text-sm text-ink-muted">Guests today</p>
             <p className="mt-1 text-3xl font-semibold tracking-tight">
               {guestsToday}
-              <span className="text-xl text-zinc-400"> / {capacity}</span>
+              <span className="text-xl text-ink-subtle"> / {capacity}</span>
             </p>
           </div>
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-            <p className="text-sm text-zinc-500">Checked in today</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight text-teal-600">
+            <p className="text-sm text-ink-muted">Checked in today</p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight text-oasis-600">
               {checkedInToday}
-              <span className="text-xl text-zinc-400"> / {guestsToday}</span>
+              <span className="text-xl text-ink-subtle"> / {guestsToday}</span>
             </p>
           </div>
           {role === "manager" ? (
             <form onSubmit={saveCapacity} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-              <label htmlFor="capacity" className="text-sm text-zinc-500">Daily capacity</label>
+              <label htmlFor="capacity" className="text-sm text-ink-muted">Daily capacity</label>
               <div className="mt-2 flex gap-2">
                 <input
                   id="capacity"
@@ -1078,13 +1104,13 @@ export default function AdminDashboard({
                   {savingCapacity ? "Saving…" : "Save"}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-zinc-400">Applies to every day. Lower it to limit guests.</p>
+              <p className="mt-2 text-xs text-ink-subtle">Applies to every day. Lower it to limit guests.</p>
             </form>
           ) : (
             <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-              <p className="text-sm text-zinc-500">Daily capacity</p>
+              <p className="text-sm text-ink-muted">Daily capacity</p>
               <p className="mt-1 text-3xl font-semibold tracking-tight">{capacity}</p>
-              <p className="mt-2 text-xs text-zinc-400">Set by the manager.</p>
+              <p className="mt-2 text-xs text-ink-subtle">Set by the manager.</p>
             </div>
           )}
         </div>
@@ -1118,9 +1144,9 @@ export default function AdminDashboard({
                       filters.date === day.date
                         ? "text-white/70"
                         : full
-                          ? "text-rose-500"
+                          ? "text-status-critical"
                           : ratio > 0.8
-                            ? "text-amber-600"
+                            ? "text-status-caution"
                             : "text-oasis-600"
                     }`}
                   >
@@ -1193,7 +1219,7 @@ export default function AdminDashboard({
           </div>
 
           {message && (
-            <p className="mt-4 rounded-xl bg-rose-100 px-4 py-3 text-sm text-rose-600">{message}</p>
+            <p className="mt-4 rounded-xl bg-status-critical-tint px-4 py-3 text-sm text-status-critical">{message}</p>
           )}
 
           <div className="mt-4 max-h-[65vh] overflow-auto rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
@@ -1202,7 +1228,7 @@ export default function AdminDashboard({
               <tbody className="align-top">
                 {sortedBookings.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-zinc-400">
+                    <td colSpan={8} className="px-4 py-12 text-center text-ink-subtle">
                       No bookings match these filters.
                     </td>
                   </tr>

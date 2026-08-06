@@ -9,6 +9,7 @@ import {
   PHONE_COUNTRIES,
   normalizeNationalNumber,
 } from "@/lib/phone";
+import { Check } from "@/components/icons";
 
 interface Confirmed {
   id: number;
@@ -85,29 +86,29 @@ export default function EventReservationForm({
 
   if (confirmed) {
     return (
-      <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5 sm:p-10">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-oasis-100 text-3xl">
-          ✓
+      <div role="status" className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5 sm:p-10">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-oasis-100 text-oasis-700">
+          <Check className="h-7 w-7" />
         </div>
         <h2 className="mt-5 font-display text-3xl font-semibold">
           You&apos;re on the list, {confirmed.name.split(" ")[0]}!
         </h2>
-        <p className="mt-3 text-oasis-900/70">
+        <p className="mt-3 text-ink-muted">
           Your reservation for <strong>{confirmed.eventTitle}</strong> is{" "}
           <strong>pending confirmation</strong>. Our team will reach out to
           confirm your spot.
         </p>
-        <dl className="mt-6 space-y-2 rounded-2xl bg-sand-100 p-6 text-sm">
+        <dl className="mt-6 space-y-2 rounded-2xl bg-mist-100 p-6 text-sm">
           <div className="flex justify-between">
-            <dt className="text-oasis-900/60">Reference</dt>
+            <dt className="text-ink-muted">Reference</dt>
             <dd className="font-semibold">#{String(confirmed.id).padStart(4, "0")}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-oasis-900/60">Tickets</dt>
+            <dt className="text-ink-muted">Tickets</dt>
             <dd className="font-semibold">{confirmed.quantity}</dd>
           </div>
           <div className="flex justify-between border-t border-sand-200 pt-2">
-            <dt className="text-oasis-900/60">Total at the gate</dt>
+            <dt className="text-ink-muted">Total at the gate</dt>
             <dd className="font-semibold">{confirmed.totalPrice} JOD</dd>
           </div>
         </dl>
@@ -127,7 +128,7 @@ export default function EventReservationForm({
         <p className="font-display text-2xl font-semibold text-oasis-900">
           This event is fully booked
         </p>
-        <p className="mt-2 text-sm text-oasis-900/70">
+        <p className="mt-2 text-sm text-ink-muted">
           Keep an eye out, more evenings are on the way.
         </p>
       </div>
@@ -140,7 +141,7 @@ export default function EventReservationForm({
       className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5 sm:p-10"
     >
       <h2 className="font-display text-2xl font-semibold">Reserve your spot</h2>
-      <p className="mt-1 text-sm text-oasis-900/60">
+      <p className="mt-1 text-sm text-ink-muted">
         Send your request and we confirm every reservation. Nothing is charged
         online, and you pay at the entrance.
       </p>
@@ -242,7 +243,7 @@ export default function EventReservationForm({
         <div>
           <label htmlFor="ev-notes" className="mb-1.5 block text-sm font-medium">
             Anything we should know?{" "}
-            <span className="font-normal text-oasis-900/40">(optional)</span>
+            <span className="font-normal text-ink-subtle">(optional)</span>
           </label>
           <input
             id="ev-notes"
@@ -255,7 +256,7 @@ export default function EventReservationForm({
         </div>
       </div>
 
-      <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl bg-sand-100 p-5 text-sm leading-relaxed text-oasis-900/75">
+      <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl bg-mist-100 p-5 text-sm leading-relaxed text-ink">
         <input
           type="checkbox"
           required
@@ -266,18 +267,21 @@ export default function EventReservationForm({
         <span>
           I understand this is a reservation request. Our team will confirm my
           spot, and the {price} JOD per ticket is paid at the entrance.{" "}
-          <span className="text-blush-500">*</span>
+          <span className="text-status-critical">*</span>
         </span>
       </label>
 
       {error && (
-        <p className="mt-5 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">
+        <p
+            role="alert"
+            className="mt-5 rounded-xl border border-status-critical/30 bg-status-critical-tint px-4 py-3 text-sm text-status-critical"
+          >
           {error}
         </p>
       )}
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
-        <div className="text-sm text-oasis-900/60">
+        <div className="text-sm text-ink-muted">
           {total !== null ? (
             <>
               Total at the gate:{" "}

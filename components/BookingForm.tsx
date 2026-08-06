@@ -17,6 +17,7 @@ import {
   PHONE_COUNTRIES,
   normalizeNationalNumber,
 } from "@/lib/phone";
+import { Check } from "@/components/icons";
 
 interface Availability {
   date: string;
@@ -149,35 +150,35 @@ export default function BookingForm({
 
   if (confirmed) {
     return (
-      <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5 sm:p-10">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-oasis-100 text-3xl">
-          ✓
+      <div role="status" className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5 sm:p-10">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-oasis-100 text-oasis-700">
+          <Check className="h-7 w-7" />
         </div>
         <h2 className="mt-5 font-display text-3xl font-semibold">
           Request received, {confirmed.name.split(" ")[0]}!
         </h2>
-        <p className="mt-3 text-oasis-900/70">
+        <p className="mt-3 text-ink-muted">
           Your booking is <strong>pending approval</strong>. Our team will call
           you shortly to confirm your day.
         </p>
-        <dl className="mt-6 space-y-2 rounded-2xl bg-sand-100 p-6 text-sm">
+        <dl className="mt-6 space-y-2 rounded-2xl bg-mist-100 p-6 text-sm">
           <div className="flex justify-between">
-            <dt className="text-oasis-900/60">Reference</dt>
+            <dt className="text-ink-muted">Reference</dt>
             <dd className="font-semibold">#{String(confirmed.id).padStart(4, "0")}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-oasis-900/60">Day</dt>
+            <dt className="text-ink-muted">Day</dt>
             <dd className="font-semibold">{formatDateLong(confirmed.date)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-oasis-900/60">Guests</dt>
+            <dt className="text-ink-muted">Guests</dt>
             <dd className="font-semibold">{confirmed.guests}</dd>
           </div>
           <div className="flex justify-between border-t border-sand-200 pt-2">
-            <dt className="text-oasis-900/60">Total at the gate</dt>
+            <dt className="text-ink-muted">Total at the gate</dt>
             <dd className="font-semibold">
               {confirmed.totalPrice} JOD
-              <span className="ml-1 font-normal text-oasis-900/50">
+              <span className="ml-1 font-normal text-ink-subtle">
                 ({confirmed.pricePerGuest} JOD × {confirmed.guests})
               </span>
             </dd>
@@ -230,7 +231,7 @@ export default function BookingForm({
         </div>
       </div>
 
-      <p className="mt-3 text-xs leading-relaxed text-oasis-900/50">
+      <p className="mt-3 text-xs leading-relaxed text-ink-subtle">
         * Mondays welcome ages {AGE_MONDAY}+; all other days are {AGE_OTHER_DAYS}+.
         Guests under {AGE_GUARDIAN} must be accompanied by a guardian aged{" "}
         {AGE_GUARDIAN}+.
@@ -239,8 +240,12 @@ export default function BookingForm({
       {/* Availability + price strip */}
       {date && (
         <div
+          role="status"
+          aria-live="polite"
           className={`mt-5 rounded-2xl px-5 py-4 text-sm ${
-            soldOut ? "bg-blush-100 text-blush-500" : "bg-oasis-50 text-oasis-800"
+            soldOut
+              ? "bg-status-caution-tint text-status-caution"
+              : "bg-oasis-50 text-oasis-800"
           }`}
         >
           {checking ? (
@@ -251,7 +256,7 @@ export default function BookingForm({
               <button
                 type="button"
                 onClick={() => setRetryToken((t) => t + 1)}
-                className="rounded-full border border-oasis-300 px-4 py-1 text-xs font-medium text-oasis-700 transition hover:border-oasis-500"
+                className="inline-flex min-h-11 items-center rounded-full border border-oasis-300 px-4 py-2 text-sm font-medium text-oasis-700 transition hover:border-oasis-600"
               >
                 Try again
               </button>
@@ -271,7 +276,8 @@ export default function BookingForm({
               <strong>
                 {availability.pricePerGuest} {availability.currency}
               </strong>{" "}
-              per guest · Available ✓
+              per guest · Available
+              <Check className="ml-1 inline h-4 w-4 -translate-y-px" />
             </span>
           )}
         </div>
@@ -358,7 +364,7 @@ export default function BookingForm({
               className={inputClass}
             />
           </div>
-          <p className="mt-1 text-xs text-oasis-900/50">
+          <p className="mt-1 text-xs text-ink-subtle">
             We confirm every booking by phone.
           </p>
         </div>
@@ -382,7 +388,7 @@ export default function BookingForm({
       <fieldset className="mt-6">
         <legend className="mb-2 block text-sm font-medium">
           Where did you hear about us?{" "}
-          <span className="font-normal text-oasis-900/40">(optional)</span>
+          <span className="font-normal text-ink-subtle">(optional)</span>
         </legend>
         <div className="flex flex-wrap gap-2">
           {HEARD_ABOUT_OPTIONS.map((option) => {
@@ -412,7 +418,7 @@ export default function BookingForm({
       <div className="mt-6">
         <label htmlFor="notes" className="mb-1.5 block text-sm font-medium">
           Anything we should know?{" "}
-          <span className="font-normal text-oasis-900/40">(optional)</span>
+          <span className="font-normal text-ink-subtle">(optional)</span>
         </label>
         <textarea
           id="notes"
@@ -426,13 +432,13 @@ export default function BookingForm({
       </div>
 
       {/* Booking terms */}
-      <fieldset className="mt-8 rounded-2xl bg-sand-100 p-6">
+      <fieldset className="mt-8 rounded-2xl bg-mist-100 p-6">
         <legend className="mb-1 px-1 text-sm font-semibold">
-          Before you book <span className="text-blush-500">*</span>
+          Before you book <span className="text-status-critical">*</span>
         </legend>
         <div className="space-y-3">
           {BOOKING_TERMS.map((term, i) => (
-            <label key={i} className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-oasis-900/75">
+            <label key={i} className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-ink">
               <input
                 type="checkbox"
                 required
@@ -445,7 +451,7 @@ export default function BookingForm({
                 className="mt-1 h-4 w-4 shrink-0 accent-oasis-600"
               />
               <span>
-                {term} <span className="text-blush-500">*</span>
+                {term} <span className="text-status-critical">*</span>
               </span>
             </label>
           ))}
@@ -453,13 +459,16 @@ export default function BookingForm({
       </fieldset>
 
       {error && (
-        <p className="mt-5 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">
+        <p
+            role="alert"
+            className="mt-5 rounded-xl border border-status-critical/30 bg-status-critical-tint px-4 py-3 text-sm text-status-critical"
+          >
           {error}
         </p>
       )}
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
-        <div className="text-sm text-oasis-900/60">
+        <div className="text-sm text-ink-muted">
           {total !== null && !soldOut ? (
             <>
               Total at the gate:{" "}

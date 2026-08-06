@@ -11,6 +11,7 @@ import type {
   TicketedEvent,
   TicketSummary,
 } from "@/lib/events";
+import { ArrowUpRight } from "@/components/icons";
 
 interface EventBundle {
   event: TicketedEvent;
@@ -27,9 +28,9 @@ const GUEST_LABELS: Record<EventGuestStatus, string> = {
 };
 
 const STATUS_BADGE: Record<EventTicketStatus, string> = {
-  pending: "bg-amber-100 text-amber-800",
+  pending: "bg-status-caution-tint text-status-caution",
   approved: "bg-oasis-100 text-oasis-700",
-  rejected: "bg-blush-100 text-blush-500",
+  rejected: "bg-status-critical-tint text-status-critical",
 };
 
 const inputClass =
@@ -119,7 +120,7 @@ function EventForm({
           <h2 className="text-lg font-semibold tracking-tight">
             {isEdit ? "Edit event" : "New event"}
           </h2>
-          <button onClick={onClose} aria-label="Close" className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700">
+          <button onClick={onClose} aria-label="Close" className="rounded-full p-1.5 text-ink-subtle hover:bg-surface-muted hover:text-ink">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
@@ -128,64 +129,64 @@ function EventForm({
 
         <form onSubmit={submit} className="mt-5 space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">Title</label>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">Title</label>
             <input required minLength={2} maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="e.g. غنّو معنا" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">Tagline <span className="font-normal text-zinc-400">(optional)</span></label>
-            <input maxLength={160} value={tagline} onChange={(e) => setTagline(e.target.value)} className={inputClass} placeholder="An evening exclusively for the ladies ✨" />
+            <label className="mb-1 block text-xs font-medium text-ink-muted">Tagline <span className="font-normal text-ink-subtle">(optional)</span></label>
+            <input maxLength={160} value={tagline} onChange={(e) => setTagline(e.target.value)} className={inputClass} placeholder="An evening exclusively for the ladies" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Date</label>
+              <label className="mb-1 block text-xs font-medium text-ink-muted">Date</label>
               <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Time</label>
+              <label className="mb-1 block text-xs font-medium text-ink-muted">Time</label>
               <input maxLength={40} value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClass} placeholder="8:00 PM" />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Price (JOD)</label>
+              <label className="mb-1 block text-xs font-medium text-ink-muted">Price (JOD)</label>
               <input type="number" min={0} step="0.5" value={price} onChange={(e) => setPrice(e.target.value)} className={inputClass} placeholder="15" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Price note</label>
+              <label className="mb-1 block text-xs font-medium text-ink-muted">Price note</label>
               <input maxLength={60} value={priceNote} onChange={(e) => setPriceNote(e.target.value)} className={inputClass} placeholder="includes shisha" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Capacity</label>
+              <label className="mb-1 block text-xs font-medium text-ink-muted">Capacity</label>
               <input type="number" min={0} value={capacity} onChange={(e) => setCapacity(e.target.value)} className={inputClass} placeholder="∞" />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">Location <span className="font-normal text-zinc-400">(optional)</span></label>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">Location <span className="font-normal text-ink-subtle">(optional)</span></label>
             <input maxLength={120} value={location} onChange={(e) => setLocation(e.target.value)} className={inputClass} placeholder="Oasis by Azara · Amman" />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">Description</label>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">Description</label>
             <textarea rows={5} maxLength={4000} value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} placeholder="Tell guests what the evening is about…" />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">
-              Highlights <span className="font-normal text-zinc-400">(one per line)</span>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">
+              Highlights <span className="font-normal text-ink-subtle">(one per line)</span>
             </label>
             <textarea rows={4} value={highlights} onChange={(e) => setHighlights(e.target.value)} className={inputClass} placeholder={"Live music\nCards & games\nComplimentary shisha"} />
           </div>
 
-          <label className="flex items-center gap-2.5 text-sm text-zinc-600">
+          <label className="flex items-center gap-2.5 text-sm text-ink-muted">
             <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="h-4 w-4 accent-oasis-600" />
             Show on the website (uncheck to hide as a draft)
           </label>
 
-          <div className="flex items-center justify-end gap-3 border-t border-zinc-100 pt-4">
-            <button type="button" onClick={onClose} className="rounded-full border border-oasis-950/10 px-5 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50">
+          <div className="flex items-center justify-end gap-3 border-t border-line-soft pt-4">
+            <button type="button" onClick={onClose} className="rounded-full border border-oasis-950/10 px-5 py-2.5 text-sm font-medium text-ink-muted hover:bg-surface-sunken">
               Cancel
             </button>
             <button type="submit" disabled={busy} className="rounded-full bg-oasis-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-oasis-700 disabled:opacity-40">
@@ -223,13 +224,13 @@ function PaymentCell({
         value={paid}
         onChange={(e) => setPaid(e.target.value)}
         aria-label={`Paid for reservation ${ticket.id}`}
-        className="w-16 rounded-lg border border-oasis-950/10 bg-white px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
+        className="w-16 rounded-lg border border-oasis-950/10 bg-white min-h-8 px-2 py-1.5 text-xs outline-none focus:border-oasis-500"
       />
       <select
         value={account}
         onChange={(e) => setAccount(e.target.value)}
         aria-label={`Account for reservation ${ticket.id}`}
-        className="rounded-lg border border-oasis-950/10 bg-white px-1.5 py-1.5 text-xs outline-none focus:border-oasis-500"
+        className="rounded-lg border border-oasis-950/10 bg-white min-h-8 px-1.5 py-1.5 text-xs outline-none focus:border-oasis-500"
       >
         {PAYMENT_ACCOUNTS.map((a) => (
           <option key={a} value={a}>{a}</option>
@@ -331,7 +332,7 @@ export default function EventsAdmin({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Events &amp; tickets</h1>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-ink-muted">
             {isManager
               ? "Create events, upload their hero photo, and manage reservations. Everything shows on the website instantly."
               : "Manage reservations for each event. Ask a manager to add or edit events."}
@@ -351,11 +352,11 @@ export default function EventsAdmin({
       </div>
 
       {message && (
-        <p className="mt-4 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">{message}</p>
+        <p role="status" aria-live="polite" className="mt-4 rounded-xl border border-status-caution/30 bg-status-caution-tint px-4 py-3 text-sm text-status-caution">{message}</p>
       )}
 
       {events.length === 0 && (
-        <div className="mt-8 rounded-3xl border border-dashed border-oasis-950/15 bg-white p-12 text-center text-zinc-400">
+        <div className="mt-8 rounded-3xl border border-dashed border-oasis-950/15 bg-white p-12 text-center text-ink-subtle">
           No events yet.{isManager ? " Create your first one above." : ""}
         </div>
       )}
@@ -366,7 +367,7 @@ export default function EventsAdmin({
           return (
             <section key={event.id} className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5">
               {/* Event header */}
-              <div className="flex flex-col gap-5 border-b border-zinc-100 p-6 sm:flex-row">
+              <div className="flex flex-col gap-5 border-b border-line-soft p-6 sm:flex-row">
                 <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-oasis-700 to-oasis-950">
                   {hero && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -401,41 +402,42 @@ export default function EventsAdmin({
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="font-display text-xl font-semibold">{event.title}</h2>
                     {event.active === 0 && (
-                      <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-500">Hidden</span>
+                      <span className="rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-semibold text-ink-muted">Hidden</span>
                     )}
                   </div>
-                  <p className="mt-1 text-sm text-zinc-500">
+                  <p className="mt-1 text-sm text-ink-muted">
                     {event.event_date ? formatDateLong(event.event_date) : "No date"}
                     {event.start_time ? ` · ${event.start_time}` : ""} · {event.price} JOD
                     {event.capacity != null ? ` · cap ${event.capacity}` : " · unlimited"}
                   </p>
                   {isManager && (
-                    <p className="mt-1 text-xs text-zinc-400">
+                    <p className="mt-1 text-xs text-ink-subtle">
                       Hero photo shows as a square — a 1:1 image looks best.
                     </p>
                   )}
                   <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
-                    <span className="text-zinc-500">Reservations <strong className="text-zinc-800">{summary.total}</strong></span>
-                    <span className="text-zinc-500">Guests <strong className="text-zinc-800">{summary.guests}</strong></span>
-                    <span className="text-zinc-500">Checked in <strong className="text-oasis-600">{summary.checkedIn}</strong></span>
-                    <span className="text-zinc-500">Collected <strong className="text-oasis-600">{summary.collected} JOD</strong></span>
+                    <span className="text-ink-muted">Reservations <strong className="text-ink">{summary.total}</strong></span>
+                    <span className="text-ink-muted">Guests <strong className="text-ink">{summary.guests}</strong></span>
+                    <span className="text-ink-muted">Checked in <strong className="text-oasis-600">{summary.checkedIn}</strong></span>
+                    <span className="text-ink-muted">Collected <strong className="text-oasis-600">{summary.collected} JOD</strong></span>
                     {summary.pending > 0 && (
-                      <span className="text-amber-600">{summary.pending} awaiting approval</span>
+                      <span className="text-status-caution">{summary.pending} awaiting approval</span>
                     )}
                   </div>
 
                   {isManager && (
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <a href={`/events/${event.slug}`} target="_blank" rel="noopener noreferrer" className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 hover:bg-oasis-50">
-                        View page ↗
+                      <a href={`/events/${event.slug}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50">
+                        View page
+              <ArrowUpRight className="h-3.5 w-3.5" />
                       </a>
-                      <button onClick={() => { setFormEvent(event); setShowForm(true); }} className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50">
+                      <button onClick={() => { setFormEvent(event); setShowForm(true); }} className="rounded-full border border-oasis-950/10 min-h-8 px-4 py-1.5 text-xs font-medium text-ink-muted hover:bg-surface-sunken">
                         Edit
                       </button>
-                      <button onClick={() => patchEvent(event.id, { active: event.active === 0 })} className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50">
+                      <button onClick={() => patchEvent(event.id, { active: event.active === 0 })} className="rounded-full border border-oasis-950/10 min-h-8 px-4 py-1.5 text-xs font-medium text-ink-muted hover:bg-surface-sunken">
                         {event.active === 1 ? "Hide" : "Show"}
                       </button>
-                      <button onClick={() => deleteEvent(event.id, event.title)} className="rounded-full border border-blush-300 px-4 py-1.5 text-xs font-medium text-blush-500 hover:bg-blush-100">
+                      <button onClick={() => deleteEvent(event.id, event.title)} className="inline-flex min-h-8 items-center rounded-full border border-status-critical/40 min-h-8 px-4 py-1.5 text-xs font-medium text-status-critical transition hover:bg-status-critical-tint">
                         Delete
                       </button>
                     </div>
@@ -445,12 +447,12 @@ export default function EventsAdmin({
 
               {/* Reservations */}
               {tickets.length === 0 ? (
-                <p className="px-6 py-8 text-center text-sm text-zinc-400">No reservations yet.</p>
+                <p className="px-6 py-8 text-center text-sm text-ink-subtle">No reservations yet.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="border-b border-zinc-200/70 text-[11px] uppercase tracking-wider text-zinc-400">
+                      <tr className="border-b border-line/70 text-[11px] uppercase tracking-wider text-ink-subtle">
                         <th className="px-6 py-3">Guest</th>
                         <th className="px-4 py-3">Tickets</th>
                         <th className="px-4 py-3">Arrivals</th>
@@ -463,17 +465,17 @@ export default function EventsAdmin({
                       {tickets.map((t) => {
                         const allIn = t.status === "approved" && t.checked_in_count >= t.quantity;
                         return (
-                          <tr key={t.id} className={`border-b border-zinc-100 last:border-0 ${allIn ? "bg-zinc-50/70" : ""}`}>
+                          <tr key={t.id} className={`border-b border-line-soft last:border-0 ${allIn ? "bg-surface-sunken/70" : ""}`}>
                             <td className="px-6 py-3.5">
-                              <p className="text-xs text-zinc-400">#{String(t.id).padStart(4, "0")}</p>
+                              <p className="text-xs text-ink-subtle">#{String(t.id).padStart(4, "0")}</p>
                               <p className="font-medium">{t.name}</p>
-                              <p className="text-xs text-zinc-500">{t.phone}</p>
-                              {t.email && <p className="text-xs text-zinc-500">{t.email}</p>}
-                              {t.notes && <p className="mt-0.5 max-w-44 text-xs italic text-zinc-400">“{t.notes}”</p>}
+                              <p className="text-xs text-ink-muted">{t.phone}</p>
+                              {t.email && <p className="text-xs text-ink-muted">{t.email}</p>}
+                              {t.notes && <p className="mt-0.5 max-w-44 text-xs italic text-ink-subtle">“{t.notes}”</p>}
                             </td>
                             <td className="px-4 py-3.5 whitespace-nowrap">
                               {t.quantity} × {event.price} JOD
-                              <p className="text-xs text-zinc-400">{t.total_price} JOD total</p>
+                              <p className="text-xs text-ink-subtle">{t.total_price} JOD total</p>
                             </td>
                             <td className="px-4 py-3.5">
                               {t.status === "approved" ? (
@@ -482,20 +484,20 @@ export default function EventsAdmin({
                                     aria-label="One fewer arrival"
                                     disabled={busyId === t.id || t.checked_in_count === 0}
                                     onClick={() => patchTicket(t.id, { checkedInCount: t.checked_in_count - 1 })}
-                                    className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-30"
+                                    className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-ink-muted hover:bg-surface-sunken disabled:opacity-30"
                                   >−</button>
-                                  <span className={`min-w-12 text-center text-sm font-semibold ${t.checked_in_count === t.quantity ? "text-oasis-600" : t.checked_in_count > 0 ? "text-amber-600" : "text-zinc-400"}`}>
+                                  <span className={`min-w-12 text-center text-sm font-semibold ${t.checked_in_count === t.quantity ? "text-oasis-600" : t.checked_in_count > 0 ? "text-status-caution" : "text-ink-subtle"}`}>
                                     {t.checked_in_count} / {t.quantity}
                                   </span>
                                   <button
                                     aria-label="One more arrival"
                                     disabled={busyId === t.id || t.checked_in_count >= t.quantity}
                                     onClick={() => patchTicket(t.id, { checkedInCount: t.checked_in_count + 1 })}
-                                    className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-30"
+                                    className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-ink-muted hover:bg-surface-sunken disabled:opacity-30"
                                   >+</button>
                                 </div>
                               ) : (
-                                <span className="text-sm text-zinc-400">{t.quantity} tickets</span>
+                                <span className="text-sm text-ink-subtle">{t.quantity} tickets</span>
                               )}
                             </td>
                             <td className="px-4 py-3.5">
@@ -511,7 +513,7 @@ export default function EventsAdmin({
                                   value={t.guest_status}
                                   disabled={busyId === t.id}
                                   onChange={(e) => patchTicket(t.id, { guestStatus: e.target.value })}
-                                  className="rounded-lg border border-oasis-950/10 bg-white px-2 py-1 text-xs outline-none focus:border-oasis-950/25"
+                                  className="rounded-lg border border-oasis-950/10 bg-white min-h-8 px-2 py-1 text-xs outline-none focus:border-oasis-950/25"
                                 >
                                   {(Object.keys(GUEST_LABELS) as EventGuestStatus[]).map((s) => (
                                     <option key={s} value={s}>{GUEST_LABELS[s]}</option>
@@ -522,16 +524,16 @@ export default function EventsAdmin({
                             <td className="px-4 py-3.5">
                               <div className="flex max-w-32 flex-wrap gap-1.5">
                                 {t.status === "approved" && t.checked_in_count < t.quantity && (
-                                  <button onClick={() => patchTicket(t.id, { checkedInCount: t.quantity })} disabled={busyId === t.id} className="rounded-full bg-oasis-900 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-oasis-800 disabled:opacity-40">All in</button>
+                                  <button onClick={() => patchTicket(t.id, { checkedInCount: t.quantity })} disabled={busyId === t.id} className="rounded-full bg-oasis-900 min-h-8 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-oasis-800 disabled:opacity-40">All in</button>
                                 )}
                                 {t.status !== "approved" && (
-                                  <button onClick={() => patchTicket(t.id, { status: "approved" })} disabled={busyId === t.id} className="rounded-full bg-oasis-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-oasis-700 disabled:opacity-40">Approve</button>
+                                  <button onClick={() => patchTicket(t.id, { status: "approved" })} disabled={busyId === t.id} className="rounded-full bg-oasis-600 min-h-8 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-oasis-700 disabled:opacity-40">Approve</button>
                                 )}
                                 {t.status !== "rejected" && (
-                                  <button onClick={() => patchTicket(t.id, { status: "rejected" })} disabled={busyId === t.id} className="rounded-full border border-blush-300 px-3.5 py-1.5 text-xs font-medium text-blush-500 hover:bg-blush-100 disabled:opacity-40">Reject</button>
+                                  <button onClick={() => patchTicket(t.id, { status: "rejected" })} disabled={busyId === t.id} className="inline-flex min-h-8 items-center rounded-full border border-status-critical/40 min-h-8 px-3.5 py-1.5 text-xs font-medium text-status-critical transition hover:bg-status-critical-tint disabled:opacity-40">Reject</button>
                                 )}
                                 {t.status !== "pending" && (
-                                  <button onClick={() => patchTicket(t.id, { status: "pending" })} disabled={busyId === t.id} className="rounded-full border border-oasis-200 px-3.5 py-1.5 text-xs font-medium text-oasis-700 hover:bg-oasis-50 disabled:opacity-40">Reset</button>
+                                  <button onClick={() => patchTicket(t.id, { status: "pending" })} disabled={busyId === t.id} className="rounded-full border border-oasis-200 min-h-8 px-3.5 py-1.5 text-xs font-medium text-oasis-700 hover:bg-oasis-50 disabled:opacity-40">Reset</button>
                                 )}
                               </div>
                             </td>

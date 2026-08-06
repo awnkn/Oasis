@@ -1,10 +1,21 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   Oasis design tokens — governed by design-system/oasis/MASTER.md
+
+   Every colour used in the product must come from this file. Raw Tailwind
+   palette classes (blue-600, zinc-500, …) and inline hex values are not
+   allowed in components: they drift, and they bypass the contrast budget
+   recorded beside each token below.
+--------------------------------------------------------------------------- */
+
 @theme {
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-display), Georgia, "Times New Roman", serif;
 
-  /* Lagoon teal — the water */
+  /* Lagoon teal — the water. Brand identity and primary actions.
+     oasis-600 is the lightest fill that carries white text at 4.9:1;
+     oasis-500 and lighter are decoration only, never a text background. */
   --color-oasis-50: #eefaf9;
   --color-oasis-100: #d5f2f0;
   --color-oasis-200: #aee5e3;
@@ -17,9 +28,9 @@
   --color-oasis-900: #22454a;
   --color-oasis-950: #102c30;
 
-  /* Warm sand — the shore */
+  /* Warm sand — the shore. Page ground and warm surfaces. */
   --color-sand-50: #fbf9f4;
-  --color-sand-100: #e9f1fa; /* very light blue */
+  --color-sand-100: #f4ecdd;
   --color-sand-200: #ece0c9;
   --color-sand-300: #dfcba6;
   --color-sand-400: #d0b17f;
@@ -29,12 +40,59 @@
   --color-sand-800: #7b5a40;
   --color-sand-900: #644a36;
 
-  /* Soft blush accent */
+  /* Mist blue — cool secondary surface. Introduced to give the light blue
+     already in use a real name; it was previously smuggled in as a blue hex
+     under the sand-100 token and as raw Tailwind blue-* classes. */
+  --color-mist-50: #f2f7fd;
+  --color-mist-100: #e9f1fa;
+  --color-mist-200: #d3e3f5;
+  --color-mist-300: #a9c8e8;
+  --color-mist-600: #2f6fb5;
+  --color-mist-700: #255a95;
+  --color-mist-900: #1b3f68;
+  --color-mist-950: #132c49;
+
+  /* Soft blush accent — notes and gentle emphasis. */
   --color-blush-100: #fbeef0;
   --color-blush-200: #f6dadf;
   --color-blush-300: #edbcc5;
   --color-blush-400: #e19aa9;
   --color-blush-500: #d17b90;
+
+  /* Ink — the only tokens permitted for body copy.
+     Contrast measured against white, sand-50, mist-100 and blush-100:
+       ink         12.3:1 min   headings, primary copy
+       ink-muted    6.5:1 min   secondary copy, captions
+       ink-subtle   5.0:1 min   the lightest text allowed anywhere
+     Opacity-modified text (text-oasis-900/60 and friends) is banned: it
+     computed to 2.6-3.4:1 across the site and failed WCAG AA. */
+  --color-ink: #123034;
+  --color-ink-muted: #41595c;
+  --color-ink-subtle: #546a6d;
+
+  /* Neutral chrome — dashboard surfaces, dividers and disabled state.
+     Named so the console stops reaching into the raw Tailwind zinc palette;
+     the values match what it was already using, so nothing shifts visually. */
+  --color-surface: #ffffff;
+  --color-surface-sunken: #fafafa;
+  --color-surface-muted: #f4f4f5;
+  --color-line: #e4e4e7;
+  --color-line-soft: #f4f4f5;
+
+  /* Status — dashboard state, and the only semantic non-brand hues.
+     Each foreground clears 4.5:1 on both white and its own tint.
+     The rose/amber/emerald classes these replace did not: rose-600 on
+     rose-100 measured 3.91:1 and amber-600 on white 3.19:1. */
+  --color-status-positive: #1f7a4d;
+  --color-status-positive-tint: #d9f5e6;
+  --color-status-caution: #8a5a10;
+  --color-status-caution-tint: #fdf0cf;
+  --color-status-critical: #b0261f;
+  --color-status-critical-tint: #fde3e1;
+  --color-status-info: #255a95;
+  --color-status-info-tint: #e3edfa;
+  --color-status-neutral: #4d5c60;
+  --color-status-neutral-tint: #eef1f2;
 }
 
 html {
@@ -42,16 +100,58 @@ html {
 }
 
 body {
-  @apply bg-sand-50 text-oasis-950 font-sans antialiased;
+  @apply bg-sand-50 text-ink font-sans antialiased;
 }
 
 ::selection {
   background: var(--color-oasis-200);
 }
 
+/* Focus is never removed, only restyled. Components use `outline-none` on
+   inputs, so the visible indicator has to be guaranteed here for every
+   interactive element rather than only links and buttons. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid var(--color-oasis-600);
+  outline-offset: 2px;
+}
+
 a:focus-visible,
 button:focus-visible {
-  outline: 2px solid var(--color-oasis-500);
-  outline-offset: 3px;
   border-radius: 9999px;
+}
+
+/* The skip link stays out of the way until it is focused. */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -100%;
+  z-index: 100;
+  transition: top 150ms ease;
+}
+
+.skip-link:focus-visible {
+  top: 1rem;
+}
+
+/* Motion conveys meaning, so it is allowed to be removed wholesale for
+   anyone who asks for less of it. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
