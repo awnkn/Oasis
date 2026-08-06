@@ -121,6 +121,19 @@ const SCHEMA = `
   );
 
   CREATE INDEX IF NOT EXISTS idx_event_tickets_event ON event_tickets(event_id);
+
+  -- Per-customer CRM data (keyed by phone, the stable identifier). Visit
+  -- history and spend are computed from bookings; this holds the manual
+  -- extras: notes, tags and a VIP flag.
+  CREATE TABLE IF NOT EXISTS customers (
+    phone TEXT PRIMARY KEY,
+    notes TEXT,
+    tags TEXT,
+    vip INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_bookings_phone ON bookings(phone);
 `;
 
 /** The event Oasis is launching with, inserted once on first run. */

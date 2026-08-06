@@ -17,6 +17,7 @@ import { GUEST_STATUSES } from "@/lib/config";
 import { isValidDateString, today } from "@/lib/dates";
 import { getDb } from "@/lib/db";
 import { listUsers } from "@/lib/users";
+import { customerBadges } from "@/lib/customers";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,7 @@ export default async function AdminPage({
       : undefined;
 
   const bookings = listBookings({ status, guestStatus, date, includePast, query });
+  const badges = customerBadges(bookings.map((b) => b.phone));
   const todayStr = today();
 
   const pendingRow = getDb()
@@ -84,6 +86,7 @@ export default async function AdminPage({
       }}
       role={role}
       team={role === "manager" ? listUsers() : []}
+      badges={badges}
       showPasswordWarning={
         role === "manager" &&
         (defaultPasswordsInUse().manager || defaultPasswordsInUse().staff)

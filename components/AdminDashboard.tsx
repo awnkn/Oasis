@@ -17,9 +17,11 @@ import {
   PAYMENT_ACCOUNTS,
 } from "@/lib/config";
 import type { StaffUser } from "@/lib/users";
+import type { CustomerBadge } from "@/lib/customers";
 import AddBookingModal from "@/components/AddBookingModal";
 import AssistantWidget from "@/components/AssistantWidget";
 import EditBookingModal from "@/components/EditBookingModal";
+import CustomerProfile from "@/components/CustomerProfile";
 
 const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   pending: "Pending",
@@ -190,6 +192,34 @@ interface RowCtx {
   waUsed: (b: Booking) => boolean;
   onError: (m: string) => void;
   onRefresh: () => void;
+  badges: Record<string, CustomerBadge>;
+  onProfile: (phone: string) => void;
+}
+
+/** Returning / VIP / New badge shown next to a guest's name. */
+function CustomerBadgePill({ badge }: { badge?: CustomerBadge }) {
+  if (badge?.vip) {
+    return (
+      <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-300">
+        ★ VIP
+      </span>
+    );
+  }
+  if (badge && badge.count >= 2) {
+    return (
+      <span className="rounded-full bg-oasis-100 px-1.5 py-0.5 text-[10px] font-semibold text-oasis-700">
+        Returning
+      </span>
+    );
+  }
+  if (badge && badge.count === 1) {
+    return (
+      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+        New
+      </span>
+    );
+  }
+  return null;
 }
 
 /** Options for the status dropdown; keeps a locked value (checked in /
@@ -212,7 +242,15 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
       {/* Guest */}
       <td className="px-4 py-3.5">
         <p className="text-xs text-zinc-400">#{String(b.id).padStart(4, "0")}</p>
-        <p className="font-medium">{b.name}</p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            onClick={() => ctx.onProfile(b.phone)}
+            className="text-left font-medium transition hover:text-oasis-700 hover:underline"
+          >
+            {b.name}
+          </button>
+          <CustomerBadgePill badge={ctx.badges[b.phone]} />
+        </div>
         <p className="text-xs text-zinc-500">{b.phone}</p>
         {b.email && <p className="text-xs text-zinc-500">{b.email}</p>}
         {b.heard_about && <p className="text-xs text-zinc-400">via {b.heard_about}</p>}
@@ -824,6 +862,7 @@ export default function AdminDashboard({
   filters,
   role,
   team,
+  badges,
   showPasswordWarning,
 }: {
   bookings: Booking[];
@@ -837,6 +876,7 @@ export default function AdminDashboard({
   filters: Filters;
   role: "manager" | "staff";
   team: StaffUser[];
+  badges: Record<string, CustomerBadge>;
   showPasswordWarning: boolean;
 }) {
   const router = useRouter();
@@ -850,6 +890,7 @@ export default function AdminDashboard({
   const [editing, setEditing] = useState<Booking | null>(null);
   const [sort, setSort] = useState<SortState>({ key: null, dir: "asc" });
   const [waClicked, setWaClicked] = useState<Set<number>>(new Set());
+  const [profilePhone, setProfilePhone] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchInput === filters.query) return;
@@ -945,6 +986,8 @@ export default function AdminDashboard({
       setMessage("");
       router.refresh();
     },
+    badges,
+    onProfile: setProfilePhone,
   };
 
   async function saveCapacity(e: React.FormEvent) {
@@ -1247,6 +1290,11 @@ export default function AdminDashboard({
           setMessage("");
           router.refresh();
         }}
+      />
+      <CustomerProfile
+        phone={profilePhone}
+        onClose={() => setProfilePhone(null)}
+        onSaved={() => router.refresh()}
       />
       <AssistantWidget />
     </div>
