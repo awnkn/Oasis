@@ -17,6 +17,29 @@ import {
   PAYMENT_ACCOUNTS,
 } from "@/lib/config";
 
+// Friendly names for the "Book" click sources (the ?src= tag on each
+// button), so the analytics read plainly instead of showing raw slugs.
+const BOOK_SOURCE_LABELS: Record<string, string> = {
+  header: "Header button (top of the homepage)",
+  hero: "Main banner button",
+  story: "“A place you return to” section",
+  gallery: "Photo gallery",
+  "pricing-weekday": "Weekday price card",
+  "pricing-weekend": "Weekend price card",
+  closing: "Closing button (bottom of the homepage)",
+  footer: "Footer link",
+  "events-empty": "Events page (when no events are on)",
+  faq: "FAQ page",
+  unknown: "Direct or unknown",
+};
+
+function bookSourceLabel(source: string): string {
+  return (
+    BOOK_SOURCE_LABELS[source] ??
+    source.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+
 /** SQLite UTC timestamp → Amman-local display. */
 function formatWhen(utc: string): string {
   return new Intl.DateTimeFormat("en-GB", {
@@ -391,10 +414,10 @@ export default async function InsightsPage() {
 
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
             <h2 className="text-base font-semibold tracking-tight">
-              Where guests press “Book”
+              Which button guests use to book
             </h2>
             <p className="mb-4 text-xs text-zinc-400">
-              Clicks by page section, last 30 days.
+              The spot on the site they tapped to start a booking, last 30 days.
             </p>
             {bookClicks.length === 0 ? (
               <p className="text-sm text-zinc-400">No clicks recorded yet.</p>
@@ -402,9 +425,9 @@ export default async function InsightsPage() {
               <ul className="space-y-3">
                 {bookClicks.map((c) => (
                   <li key={c.source}>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span className="capitalize text-zinc-700">
-                        {c.source.replace(/-/g, " ")}
+                    <div className="mb-1 flex justify-between gap-3 text-sm">
+                      <span className="text-zinc-700">
+                        {bookSourceLabel(c.source)}
                       </span>
                       <span className="font-semibold">{c.count}</span>
                     </div>
