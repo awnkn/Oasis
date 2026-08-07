@@ -134,6 +134,18 @@ const SCHEMA = `
   );
 
   CREATE INDEX IF NOT EXISTS idx_bookings_phone ON bookings(phone);
+
+  -- End-of-day cash reconciliation. One row per closed business day,
+  -- snapshotting what the system expected vs what staff counted.
+  CREATE TABLE IF NOT EXISTS day_closes (
+    date TEXT PRIMARY KEY,
+    expected TEXT NOT NULL,   -- JSON { account: amount, total }
+    counted TEXT NOT NULL,    -- JSON { account: amount, total }
+    variance REAL NOT NULL,
+    notes TEXT,
+    closed_by TEXT NOT NULL,
+    closed_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `;
 
 /** The event Oasis is launching with, inserted once on first run. */
