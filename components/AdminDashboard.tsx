@@ -1047,6 +1047,12 @@ export default function AdminDashboard({
                   Insights &amp; accounting
                 </Link>
                 <Link
+                  href="/admin/close"
+                  className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
+                >
+                  Cash close
+                </Link>
+                <Link
                   href="/admin/activity"
                   className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
                 >
