@@ -42,6 +42,42 @@ export function customerBadges(phones: string[]): Record<string, CustomerBadge> 
   return out;
 }
 
+export interface CustomerSummary {
+  phone: string;
+  name: string;
+  bookings: number;
+  visits: number;
+  totalSpent: number;
+  lastSeen: string | null;
+  vip: boolean;
+}
+
+/** All customers, ranked by number of bookings (most first). */
+export function listCustomers(limit = 2000): CustomerSummary[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT g.phone AS phone, lb.name AS name,
+              g.bookings AS bookings, g.visits AS visits,
+              g.totalSpent AS totalSpent, g.lastSeen AS lastSeen,
+              COALESCE(c.vip, 0) AS vip
+       FROM (
+         SELECT phone,
+           COALESCE(SUM(CASE WHEN status != 'rejected' THEN 1 ELSE 0 END), 0) AS bookings,
+           COALESCE(SUM(CASE WHEN ${VISITED} THEN 1 ELSE 0 END), 0) AS visits,
+           COALESCE(SUM(paid_amount), 0) AS totalSpent,
+           MAX(date) AS lastSeen,
+           MAX(id) AS lastId
+         FROM bookings GROUP BY phone
+       ) g
+       JOIN bookings lb ON lb.id = g.lastId
+       LEFT JOIN customers c ON c.phone = g.phone
+       ORDER BY g.bookings DESC, g.totalSpent DESC, g.lastSeen DESC
+       LIMIT ?`
+    )
+    .all(limit) as (Omit<CustomerSummary, "vip"> & { vip: number })[];
+  return rows.map((r) => ({ ...r, vip: r.vip === 1 }));
+}
+
 export interface CustomerVisit {
   id: number;
   date: string;
