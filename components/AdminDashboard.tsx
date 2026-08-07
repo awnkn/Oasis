@@ -1067,6 +1067,12 @@ export default function AdminDashboard({
               Gate check-in
             </Link>
             <Link
+              href="/admin/customers"
+              className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
+            >
+              Customers
+            </Link>
+            <Link
               href="/admin/events"
               className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
             >
