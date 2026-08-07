@@ -1027,7 +1027,7 @@ export default function AdminDashboard({
   return (
     <div className="min-h-screen bg-zinc-50 pb-20">
       <header className="border-b border-zinc-200/70 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[100rem] items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Link href="/">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1067,7 +1067,7 @@ export default function AdminDashboard({
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 pt-8">
+      <main className="mx-auto max-w-[100rem] px-6 pt-8">
         {showPasswordWarning && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
             <strong>Security note:</strong> the admin password is still the default.
