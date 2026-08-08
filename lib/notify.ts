@@ -1,6 +1,7 @@
 import { CLUB_NAME } from "./config";
 import { formatDateLong } from "./dates";
 import { getBooking, logAction, type Booking } from "./bookings";
+import { bookingConfirmationText } from "./messages";
 
 // Automatic guest notifications, sent when a booking is approved.
 // Each channel activates only when its environment variables are set —
@@ -17,12 +18,13 @@ const SYSTEM = { name: "System", role: "system" };
 const SITE_URL = process.env.SITE_URL || "https://oasis-i1qn.onrender.com";
 
 function confirmationText(b: Booking): string {
-  return (
-    `Dear ${b.name.split(" ")[0]}, your ${CLUB_NAME} booking is confirmed! ` +
-    `Reference #${String(b.id).padStart(4, "0")} · ${formatDateLong(b.date)} · ` +
-    `${b.guests} ${b.guests === 1 ? "guest" : "guests"} · ` +
-    `${b.total_price} JOD payable at the gate. We can't wait to welcome you 🌸`
-  );
+  return bookingConfirmationText({
+    firstName: b.name.split(" ")[0],
+    reference: String(b.id).padStart(4, "0"),
+    dateLong: formatDateLong(b.date),
+    guests: b.guests,
+    total: b.total_price,
+  });
 }
 
 async function sendEmail(b: Booking): Promise<string | null> {
@@ -119,9 +121,9 @@ async function sendWhatsApp(b: Booking): Promise<string | null> {
               type: "body",
               parameters: [
                 { type: "text", text: b.name.split(" ")[0] },
-                { type: "text", text: `#${String(b.id).padStart(4, "0")}` },
+                { type: "text", text: String(b.id).padStart(4, "0") },
                 { type: "text", text: formatDateLong(b.date) },
-                { type: "text", text: String(b.guests) },
+                { type: "text", text: `${b.guests} ${b.guests === 1 ? "guest" : "guests"}` },
                 { type: "text", text: `${b.total_price} JOD` },
               ],
             },
