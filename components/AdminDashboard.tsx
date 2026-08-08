@@ -12,10 +12,10 @@ import type {
 } from "@/lib/bookings";
 import { formatDateLong, formatDateShort } from "@/lib/dates";
 import {
-  CLUB_NAME,
   GUEST_STATUS_LABELS,
   PAYMENT_ACCOUNTS,
 } from "@/lib/config";
+import { bookingConfirmationText } from "@/lib/messages";
 import type { StaffUser } from "@/lib/users";
 import type { CustomerBadge } from "@/lib/customers";
 import AddBookingModal from "@/components/AddBookingModal";
@@ -79,11 +79,13 @@ function pendingOf(b: Booking): number {
 
 /** Pre-filled WhatsApp confirmation staff can send with one tap. */
 function waLink(b: Booking): string {
-  const text =
-    `Dear ${b.name.split(" ")[0]}, your ${CLUB_NAME} booking is confirmed! ` +
-    `Reference #${String(b.id).padStart(4, "0")} · ${formatDateLong(b.date)} · ` +
-    `${b.guests} ${b.guests === 1 ? "guest" : "guests"} · ` +
-    `${b.total_price} JOD payable at the gate. We can't wait to welcome you 🌸`;
+  const text = bookingConfirmationText({
+    firstName: b.name.split(" ")[0],
+    reference: String(b.id).padStart(4, "0"),
+    dateLong: formatDateLong(b.date),
+    guests: b.guests,
+    total: b.total_price,
+  });
   return `https://wa.me/${b.phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
 }
 
