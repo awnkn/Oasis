@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminRole } from "@/lib/auth";
 import { recentActivity } from "@/lib/bookings";
+import AdminShell from "@/components/AdminShell";
 
 export const dynamic = "force-dynamic";
 
@@ -26,33 +26,9 @@ export default async function ActivityPage() {
   const activity = recentActivity(200);
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-20">
-      <header className="border-b border-zinc-200/70 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Link href="/">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/logo-black.png"
-                alt="Oasis by Azara"
-                className="h-7 w-auto"
-              />
-            </Link>
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-zinc-600">
-              Activity log
-            </span>
-          </div>
-          <Link
-            href="/admin"
-            className="text-sm font-medium text-oasis-800 hover:text-oasis-600"
-          >
-            ← Back to dashboard
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-5xl px-6 pt-8">
-        <p className="text-sm text-zinc-500">
+    <AdminShell role={role} maxWidthClass="max-w-5xl">
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Activity log</h1>
+        <p className="mt-1 text-sm text-zinc-500">
           Every sign-in, approval, rejection, guest-status change, payment,
           check-in, capacity change and team change — permanent and uneditable,
           recorded under each person&apos;s name. Times are Amman local time.
@@ -89,7 +65,6 @@ export default async function ActivityPage() {
             </div>
           ))}
         </div>
-      </main>
-    </div>
+    </AdminShell>
   );
 }
