@@ -18,6 +18,8 @@ export function bookingConfirmationText(p: BookingMessageInput): string {
   return [
     `Dear ${p.firstName}, your Oasis booking is confirmed!`,
     "",
+    "Please reply with “Confirmed” within 24 hours to secure your booking. If we do not receive your confirmation within 24 hours, your reservation will be considered cancelled and released to other guests.",
+    "",
     `Reference #${p.reference}`,
     `· ${p.dateLong}`,
     `· ${p.guests} ${guestWord}`,
@@ -28,8 +30,6 @@ export function bookingConfirmationText(p: BookingMessageInput): string {
     "· No outside food or drinks are allowed inside the venue.",
     "· Photography and videography are not permitted. Guests who do not comply with this policy will be asked to leave the venue.",
     "· Please keep your personal belongings and valuables with you at all times. Oasis by Azara is not responsible for lost, damaged, or ruined personal items.",
-    "",
-    "Please reply with “Confirmed” within 24 hours to secure your booking. If we do not receive your confirmation within 24 hours, your reservation will be considered cancelled and released to other guests.",
     "",
     "We can’t wait to welcome you to Oasis",
   ].join("\n");
