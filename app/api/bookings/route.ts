@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createBooking } from "@/lib/bookings";
+import { sendApprovalNotifications } from "@/lib/notify";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
 
 export async function POST(request: Request) {
@@ -39,6 +40,10 @@ export async function POST(request: Request) {
   }
 
   const { booking } = result;
+  // The booking is confirmed on creation, so send the guest their email and
+  // WhatsApp confirmation right away, after the response is returned.
+  after(() => sendApprovalNotifications(booking.id));
+
   return NextResponse.json(
     {
       booking: {

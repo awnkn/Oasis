@@ -96,7 +96,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How do I book a day at Oasis?",
-    a: "Send a booking request online in under a minute. Our team reviews every request and calls you to confirm. Nothing is charged online, and you pay at the gate.",
+    a: "Book online in under a minute and your spot is confirmed instantly. You receive a confirmation by email and WhatsApp, plus a reminder the day before. Nothing is charged online, and you pay at the gate.",
   },
   {
     q: "How do I pay?",

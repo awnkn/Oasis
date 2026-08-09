@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { remainingOn, sweepNoResponse } from "@/lib/bookings";
+import { maybeRunDueReminders } from "@/lib/reminders";
 import { isValidDateString, isWeekend, priceForDate, today, addDays } from "@/lib/dates";
 import { CURRENCY, MAX_ADVANCE_DAYS } from "@/lib/config";
 
@@ -13,6 +14,7 @@ export async function GET(request: Request) {
   }
 
   sweepNoResponse();
+  after(() => maybeRunDueReminders());
   const todayStr = today();
   const bookable =
     date >= todayStr && date <= addDays(todayStr, MAX_ADVANCE_DAYS);

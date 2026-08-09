@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Book Your Day",
   description:
-    "Reserve a ladies only day at Oasis by Azara in Amman. Choose your date, tell us your group size, and pay at the gate. No online payment, and our team confirms every booking by phone.",
+    "Reserve a ladies only day at Oasis by Azara in Amman. Choose your date, tell us your group size, and pay at the gate. Your booking is confirmed instantly by email and WhatsApp, with no online payment.",
   alternates: { canonical: "/book" },
   openGraph: {
     title: "Book your day at Oasis by Azara",
@@ -61,8 +61,8 @@ export default async function BookPage({
             Reserve your day
           </h1>
           <p className="mt-3 max-w-xl text-white/85">
-            Send your request below. Our team reviews every booking and will
-            call you to confirm. Nothing is charged online, and you pay at the gate.
+            Book below and your day is confirmed instantly, with a confirmation
+            by email and WhatsApp. Nothing is charged online, and you pay at the gate.
           </p>
         </div>
       </div>

@@ -54,8 +54,9 @@ export interface Booking {
 }
 
 /** Guest statuses that release the booking's spots back to the day —
- * the guest is not (and will not be) taking up their place. */
-const RELEASING_GUEST_STATUSES =
+ * the guest is not (and will not be) taking up their place. Exported as a
+ * ready-to-embed SQL list so every query treats them the same way. */
+export const RELEASING_GUEST_STATUSES =
   "('cancelled', 'cancelled_no_response', 'no_show')";
 
 // ---------- audit log (append-only, by design never updated/deleted) ----------
@@ -300,15 +301,24 @@ export function createBooking(input: NewBookingInput): CreateResult {
     }
 
     const pricePerGuest = priceForDate(date);
+    // Bookings are confirmed the moment they are made — no admin approval
+    // step. The confirmation email and WhatsApp are sent from the route.
     const result = db
       .prepare(
-        `INSERT INTO bookings (name, phone, email, date, guests, price_per_guest, total_price, payment_method, heard_about, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO bookings (name, phone, email, date, guests, price_per_guest, total_price, payment_method, heard_about, notes, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')`
       )
       .run(name, phone, email, date, guests, pricePerGuest, pricePerGuest * guests, paymentMethod, heardAbout, notes);
 
-    const booking = getBooking(Number(result.lastInsertRowid));
+    const id = Number(result.lastInsertRowid);
+    const booking = getBooking(id);
     if (!booking) return { ok: false, error: "Something went wrong. Please try again." };
+    logAction(
+      { name: "System", role: "system" },
+      "created",
+      `Booking #${id} (${name}, ${date}, ${guests} ${guests === 1 ? "guest" : "guests"}) booked online and auto-confirmed`,
+      id
+    );
     return { ok: true, booking };
   });
 

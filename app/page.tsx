@@ -293,8 +293,8 @@ export default function HomePage() {
               },
               {
                 icon: FEATURE_ICONS.confirmed,
-                title: "Personally confirmed",
-                text: "A real person calls you to confirm every single booking.",
+                title: "Confirmed instantly",
+                text: "Your spot is confirmed the moment you book, by email and WhatsApp.",
               },
             ].map((point) => (
               <div key={point.title} className="border-t border-oasis-950/10 pt-6">
@@ -418,13 +418,13 @@ export default function HomePage() {
             {[
               {
                 step: "1",
-                title: "Request your day",
-                text: "Choose a date, tell us how many guests are coming, and send your request in under a minute.",
+                title: "Book your day",
+                text: "Choose a date, tell us how many guests are coming, and book in under a minute.",
               },
               {
                 step: "2",
-                title: "We confirm with you",
-                text: "Our team reviews every request and calls you to confirm your reservation personally.",
+                title: "Confirmed instantly",
+                text: "Your booking is confirmed right away, with a confirmation by email and WhatsApp and a reminder the day before.",
               },
               {
                 step: "3",

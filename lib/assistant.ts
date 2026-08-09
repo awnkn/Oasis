@@ -9,6 +9,7 @@ import {
   getDailyCapacity,
   listBookings,
   sweepNoResponse,
+  RELEASING_GUEST_STATUSES as RELEASING,
 } from "./bookings";
 import {
   addDays,
@@ -26,8 +27,6 @@ import {
   WEEKEND_PRICE,
 } from "./config";
 import type { AdminRole } from "./auth";
-
-const RELEASING = "('cancelled', 'cancelled_no_response', 'no_show')";
 
 interface DateRange {
   start: string;

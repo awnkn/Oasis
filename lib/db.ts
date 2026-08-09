@@ -26,6 +26,7 @@ const SCHEMA = `
     checked_in_at TEXT,
     checked_in_count INTEGER NOT NULL DEFAULT 0,
     notes TEXT,
+    reminder_sent_at TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -225,6 +226,14 @@ function createDatabase(): Database.Database {
     // Bookings checked in before partial arrivals existed count in full.
     db.exec(
       "UPDATE bookings SET checked_in_count = guests WHERE checked_in_at IS NOT NULL"
+    );
+  }
+  if (!columns.includes("reminder_sent_at")) {
+    // Marks that the day-before reminder has gone out, so it is sent once.
+    // Backfill past bookings as already reminded: no reminders for history.
+    db.exec("ALTER TABLE bookings ADD COLUMN reminder_sent_at TEXT");
+    db.exec(
+      "UPDATE bookings SET reminder_sent_at = datetime('now') WHERE date <= date('now')"
     );
   }
 

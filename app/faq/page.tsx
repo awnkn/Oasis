@@ -42,7 +42,7 @@ export default function FaqPage() {
           </h1>
           <p className="mt-3 max-w-xl text-white/85">
             Everything to know before your day at {CLUB_NAME}. If a question is
-            missing, send a booking request and our team will call you.
+            missing, reach out any time and our team is happy to help.
           </p>
         </div>
       </div>
