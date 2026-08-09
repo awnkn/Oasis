@@ -53,8 +53,10 @@ export interface Booking {
   created_at: string;
 }
 
-/** Guest statuses that release the booking's spots back to the day. */
-const RELEASING_GUEST_STATUSES = "('cancelled', 'cancelled_no_response')";
+/** Guest statuses that release the booking's spots back to the day —
+ * the guest is not (and will not be) taking up their place. */
+const RELEASING_GUEST_STATUSES =
+  "('cancelled', 'cancelled_no_response', 'no_show')";
 
 // ---------- audit log (append-only, by design never updated/deleted) ----------
 

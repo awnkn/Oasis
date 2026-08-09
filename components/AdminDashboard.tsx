@@ -43,6 +43,7 @@ const STATUS_STYLES: Record<BookingStatus, string> = {
 //   no response → amber  (caution, waiting on the guest)
 //   confirmed   → green  (positive, they're coming)
 //   checked in  → teal   (success, through the gate)
+//   no show     → stone  (absent, booked but never arrived)
 //   cancelled   → red    (negative, spot released)
 const GUEST_STATUS_COLOR: Record<
   GuestStatus,
@@ -53,6 +54,7 @@ const GUEST_STATUS_COLOR: Record<
   no_response: { dot: "bg-amber-500", pill: "bg-amber-100 text-amber-800", select: "border-amber-200 bg-amber-50 text-amber-800" },
   confirmed: { dot: "bg-emerald-500", pill: "bg-emerald-100 text-emerald-700", select: "border-emerald-200 bg-emerald-50 text-emerald-700" },
   checked_in: { dot: "bg-teal-600", pill: "bg-teal-100 text-teal-700", select: "border-teal-200 bg-teal-50 text-teal-700" },
+  no_show: { dot: "bg-stone-500", pill: "bg-stone-200 text-stone-700", select: "border-stone-300 bg-stone-100 text-stone-700" },
   cancelled: { dot: "bg-rose-500", pill: "bg-rose-100 text-rose-600", select: "border-rose-200 bg-rose-50 text-rose-600" },
   cancelled_no_response: { dot: "bg-rose-400", pill: "bg-rose-100 text-rose-600", select: "border-rose-200 bg-rose-50 text-rose-600" },
 };
@@ -63,6 +65,7 @@ const SELECTABLE_GUEST_STATUSES: GuestStatus[] = [
   "contacted",
   "no_response",
   "confirmed",
+  "no_show",
   "cancelled",
 ];
 
@@ -103,8 +106,9 @@ const GUEST_STATUS_ORDER: Record<GuestStatus, number> = {
   no_response: 2,
   confirmed: 3,
   checked_in: 4,
-  cancelled: 5,
-  cancelled_no_response: 6,
+  no_show: 5,
+  cancelled: 6,
+  cancelled_no_response: 7,
 };
 
 function sortBookings(list: Booking[], sort: SortState): Booking[] {

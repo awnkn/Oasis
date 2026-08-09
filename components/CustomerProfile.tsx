@@ -9,6 +9,7 @@ const STATUS_DOT: Record<string, string> = {
   confirmed: "bg-emerald-500",
   contacted: "bg-sky-500",
   no_response: "bg-amber-500",
+  no_show: "bg-stone-500",
   cancelled: "bg-rose-500",
   cancelled_no_response: "bg-rose-400",
   open: "bg-slate-400",

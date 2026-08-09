@@ -40,13 +40,15 @@ export const HEARD_ABOUT_OPTIONS = [
 ] as const;
 
 // Guest relationship statuses (separate from booking approval).
-// "cancelled_no_response" is set automatically by the 24-hour sweep.
+// "cancelled_no_response" is set automatically by the 24-hour sweep;
+// "no_show" is set by staff for a confirmed guest who never arrived.
 export const GUEST_STATUSES = [
   "open",
   "contacted",
   "no_response",
   "confirmed",
   "checked_in",
+  "no_show",
   "cancelled",
   "cancelled_no_response",
 ] as const;
@@ -59,6 +61,7 @@ export const GUEST_STATUS_LABELS: Record<GuestStatus, string> = {
   no_response: "No response",
   confirmed: "Confirmed",
   checked_in: "Checked in",
+  no_show: "No show",
   cancelled: "Cancelled",
   cancelled_no_response: "Cancelled (no response)",
 };
