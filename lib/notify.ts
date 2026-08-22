@@ -2,6 +2,7 @@ import { CLUB_NAME } from "./config";
 import { formatDateLong } from "./dates";
 import { getBooking, logAction, type Booking } from "./bookings";
 import { bookingConfirmationText, bookingReminderText } from "./messages";
+import { SITE_URL } from "./seo";
 
 // Automatic guest notifications, sent when a booking is approved.
 // Each channel activates only when its environment variables are set —
@@ -13,9 +14,6 @@ import { bookingConfirmationText, bookingReminderText } from "./messages";
 //              optional WHATSAPP_LANG     (default "en")
 
 const SYSTEM = { name: "System", role: "system" };
-
-// Absolute base URL for assets inside emails.
-const SITE_URL = process.env.SITE_URL || "https://oasis-i1qn.onrender.com";
 
 function confirmationText(b: Booking): string {
   return bookingConfirmationText({
