@@ -41,9 +41,11 @@ const STATUS_STYLES: Record<BookingStatus, string> = {
 //   open        → slate  (neutral, new / no action yet)
 //   contacted   → blue   (informational, reached out / in progress)
 //   no response → amber  (caution, waiting on the guest)
+//   follow up   → violet (flagged, needs chasing)
 //   confirmed   → green  (positive, they're coming)
 //   checked in  → teal   (success, through the gate)
 //   no show     → stone  (absent, booked but never arrived)
+//   wrong num.  → zinc   (dead, unreachable contact)
 //   cancelled   → red    (negative, spot released)
 const GUEST_STATUS_COLOR: Record<
   GuestStatus,
@@ -51,10 +53,12 @@ const GUEST_STATUS_COLOR: Record<
 > = {
   open: { dot: "bg-slate-400", pill: "bg-slate-100 text-slate-600", select: "border-slate-200 bg-slate-50 text-slate-700" },
   contacted: { dot: "bg-sky-500", pill: "bg-sky-100 text-sky-700", select: "border-sky-200 bg-sky-50 text-sky-700" },
+  follow_up: { dot: "bg-violet-500", pill: "bg-violet-100 text-violet-700", select: "border-violet-200 bg-violet-50 text-violet-700" },
   no_response: { dot: "bg-amber-500", pill: "bg-amber-100 text-amber-800", select: "border-amber-200 bg-amber-50 text-amber-800" },
   confirmed: { dot: "bg-emerald-500", pill: "bg-emerald-100 text-emerald-700", select: "border-emerald-200 bg-emerald-50 text-emerald-700" },
   checked_in: { dot: "bg-teal-600", pill: "bg-teal-100 text-teal-700", select: "border-teal-200 bg-teal-50 text-teal-700" },
   no_show: { dot: "bg-stone-500", pill: "bg-stone-200 text-stone-700", select: "border-stone-300 bg-stone-100 text-stone-700" },
+  wrong_number: { dot: "bg-zinc-400", pill: "bg-zinc-200 text-zinc-600", select: "border-zinc-300 bg-zinc-100 text-zinc-600" },
   cancelled: { dot: "bg-rose-500", pill: "bg-rose-100 text-rose-600", select: "border-rose-200 bg-rose-50 text-rose-600" },
   cancelled_no_response: { dot: "bg-rose-400", pill: "bg-rose-100 text-rose-600", select: "border-rose-200 bg-rose-50 text-rose-600" },
 };
@@ -63,9 +67,11 @@ const GUEST_STATUS_COLOR: Record<
 const SELECTABLE_GUEST_STATUSES: GuestStatus[] = [
   "open",
   "contacted",
+  "follow_up",
   "no_response",
   "confirmed",
   "no_show",
+  "wrong_number",
   "cancelled",
 ];
 
@@ -103,12 +109,14 @@ interface SortState {
 const GUEST_STATUS_ORDER: Record<GuestStatus, number> = {
   open: 0,
   contacted: 1,
-  no_response: 2,
-  confirmed: 3,
-  checked_in: 4,
-  no_show: 5,
-  cancelled: 6,
-  cancelled_no_response: 7,
+  follow_up: 2,
+  no_response: 3,
+  confirmed: 4,
+  checked_in: 5,
+  no_show: 6,
+  wrong_number: 7,
+  cancelled: 8,
+  cancelled_no_response: 9,
 };
 
 function sortBookings(list: Booking[], sort: SortState): Booking[] {

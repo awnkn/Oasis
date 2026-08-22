@@ -53,11 +53,13 @@ export interface Booking {
   created_at: string;
 }
 
-/** Guest statuses that release the booking's spots back to the day —
- * the guest is not (and will not be) taking up their place. Exported as a
- * ready-to-embed SQL list so every query treats them the same way. */
+/** Guest statuses that release the booking's spots back to the day — the
+ * guest is not (and will not be) taking up their place. "no_response" and
+ * "wrong_number" count here too: an unconfirmed or unreachable booking is
+ * not a real expected guest. Exported as a ready-to-embed SQL list so every
+ * query treats them the same way. */
 export const RELEASING_GUEST_STATUSES =
-  "('cancelled', 'cancelled_no_response', 'no_show')";
+  "('cancelled', 'cancelled_no_response', 'no_show', 'no_response', 'wrong_number')";
 
 // ---------- audit log (append-only, by design never updated/deleted) ----------
 

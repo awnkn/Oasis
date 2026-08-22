@@ -45,10 +45,12 @@ export const HEARD_ABOUT_OPTIONS = [
 export const GUEST_STATUSES = [
   "open",
   "contacted",
+  "follow_up",
   "no_response",
   "confirmed",
   "checked_in",
   "no_show",
+  "wrong_number",
   "cancelled",
   "cancelled_no_response",
 ] as const;
@@ -58,10 +60,12 @@ export type GuestStatus = (typeof GUEST_STATUSES)[number];
 export const GUEST_STATUS_LABELS: Record<GuestStatus, string> = {
   open: "Open",
   contacted: "Contacted",
+  follow_up: "Follow up",
   no_response: "No response",
   confirmed: "Confirmed",
   checked_in: "Checked in",
   no_show: "No show",
+  wrong_number: "Wrong number",
   cancelled: "Cancelled",
   cancelled_no_response: "Cancelled (no response)",
 };

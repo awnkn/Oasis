@@ -4,6 +4,12 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateLong } from "@/lib/dates";
 import { PAYMENT_ACCOUNTS } from "@/lib/config";
+import {
+  ARAB_COUNTRIES,
+  OTHER_COUNTRIES,
+  normalizeNationalNumber,
+  type PhoneCountry,
+} from "@/lib/phone";
 import type {
   EventGuestStatus,
   EventTicket,
@@ -21,8 +27,10 @@ interface EventBundle {
 const GUEST_LABELS: Record<EventGuestStatus, string> = {
   open: "Open",
   contacted: "Contacted",
+  follow_up: "Follow up",
   confirmed: "Confirmed",
   checked_in: "Checked in",
+  wrong_number: "Wrong number",
   cancelled: "Cancelled",
 };
 
@@ -198,6 +206,165 @@ function EventForm({
   );
 }
 
+// ---------- add walk-in reservation ----------
+
+function AddTicketForm({
+  event,
+  onClose,
+  onSaved,
+  onError,
+}: {
+  event: TicketedEvent;
+  onClose: () => void;
+  onSaved: () => void;
+  onError: (m: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [country, setCountry] = useState<PhoneCountry>(ARAB_COUNTRIES[0]);
+  const [phoneDigits, setPhoneDigits] = useState("");
+  const [email, setEmail] = useState("");
+  const [quantity, setQuantity] = useState("1");
+  const [notes, setNotes] = useState("");
+  const [sendConfirmation, setSendConfirmation] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  const qty = Number.parseInt(quantity, 10) || 0;
+  const total = event.price * Math.max(qty, 0);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (phoneDigits.length < country.min) {
+      onError(`Please enter a valid ${country.name} phone number.`);
+      return;
+    }
+    setBusy(true);
+    onError("");
+    try {
+      const res = await fetch("/api/admin/events/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: event.id,
+          name,
+          phone: `+${country.dial}${phoneDigits}`,
+          email: email.trim() || undefined,
+          quantity: qty,
+          notes: notes.trim() || undefined,
+          sendConfirmation,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        onError(data?.error || "Could not add the reservation.");
+        return;
+      }
+      onSaved();
+    } catch {
+      onError("Could not reach the server.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-7 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">Add reservation</h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              Walk-in or phone booking for “{event.title}”, created as already approved.
+            </p>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="rounded-full p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={submit} className="mt-5 space-y-4">
+          <div>
+            <label htmlFor="at-name" className="mb-1 block text-xs font-medium text-zinc-500">Guest name</label>
+            <input id="at-name" required minLength={2} maxLength={100} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Rana Haddad" className={inputClass} />
+          </div>
+
+          <div>
+            <label htmlFor="at-phone" className="mb-1 block text-xs font-medium text-zinc-500">Phone (WhatsApp)</label>
+            <div className="flex gap-2">
+              <select
+                aria-label="Country code"
+                value={country.code}
+                onChange={(e) => {
+                  const next = [...ARAB_COUNTRIES, ...OTHER_COUNTRIES].find((c) => c.code === e.target.value) ?? ARAB_COUNTRIES[0];
+                  setCountry(next);
+                  setPhoneDigits((d) => normalizeNationalNumber(d, next));
+                }}
+                className="w-32 shrink-0 rounded-xl border border-oasis-950/10 bg-white px-2 py-2.5 text-sm outline-none focus:border-oasis-950/25"
+              >
+                <optgroup label="Arab countries">
+                  {ARAB_COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.flag} {c.name} (+{c.dial})</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Other countries">
+                  {OTHER_COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.flag} {c.name} (+{c.dial})</option>
+                  ))}
+                </optgroup>
+              </select>
+              <input
+                id="at-phone"
+                required
+                type="tel"
+                inputMode="numeric"
+                value={phoneDigits}
+                onChange={(e) => setPhoneDigits(normalizeNationalNumber(e.target.value, country))}
+                placeholder="79 000 0000"
+                className="min-w-0 flex-1 rounded-xl border border-oasis-950/10 bg-white px-3 py-2.5 text-sm outline-none focus:border-oasis-950/25"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="at-email" className="mb-1 block text-xs font-medium text-zinc-500">
+              Email <span className="font-normal text-zinc-400">(optional)</span>
+            </label>
+            <input id="at-email" type="email" maxLength={200} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="guest@email.com" className={inputClass} />
+          </div>
+
+          <div>
+            <label htmlFor="at-qty" className="mb-1 block text-xs font-medium text-zinc-500">Tickets</label>
+            <input id="at-qty" type="number" required min={1} max={30} value={quantity} onChange={(e) => setQuantity(e.target.value)} className={inputClass} />
+          </div>
+
+          <div>
+            <label htmlFor="at-notes" className="mb-1 block text-xs font-medium text-zinc-500">
+              Notes <span className="font-normal text-zinc-400">(optional)</span>
+            </label>
+            <input id="at-notes" maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. paid cash at the gate" className={inputClass} />
+          </div>
+
+          <label className="flex items-center gap-2.5 text-sm text-zinc-600">
+            <input type="checkbox" checked={sendConfirmation} onChange={(e) => setSendConfirmation(e.target.checked)} className="h-4 w-4 accent-oasis-600" />
+            Email the guest a confirmation (if an email is set)
+          </label>
+
+          <div className="flex items-center justify-between border-t border-zinc-100 pt-4">
+            <p className="text-sm text-zinc-500">
+              Total <span className="text-base font-semibold text-oasis-950">{total} JOD</span>{" "}
+              <span className="text-xs text-zinc-400">payable at the gate</span>
+            </p>
+            <button type="submit" disabled={busy} className="rounded-full bg-oasis-600 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40">
+              {busy ? "Adding…" : "Add reservation"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ---------- payment cell ----------
 
 function PaymentCell({
@@ -264,6 +431,7 @@ export default function EventsAdmin({
   const [message, setMessage] = useState("");
   const [formEvent, setFormEvent] = useState<TicketedEvent | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [ticketEvent, setTicketEvent] = useState<TicketedEvent | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const fileInputs = useRef<Record<number, HTMLInputElement | null>>({});
 
@@ -424,22 +592,30 @@ export default function EventsAdmin({
                     )}
                   </div>
 
-                  {isManager && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <a href={`/events/${event.slug}`} target="_blank" rel="noopener noreferrer" className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 hover:bg-oasis-50">
-                        View page ↗
-                      </a>
-                      <button onClick={() => { setFormEvent(event); setShowForm(true); }} className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50">
-                        Edit
-                      </button>
-                      <button onClick={() => patchEvent(event.id, { active: event.active === 0 })} className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50">
-                        {event.active === 1 ? "Hide" : "Show"}
-                      </button>
-                      <button onClick={() => deleteEvent(event.id, event.title)} className="rounded-full border border-blush-300 px-4 py-1.5 text-xs font-medium text-blush-500 hover:bg-blush-100">
-                        Delete
-                      </button>
-                    </div>
-                  )}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setTicketEvent(event)}
+                      className="rounded-full bg-oasis-900 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-800"
+                    >
+                      + Add reservation
+                    </button>
+                    {isManager && (
+                      <>
+                        <a href={`/events/${event.slug}`} target="_blank" rel="noopener noreferrer" className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-oasis-700 hover:bg-oasis-50">
+                          View page ↗
+                        </a>
+                        <button onClick={() => { setFormEvent(event); setShowForm(true); }} className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50">
+                          Edit
+                        </button>
+                        <button onClick={() => patchEvent(event.id, { active: event.active === 0 })} className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50">
+                          {event.active === 1 ? "Hide" : "Show"}
+                        </button>
+                        <button onClick={() => deleteEvent(event.id, event.title)} className="rounded-full border border-blush-300 px-4 py-1.5 text-xs font-medium text-blush-500 hover:bg-blush-100">
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -554,6 +730,19 @@ export default function EventsAdmin({
           onError={setMessage}
           onSaved={() => {
             setShowForm(false);
+            setMessage("");
+            router.refresh();
+          }}
+        />
+      )}
+
+      {ticketEvent && (
+        <AddTicketForm
+          event={ticketEvent}
+          onClose={() => setTicketEvent(null)}
+          onError={setMessage}
+          onSaved={() => {
+            setTicketEvent(null);
             setMessage("");
             router.refresh();
           }}
