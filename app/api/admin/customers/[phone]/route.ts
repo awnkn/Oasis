@@ -11,7 +11,7 @@ export async function GET(
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
   const { phone } = await params;
-  const profile = getCustomerProfile(decodeURIComponent(phone));
+  const profile = getCustomerProfile(phone);
   if (!profile) {
     return NextResponse.json({ error: "Customer not found." }, { status: 404 });
   }
@@ -57,7 +57,7 @@ export async function PATCH(
   }
 
   const result = updateCustomer(
-    decodeURIComponent(phone),
+    phone,
     update,
     { name: session.name, role: session.role }
   );

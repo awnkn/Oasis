@@ -19,3 +19,5 @@ services:
         generateValue: true
       - key: DATABASE_PATH
         value: /data/oasis.db
+      - key: SITE_URL
+        value: https://oasisjo.com # canonical URL for SEO, sitemap and links

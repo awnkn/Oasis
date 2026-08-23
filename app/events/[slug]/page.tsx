@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getEventBySlug, remainingFor, type TicketedEvent } from "@/lib/events";
+import { getEventBySlug, remainingFor } from "@/lib/events";
+import { eventHeroUrl } from "@/lib/eventHero";
 import { today, formatDateLong } from "@/lib/dates";
 import { CURRENCY } from "@/lib/config";
 import { eventJsonLd } from "@/lib/seo";
@@ -39,12 +40,6 @@ export async function generateMetadata({
   };
 }
 
-function heroUrl(e: TicketedEvent): string | null {
-  return e.hero_updated_at
-    ? `/api/events/${e.id}/hero?v=${encodeURIComponent(e.hero_updated_at)}`
-    : null;
-}
-
 export default async function EventDetailPage({
   params,
 }: {
@@ -55,14 +50,14 @@ export default async function EventDetailPage({
   if (!event || !event.active) notFound();
   if (event.event_date && event.event_date < today()) notFound();
 
-  const hero = heroUrl(event);
+  const hero = eventHeroUrl(event);
   const remaining = remainingFor(event);
   const soldOut = remaining !== null && remaining <= 0;
   const paragraphs = (event.description ?? "").split(/\n{2,}/).filter(Boolean);
 
   return (
     <div className="min-h-screen bg-sand-100/40">
-      <JsonLd data={eventJsonLd(event)} />
+      <JsonLd data={eventJsonLd(event, soldOut)} />
 
       {/* Top bar */}
       <div className="bg-oasis-950">
@@ -149,7 +144,7 @@ export default async function EventDetailPage({
           {event.highlights.length > 0 && (
             <div className="mt-8">
               <h2 className="font-display text-xl font-semibold">
-                What&apos;s waiting for you
+                What’s waiting for you
               </h2>
               <ul className="mt-4 space-y-2.5">
                 {event.highlights.map((h, i) => (

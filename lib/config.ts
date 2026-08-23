@@ -1,8 +1,6 @@
 // Central configuration for the Oasis club booking system.
 
 export const CLUB_NAME = "Oasis by Azara";
-export const CLUB_TAGLINE =
-  "A sanctuary for women, a ladies only pool retreat in Jordan.";
 
 export const CURRENCY = "JOD";
 

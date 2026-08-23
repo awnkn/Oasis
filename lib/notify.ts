@@ -1,7 +1,6 @@
 import { CLUB_NAME } from "./config";
 import { formatDateLong } from "./dates";
 import { getBooking, logAction, type Booking } from "./bookings";
-import { bookingConfirmationText, bookingReminderText } from "./messages";
 import { SITE_URL } from "./seo";
 
 // Automatic guest notifications, sent when a booking is approved.
@@ -14,16 +13,6 @@ import { SITE_URL } from "./seo";
 //              optional WHATSAPP_LANG     (default "en")
 
 const SYSTEM = { name: "System", role: "system" };
-
-function confirmationText(b: Booking): string {
-  return bookingConfirmationText({
-    firstName: b.name.split(" ")[0],
-    reference: String(b.id).padStart(4, "0"),
-    dateLong: formatDateLong(b.date),
-    guests: b.guests,
-    total: b.total_price,
-  });
-}
 
 async function sendEmail(b: Booking): Promise<string | null> {
   const key = process.env.RESEND_API_KEY;
@@ -170,29 +159,7 @@ export async function sendApprovalNotifications(bookingId: number): Promise<void
   }
 }
 
-/** Pre-filled wa.me link so staff can send the confirmation manually. */
-export function waMeLink(b: Booking): string {
-  const digits = b.phone.replace(/\D/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(confirmationText(b))}`;
-}
-
 // ---------- day-before reminders ----------
-
-function reminderText(b: Booking): string {
-  return bookingReminderText({
-    firstName: b.name.split(" ")[0],
-    reference: String(b.id).padStart(4, "0"),
-    dateLong: formatDateLong(b.date),
-    guests: b.guests,
-    total: b.total_price,
-  });
-}
-
-/** Pre-filled wa.me link so staff can send a reminder manually. */
-export function waMeReminderLink(b: Booking): string {
-  const digits = b.phone.replace(/\D/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(reminderText(b))}`;
-}
 
 async function sendReminderEmail(b: Booking): Promise<string | null> {
   const key = process.env.RESEND_API_KEY;
@@ -309,10 +276,20 @@ async function sendWhatsAppReminder(b: Booking): Promise<string | null> {
   return "WhatsApp";
 }
 
-/** Fire the day-before reminder on both channels; failures are logged. */
-export async function sendReminderNotifications(bookingId: number): Promise<void> {
+/** Outcome of a reminder attempt, so the caller can retry real failures. */
+export type ReminderOutcome = "sent" | "nothing" | "failed";
+
+/**
+ * Fire the day-before reminder on both channels; failures are logged.
+ * Returns "sent" when a channel delivered, "failed" when a configured
+ * channel errored (so the caller can retry), or "nothing" when no channel
+ * is set up (nothing to retry).
+ */
+export async function sendReminderNotifications(
+  bookingId: number
+): Promise<ReminderOutcome> {
   const booking = getBooking(bookingId);
-  if (!booking) return;
+  if (!booking) return "nothing";
 
   const results = await Promise.allSettled([
     sendReminderEmail(booking),
@@ -320,9 +297,11 @@ export async function sendReminderNotifications(bookingId: number): Promise<void
   ]);
 
   const sent: string[] = [];
+  let failed = false;
   for (const r of results) {
     if (r.status === "fulfilled" && r.value) sent.push(r.value);
     if (r.status === "rejected") {
+      failed = true;
       logAction(
         SYSTEM,
         "reminder_failed",
@@ -338,7 +317,9 @@ export async function sendReminderNotifications(bookingId: number): Promise<void
       `Booking #${bookingId} (${booking.name}): day-before reminder sent via ${sent.join(" + ")}`,
       bookingId
     );
+    return "sent";
   }
+  return failed ? "failed" : "nothing";
 }
 
 // ---------- event ticket confirmations ----------
@@ -388,7 +369,7 @@ export async function sendEventApprovalEmail(
       body: JSON.stringify({
         from: `${CLUB_NAME} <${from}>`,
         to: [ticket.email],
-        subject: `You're confirmed — ${escapeHtml(event.title)}`,
+        subject: `You're confirmed — ${event.title}`,
         html: `
           <div style="background:#fafafa;padding:32px 16px">
             <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #ececec;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1c1e">

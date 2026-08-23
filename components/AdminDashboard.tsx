@@ -25,7 +25,7 @@ import CustomerProfile from "@/components/CustomerProfile";
 
 const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   pending: "Pending",
-  approved: "Booking approved",
+  approved: "Approved",
   rejected: "Rejected",
 };
 
@@ -40,8 +40,8 @@ const STATUS_STYLES: Record<BookingStatus, string> = {
 // Guest-status colour system. Each state reads at a glance:
 //   open        → slate  (neutral, new / no action yet)
 //   contacted   → blue   (informational, reached out / in progress)
-//   no response → amber  (caution, waiting on the guest)
 //   follow up   → violet (flagged, needs chasing)
+//   no response → amber  (caution, waiting on the guest)
 //   confirmed   → green  (positive, they're coming)
 //   checked in  → teal   (success, through the gate)
 //   no show     → stone  (absent, booked but never arrived)
@@ -172,7 +172,19 @@ function SortableHead({
     <thead className="sticky top-0 z-10">
       <tr className="border-b border-zinc-200/70 bg-white text-[11px] uppercase tracking-wider text-zinc-400">
         {COLUMNS.map((c) => (
-          <th key={c.label} className="bg-white px-4 py-3.5">
+          <th
+            key={c.label}
+            className="bg-white px-4 py-3.5"
+            aria-sort={
+              c.key && sort.key === c.key
+                ? sort.dir === "asc"
+                  ? "ascending"
+                  : "descending"
+                : c.key
+                  ? "none"
+                  : undefined
+            }
+          >
             {c.key ? (
               <button
                 onClick={() => onSort(c.key as SortKey)}

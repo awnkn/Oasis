@@ -10,6 +10,7 @@ import {
   normalizeNationalNumber,
   type PhoneCountry,
 } from "@/lib/phone";
+import { eventHeroUrl } from "@/lib/eventHero";
 import type {
   EventGuestStatus,
   EventTicket,
@@ -34,20 +35,37 @@ const GUEST_LABELS: Record<EventGuestStatus, string> = {
   cancelled: "Cancelled",
 };
 
+// Staff pick these from the dropdown; "checked_in" is set by the arrivals
+// stepper / "All in" button, never chosen by hand.
+const SELECTABLE_EVENT_STATUSES: EventGuestStatus[] = [
+  "open",
+  "contacted",
+  "follow_up",
+  "confirmed",
+  "wrong_number",
+  "cancelled",
+];
+
+/** Dropdown options for a ticket, keeping a locked "checked in" visible. */
+function eventStatusOptions(
+  t: EventTicket
+): { value: EventGuestStatus; disabled?: boolean }[] {
+  const base = SELECTABLE_EVENT_STATUSES.map((v) => ({ value: v }));
+  if (!SELECTABLE_EVENT_STATUSES.includes(t.guest_status)) {
+    return [{ value: t.guest_status, disabled: true }, ...base];
+  }
+  return base;
+}
+
 const STATUS_BADGE: Record<EventTicketStatus, string> = {
   pending: "bg-amber-100 text-amber-800",
   approved: "bg-oasis-100 text-oasis-700",
-  rejected: "bg-blush-100 text-blush-500",
+  rejected: "bg-blush-100 text-blush-700",
 };
 
 const inputClass =
   "w-full rounded-xl border border-oasis-950/10 bg-white px-3 py-2.5 text-sm outline-none focus:border-oasis-950/25";
 
-function heroUrl(e: TicketedEvent): string | null {
-  return e.hero_updated_at
-    ? `/api/events/${e.id}/hero?v=${encodeURIComponent(e.hero_updated_at)}`
-    : null;
-}
 
 // ---------- create / edit form ----------
 
@@ -136,55 +154,55 @@ function EventForm({
 
         <form onSubmit={submit} className="mt-5 space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">Title</label>
-            <input required minLength={2} maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="e.g. غنّو معنا" />
+            <label htmlFor="ev-title" className="mb-1 block text-xs font-medium text-zinc-500">Title</label>
+            <input id="ev-title" required minLength={2} maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="e.g. غنّو معنا" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">Tagline <span className="font-normal text-zinc-400">(optional)</span></label>
-            <input maxLength={160} value={tagline} onChange={(e) => setTagline(e.target.value)} className={inputClass} placeholder="An evening exclusively for the ladies ✨" />
+            <label htmlFor="ev-tagline" className="mb-1 block text-xs font-medium text-zinc-500">Tagline <span className="font-normal text-zinc-400">(optional)</span></label>
+            <input id="ev-tagline" maxLength={160} value={tagline} onChange={(e) => setTagline(e.target.value)} className={inputClass} placeholder="An evening exclusively for the ladies ✨" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Date</label>
-              <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className={inputClass} />
+              <label htmlFor="ev-date" className="mb-1 block text-xs font-medium text-zinc-500">Date</label>
+              <input id="ev-date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Time</label>
-              <input maxLength={40} value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClass} placeholder="8:00 PM" />
+              <label htmlFor="ev-time" className="mb-1 block text-xs font-medium text-zinc-500">Time</label>
+              <input id="ev-time" maxLength={40} value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClass} placeholder="8:00 PM" />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Price (JOD)</label>
-              <input type="number" min={0} step="0.5" value={price} onChange={(e) => setPrice(e.target.value)} className={inputClass} placeholder="15" />
+              <label htmlFor="ev-price" className="mb-1 block text-xs font-medium text-zinc-500">Price (JOD)</label>
+              <input id="ev-price" type="number" min={0} step="0.5" value={price} onChange={(e) => setPrice(e.target.value)} className={inputClass} placeholder="15" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Price note</label>
-              <input maxLength={60} value={priceNote} onChange={(e) => setPriceNote(e.target.value)} className={inputClass} placeholder="includes shisha" />
+              <label htmlFor="ev-price-note" className="mb-1 block text-xs font-medium text-zinc-500">Price note</label>
+              <input id="ev-price-note" maxLength={60} value={priceNote} onChange={(e) => setPriceNote(e.target.value)} className={inputClass} placeholder="includes shisha" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-500">Capacity</label>
-              <input type="number" min={0} value={capacity} onChange={(e) => setCapacity(e.target.value)} className={inputClass} placeholder="∞" />
+              <label htmlFor="ev-capacity" className="mb-1 block text-xs font-medium text-zinc-500">Capacity</label>
+              <input id="ev-capacity" type="number" min={0} value={capacity} onChange={(e) => setCapacity(e.target.value)} className={inputClass} placeholder="∞" />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">Location <span className="font-normal text-zinc-400">(optional)</span></label>
-            <input maxLength={120} value={location} onChange={(e) => setLocation(e.target.value)} className={inputClass} placeholder="Oasis by Azara · Amman" />
+            <label htmlFor="ev-location" className="mb-1 block text-xs font-medium text-zinc-500">Location <span className="font-normal text-zinc-400">(optional)</span></label>
+            <input id="ev-location" maxLength={120} value={location} onChange={(e) => setLocation(e.target.value)} className={inputClass} placeholder="Oasis by Azara · Amman" />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">Description</label>
-            <textarea rows={5} maxLength={4000} value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} placeholder="Tell guests what the evening is about…" />
+            <label htmlFor="ev-description" className="mb-1 block text-xs font-medium text-zinc-500">Description</label>
+            <textarea id="ev-description" rows={5} maxLength={4000} value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} placeholder="Tell guests what the evening is about…" />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">
+            <label htmlFor="ev-highlights" className="mb-1 block text-xs font-medium text-zinc-500">
               Highlights <span className="font-normal text-zinc-400">(one per line)</span>
             </label>
-            <textarea rows={4} value={highlights} onChange={(e) => setHighlights(e.target.value)} className={inputClass} placeholder={"Live music\nCards & games\nComplimentary shisha"} />
+            <textarea id="ev-highlights" rows={4} value={highlights} onChange={(e) => setHighlights(e.target.value)} className={inputClass} placeholder={"Live music\nCards & games\nComplimentary shisha"} />
           </div>
 
           <label className="flex items-center gap-2.5 text-sm text-zinc-600">
@@ -519,7 +537,7 @@ export default function EventsAdmin({
       </div>
 
       {message && (
-        <p className="mt-4 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">{message}</p>
+        <p className="mt-4 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-700">{message}</p>
       )}
 
       {events.length === 0 && (
@@ -530,7 +548,7 @@ export default function EventsAdmin({
 
       <div className="mt-6 space-y-8">
         {events.map(({ event, tickets, summary }) => {
-          const hero = heroUrl(event);
+          const hero = eventHeroUrl(event);
           return (
             <section key={event.id} className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5">
               {/* Event header */}
@@ -610,7 +628,7 @@ export default function EventsAdmin({
                         <button onClick={() => patchEvent(event.id, { active: event.active === 0 })} className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50">
                           {event.active === 1 ? "Hide" : "Show"}
                         </button>
-                        <button onClick={() => deleteEvent(event.id, event.title)} className="rounded-full border border-blush-300 px-4 py-1.5 text-xs font-medium text-blush-500 hover:bg-blush-100">
+                        <button onClick={() => deleteEvent(event.id, event.title)} className="rounded-full border border-blush-300 px-4 py-1.5 text-xs font-medium text-blush-700 hover:bg-blush-100">
                           Delete
                         </button>
                       </>
@@ -658,7 +676,7 @@ export default function EventsAdmin({
                                     aria-label="One fewer arrival"
                                     disabled={busyId === t.id || t.checked_in_count === 0}
                                     onClick={() => patchTicket(t.id, { checkedInCount: t.checked_in_count - 1 })}
-                                    className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-30"
+                                    className="flex h-8 w-8 items-center justify-center rounded-full border border-oasis-950/10 text-base text-zinc-600 hover:bg-zinc-50 disabled:opacity-30"
                                   >−</button>
                                   <span className={`min-w-12 text-center text-sm font-semibold ${t.checked_in_count === t.quantity ? "text-oasis-600" : t.checked_in_count > 0 ? "text-amber-600" : "text-zinc-400"}`}>
                                     {t.checked_in_count} / {t.quantity}
@@ -667,7 +685,7 @@ export default function EventsAdmin({
                                     aria-label="One more arrival"
                                     disabled={busyId === t.id || t.checked_in_count >= t.quantity}
                                     onClick={() => patchTicket(t.id, { checkedInCount: t.checked_in_count + 1 })}
-                                    className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-30"
+                                    className="flex h-8 w-8 items-center justify-center rounded-full border border-oasis-950/10 text-base text-zinc-600 hover:bg-zinc-50 disabled:opacity-30"
                                   >+</button>
                                 </div>
                               ) : (
@@ -689,8 +707,10 @@ export default function EventsAdmin({
                                   onChange={(e) => patchTicket(t.id, { guestStatus: e.target.value })}
                                   className="rounded-lg border border-oasis-950/10 bg-white px-2 py-1 text-xs outline-none focus:border-oasis-950/25"
                                 >
-                                  {(Object.keys(GUEST_LABELS) as EventGuestStatus[]).map((s) => (
-                                    <option key={s} value={s}>{GUEST_LABELS[s]}</option>
+                                  {eventStatusOptions(t).map((o) => (
+                                    <option key={o.value} value={o.value} disabled={o.disabled}>
+                                      {GUEST_LABELS[o.value]}
+                                    </option>
                                   ))}
                                 </select>
                               </div>
@@ -704,7 +724,7 @@ export default function EventsAdmin({
                                   <button onClick={() => patchTicket(t.id, { status: "approved" })} disabled={busyId === t.id} className="rounded-full bg-oasis-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-oasis-700 disabled:opacity-40">Approve</button>
                                 )}
                                 {t.status !== "rejected" && (
-                                  <button onClick={() => patchTicket(t.id, { status: "rejected" })} disabled={busyId === t.id} className="rounded-full border border-blush-300 px-3.5 py-1.5 text-xs font-medium text-blush-500 hover:bg-blush-100 disabled:opacity-40">Reject</button>
+                                  <button onClick={() => patchTicket(t.id, { status: "rejected" })} disabled={busyId === t.id} className="rounded-full border border-blush-300 px-3.5 py-1.5 text-xs font-medium text-blush-700 hover:bg-blush-100 disabled:opacity-40">Reject</button>
                                 )}
                                 {t.status !== "pending" && (
                                   <button onClick={() => patchTicket(t.id, { status: "pending" })} disabled={busyId === t.id} className="rounded-full border border-oasis-200 px-3.5 py-1.5 text-xs font-medium text-oasis-700 hover:bg-oasis-50 disabled:opacity-40">Reset</button>

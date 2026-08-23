@@ -177,6 +177,7 @@ interface RangeStats {
   noShow: number;
   cancelled: number;
   cancelledNoResponse: number;
+  released: number;
 }
 
 function rangeStats(start: string, end: string): RangeStats {
@@ -200,7 +201,8 @@ function rangeStats(start: string, end: string): RangeStats {
          COALESCE(SUM(guest_status = 'checked_in'), 0) AS checkedInBookings,
          COALESCE(SUM(guest_status = 'no_show'), 0) AS noShow,
          COALESCE(SUM(guest_status = 'cancelled'), 0) AS cancelled,
-         COALESCE(SUM(guest_status = 'cancelled_no_response'), 0) AS cancelledNoResponse
+         COALESCE(SUM(guest_status = 'cancelled_no_response'), 0) AS cancelledNoResponse,
+         COALESCE(SUM(status != 'rejected' AND guest_status IN ${RELEASING}), 0) AS released
        FROM bookings WHERE date >= ? AND date <= ?`
     )
     .get(start, end) as RangeStats;
@@ -414,7 +416,7 @@ export function answerQuestion(raw: string, role: AdminRole): string {
     const total = s.cancelled + s.cancelledNoResponse;
     const noShow = s.noShow > 0 ? ` ${n(s.noShow, "guest")} marked no-show (booked but never arrived).` : "";
     if (total === 0) return `${r.label}: no cancellations.${noShow}`;
-    const kept = s.bookings - total - s.noShow;
+    const kept = s.bookings - s.released;
     return `${r.label}: ${n(total, "cancellation")} — ${s.cancelled} cancelled directly, ${s.cancelledNoResponse} auto-cancelled after 24h with no response.${noShow} Active bookings kept: ${kept >= 0 ? kept : 0}.`;
   }
 

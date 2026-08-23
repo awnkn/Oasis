@@ -107,7 +107,7 @@ export default function AddBookingModal({
           <div>
             <h2 className="text-lg font-semibold tracking-tight">Add booking</h2>
             <p className="mt-1 text-sm text-zinc-500">
-              For walk in and phone bookings, created as already approved.
+              For walk-in and phone bookings, created as already approved.
             </p>
           </div>
           <button
@@ -258,7 +258,7 @@ export default function AddBookingModal({
           </label>
 
           {error && (
-            <p className="rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">{error}</p>
+            <p className="rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-700">{error}</p>
           )}
 
           <div className="flex items-center justify-between border-t border-zinc-100 pt-4">

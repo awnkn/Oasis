@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { listUpcomingEvents, remainingFor, type TicketedEvent } from "@/lib/events";
+import { listUpcomingEvents, remainingFor } from "@/lib/events";
+import { eventHeroUrl } from "@/lib/eventHero";
 import { formatDateLong } from "@/lib/dates";
 import { CURRENCY } from "@/lib/config";
 
@@ -19,12 +20,6 @@ export const metadata: Metadata = {
     images: [{ url: "/images/pool.jpg", width: 1600, height: 1067 }],
   },
 };
-
-function heroUrl(e: TicketedEvent): string | null {
-  return e.hero_updated_at
-    ? `/api/events/${e.id}/hero?v=${encodeURIComponent(e.hero_updated_at)}`
-    : null;
-}
 
 export default function EventsPage() {
   const events = listUpcomingEvents();
@@ -69,7 +64,7 @@ export default function EventsPage() {
           <div className="rounded-3xl border border-oasis-950/10 bg-white p-12 text-center">
             <p className="font-display text-2xl font-semibold">No events right now</p>
             <p className="mt-2 text-oasis-900/60">
-              We&apos;re planning something special. Check back soon, or{" "}
+              We’re planning something special. Check back soon, or{" "}
               <Link href="/book?src=events-empty" className="text-oasis-600 underline">
                 book a pool day
               </Link>{" "}
@@ -79,7 +74,7 @@ export default function EventsPage() {
         ) : (
           <div className="grid gap-8 sm:grid-cols-2">
             {events.map((e) => {
-              const hero = heroUrl(e);
+              const hero = eventHeroUrl(e);
               const remaining = remainingFor(e);
               const soldOut = remaining !== null && remaining <= 0;
               return (

@@ -56,10 +56,28 @@ export interface Booking {
 /** Guest statuses that release the booking's spots back to the day — the
  * guest is not (and will not be) taking up their place. "no_response" and
  * "wrong_number" count here too: an unconfirmed or unreachable booking is
- * not a real expected guest. Exported as a ready-to-embed SQL list so every
- * query treats them the same way. */
-export const RELEASING_GUEST_STATUSES =
-  "('cancelled', 'cancelled_no_response', 'no_show', 'no_response', 'wrong_number')";
+ * not a real expected guest. This one list is the single source of truth;
+ * every capacity, occupancy and revenue query derives from it. */
+export const RELEASING_GUEST_STATUS_LIST: GuestStatus[] = [
+  "cancelled",
+  "cancelled_no_response",
+  "no_show",
+  "no_response",
+  "wrong_number",
+];
+
+/** The same statuses as a ready-to-embed SQL tuple. */
+export const RELEASING_GUEST_STATUSES = `(${RELEASING_GUEST_STATUS_LIST.map(
+  (s) => `'${s}'`
+).join(", ")})`;
+
+/** Does this booking still occupy a spot for the day? */
+export function bookingCounts(status: BookingStatus, guestStatus: GuestStatus): boolean {
+  return (
+    (status === "pending" || status === "approved") &&
+    !RELEASING_GUEST_STATUS_LIST.includes(guestStatus)
+  );
+}
 
 // ---------- audit log (append-only, by design never updated/deleted) ----------
 
@@ -548,10 +566,7 @@ export function updateBookingDetails(
 
     // Moving day or growing the group takes spots — re-check capacity for
     // bookings that count against it, on today or future days only.
-    const counts =
-      (booking.status === "pending" || booking.status === "approved") &&
-      booking.guest_status !== "cancelled" &&
-      booking.guest_status !== "cancelled_no_response";
+    const counts = bookingCounts(booking.status, booking.guest_status);
     if (counts && (date !== booking.date || guests > booking.guests) && date >= today()) {
       const room =
         date === booking.date

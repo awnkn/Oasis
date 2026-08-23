@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminSession } from "@/lib/auth";
+import { getAdminSession, hashEquals } from "@/lib/auth";
 import { runDueReminders } from "@/lib/reminders";
 
 // Daily trigger for the day-before reminders. Point any scheduler at this
@@ -11,7 +11,9 @@ async function handle(request: Request): Promise<NextResponse> {
   const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   const key = new URL(request.url).searchParams.get("key") ?? "";
 
-  const bySecret = !!secret && (bearer === secret || key === secret);
+  // Constant-time comparison so the secret can't be guessed by timing.
+  const bySecret =
+    !!secret && (hashEquals(bearer, secret) || hashEquals(key, secret));
   const byAdmin = !!(await getAdminSession());
   if (!bySecret && !byAdmin) {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });

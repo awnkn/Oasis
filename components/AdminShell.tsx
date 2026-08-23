@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -56,6 +56,23 @@ export default function AdminShell({
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+
+  // While the drawer is open, close on Escape and move focus into it; on
+  // close, return focus to the button that opened it.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    drawerRef.current?.querySelector<HTMLElement>("a, button")?.focus();
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      menuButtonRef.current?.focus();
+    };
+  }, [open]);
 
   const items = NAV.filter((n) => !n.managerOnly || role === "manager");
 
@@ -115,8 +132,10 @@ export default function AdminShell({
       {/* Mobile / tablet top bar */}
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 lg:hidden">
         <button
+          ref={menuButtonRef}
           onClick={() => setOpen(true)}
           aria-label="Open menu"
+          aria-expanded={open}
           className="flex h-10 w-10 items-center justify-center rounded-xl border border-oasis-950/10 text-oasis-900"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -140,6 +159,12 @@ export default function AdminShell({
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setOpen(false)} />
       )}
       <aside
+        ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu"
+        aria-hidden={!open}
+        inert={!open}
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-oasis-950 transition-transform duration-200 lg:hidden ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}

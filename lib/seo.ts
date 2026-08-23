@@ -58,7 +58,8 @@ export function businessJsonLd() {
     areaServed: { "@type": "City", name: "Amman" },
     audience: { "@type": "PeopleAudience", suggestedGender: "female" },
     slogan: "A sanctuary designed around you.",
-    sameAs: [SITE_URL],
+    // sameAs intentionally omitted until real social profile URLs exist
+    // (Instagram / TikTok / Facebook); it must not point at our own site.
   };
 }
 
@@ -100,7 +101,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How do I pay?",
-    a: "You pay at the entrance. There is no online payment. We accept Cash, CliQ and Visa at the gate.",
+    a: "You pay at the gate. There is no online payment. We accept Cash, CliQ and Visa at the gate.",
   },
   {
     q: "Is there an age policy?",
@@ -138,7 +139,7 @@ export function faqJsonLd() {
 
 // ---------- Event structured data ----------
 
-export function eventJsonLd(event: TicketedEvent) {
+export function eventJsonLd(event: TicketedEvent, soldOut = false) {
   const url = `${SITE_URL}/events/${event.slug}`;
   return {
     "@context": "https://schema.org",
@@ -161,7 +162,9 @@ export function eventJsonLd(event: TicketedEvent) {
       "@type": "Offer",
       price: event.price,
       priceCurrency: CURRENCY,
-      availability: "https://schema.org/InStock",
+      availability: soldOut
+        ? "https://schema.org/SoldOut"
+        : "https://schema.org/InStock",
       url,
     },
   };

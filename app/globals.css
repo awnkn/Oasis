@@ -35,6 +35,8 @@
   --color-blush-300: #edbcc5;
   --color-blush-400: #e19aa9;
   --color-blush-500: #d17b90;
+  --color-blush-600: #b85c73;
+  --color-blush-700: #9c4a5f; /* accessible text on blush-100 (>=4.5:1) */
 }
 
 html {

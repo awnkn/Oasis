@@ -32,11 +32,35 @@ function claimDueReminders(): number[] {
   })();
 }
 
-/** Send every due day-before reminder. Returns how many were sent. */
+/** Release a failed claim so the reminder is retried on the next sweep. */
+function unclaimReminders(ids: number[]): void {
+  if (ids.length === 0) return;
+  const db = getDb();
+  const stmt = db.prepare("UPDATE bookings SET reminder_sent_at = NULL WHERE id = ?");
+  db.transaction(() => {
+    for (const id of ids) stmt.run(id);
+  })();
+}
+
+/**
+ * Send every due day-before reminder. Claims each booking first (so a
+ * booking is never reminded twice), then releases any whose delivery
+ * actually failed so the next sweep tries again. Returns how many were sent.
+ */
 export async function runDueReminders(): Promise<number> {
   const ids = claimDueReminders();
-  await Promise.allSettled(ids.map((id) => sendReminderNotifications(id)));
-  return ids.length;
+  const outcomes = await Promise.allSettled(
+    ids.map((id) => sendReminderNotifications(id))
+  );
+  let sent = 0;
+  const retry: number[] = [];
+  outcomes.forEach((o, i) => {
+    if (o.status === "fulfilled" && o.value === "sent") sent += 1;
+    else if (o.status === "fulfilled" && o.value === "failed") retry.push(ids[i]);
+    else if (o.status === "rejected") retry.push(ids[i]);
+  });
+  unclaimReminders(retry);
+  return sent;
 }
 
 // The site runs as one long-lived server, so a module-level timestamp keeps

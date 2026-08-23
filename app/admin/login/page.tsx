@@ -80,7 +80,7 @@ export default function AdminLoginPage() {
             className="w-full rounded-xl border border-oasis-950/10 bg-white px-4 py-3 outline-none transition focus:border-oasis-500 focus:ring-2 focus:ring-oasis-200"
           />
           {error && (
-            <p className="mt-4 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">
+            <p className="mt-4 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-700">
               {error}
             </p>
           )}

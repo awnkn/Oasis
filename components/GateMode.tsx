@@ -99,6 +99,7 @@ export default function GateMode({
         <input
           type="search"
           autoFocus
+          aria-label="Search guests by name or phone"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search a guest by name or phone…"

@@ -563,7 +563,13 @@ export function updateTicket(
         return { ok: false, reason: "invalid", message: "Unknown guest status." };
       }
       if (u.guestStatus !== ticket.guest_status) changes.push(`guest ${ticket.guest_status} → ${u.guestStatus}`);
-      db.prepare("UPDATE event_tickets SET guest_status = ? WHERE id = ?").run(u.guestStatus, id);
+      // Leaving "checked in" clears the arrivals count, mirroring day-pass
+      // bookings, so a cancelled ticket never keeps ghost arrivals.
+      const clearArrivals =
+        ticket.guest_status === "checked_in" && u.guestStatus !== "checked_in";
+      db.prepare(
+        `UPDATE event_tickets SET guest_status = ?${clearArrivals ? ", checked_in_count = 0" : ""} WHERE id = ?`
+      ).run(u.guestStatus, id);
     }
 
     if (u.checkedInCount !== undefined) {

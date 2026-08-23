@@ -8,16 +8,11 @@ import {
   WEEKDAY_PRICE,
   WEEKEND_PRICE,
 } from "@/lib/config";
-import { listUpcomingEvents, type TicketedEvent } from "@/lib/events";
+import { listUpcomingEvents } from "@/lib/events";
+import { eventHeroUrl } from "@/lib/eventHero";
 import { formatDateLong } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
-
-function eventHeroUrl(e: TicketedEvent): string | null {
-  return e.hero_updated_at
-    ? `/api/events/${e.id}/hero?v=${encodeURIComponent(e.hero_updated_at)}`
-    : null;
-}
 
 // Soft outline icons for the features section (thin stroke, rounded caps).
 const iconProps = {
@@ -73,7 +68,7 @@ const FEATURE_ICONS = {
       <path d="M12 7.5V12l3 1.8" />
     </svg>
   ),
-  // Personally confirmed — check inside a circle
+  // Confirmed instantly — check inside a circle
   confirmed: (
     <svg {...iconProps}>
       <circle cx="12" cy="12" r="8.5" />
@@ -97,6 +92,7 @@ export default function HomePage() {
   const events = listUpcomingEvents().slice(0, 3);
   return (
     <div className="min-h-screen">
+      <main>
       {/* Hero */}
       <section className="relative flex min-h-[92svh] flex-col overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -274,7 +270,7 @@ export default function HomePage() {
               {
                 icon: FEATURE_ICONS.privacy,
                 title: "No cameras inside",
-                text: "Complete privacy in every interior space, so you can simply be.",
+                text: "Complete privacy in every interior space, so you can be fully at ease.",
               },
               {
                 icon: FEATURE_ICONS.calm,
@@ -459,7 +455,7 @@ export default function HomePage() {
             Your day of stillness is waiting.
           </h2>
           <p className="mt-4 text-lg text-white/80">
-            Pick your day, and we&apos;ll hold the calm for you.
+            Pick your day, and we’ll hold the calm for you.
           </p>
           <Link
             href="/book?src=closing"
@@ -469,6 +465,7 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-sand-200 px-6 py-10">

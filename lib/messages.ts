@@ -34,23 +34,3 @@ export function bookingConfirmationText(p: BookingMessageInput): string {
     "We can’t wait to welcome you to Oasis",
   ].join("\n");
 }
-
-export function bookingReminderText(p: BookingMessageInput): string {
-  const guestWord = p.guests === 1 ? "guest" : "guests";
-  return [
-    `Dear ${p.firstName}, a friendly reminder about your visit to Oasis tomorrow!`,
-    "",
-    `Reference #${p.reference}`,
-    `· ${p.dateLong}`,
-    `· ${p.guests} ${guestWord}`,
-    `· TOTAL AMOUNT: ${p.total} JOD payable at the gate (Cash or CliQ payment only)`,
-    "",
-    "A few reminders before you arrive:",
-    "· Oasis by Azara is 16+ only. Guests under the age of 16 will not be permitted entry.",
-    "· No outside food or drinks are allowed inside the venue.",
-    "· Photography and videography are not permitted.",
-    "· Please keep your personal belongings and valuables with you at all times.",
-    "",
-    "We can’t wait to welcome you tomorrow!",
-  ].join("\n");
-}
