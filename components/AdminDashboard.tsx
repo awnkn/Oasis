@@ -9,7 +9,8 @@ import type {
   GuestStatus,
   RateType,
 } from "@/lib/bookings";
-import { formatDateLong, formatDateShort } from "@/lib/dates";
+import { formatDateLong, formatDateShort, whenLabel } from "@/lib/dates";
+import { NIGHT_SWIM_TIME } from "@/lib/config";
 import {
   GUEST_STATUS_LABELS,
   PAYMENT_ACCOUNTS,
@@ -93,7 +94,7 @@ function waLink(b: Booking): string {
   const text = bookingConfirmationText({
     firstName: b.name.split(" ")[0],
     reference: String(b.id).padStart(4, "0"),
-    dateLong: formatDateLong(b.date),
+    dateLong: whenLabel(b.date, b.session),
     guests: b.guests,
     total: b.total_price,
   });
@@ -430,6 +431,14 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
       {/* Day */}
       <td className="whitespace-nowrap px-4 py-3.5" title={formatDateLong(b.date)}>
         {formatDateShort(b.date)}
+        {b.session === "night" && (
+          <span
+            className="mt-1 block w-fit rounded-full bg-oasis-950 px-2 py-0.5 text-[10px] font-semibold text-white"
+            title={`Night swim · ${NIGHT_SWIM_TIME}`}
+          >
+            🌙 Night
+          </span>
+        )}
       </td>
 
       {/* Arrivals */}
@@ -525,6 +534,11 @@ function BookingCard({ b, ctx }: { b: Booking; ctx: RowCtx }) {
           <p className="text-sm font-medium" title={formatDateLong(b.date)}>
             {formatDateShort(b.date)}
           </p>
+          {b.session === "night" && (
+            <span className="mt-1 inline-block rounded-full bg-oasis-950 px-2 py-0.5 text-[10px] font-semibold text-white">
+              🌙 Night
+            </span>
+          )}
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wide text-zinc-400">Paid</p>

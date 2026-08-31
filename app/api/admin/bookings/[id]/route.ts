@@ -43,8 +43,8 @@ export async function PATCH(
   }
   const b = (body ?? {}) as Record<string, unknown>;
 
-  // Booking detail edits (name, phone, email, day, guests, notes, source).
-  const DETAIL_KEYS = ["name", "phone", "email", "date", "guests", "notes", "heardAbout"] as const;
+  // Booking detail edits (name, phone, email, day, session, guests, notes, source).
+  const DETAIL_KEYS = ["name", "phone", "email", "date", "session", "guests", "notes", "heardAbout"] as const;
   const hasDetails = DETAIL_KEYS.some((k) => b[k] !== undefined);
   if (hasDetails) {
     const details: BookingDetailsUpdate = {};
@@ -55,6 +55,12 @@ export async function PATCH(
         }
         details[key] = b[key] as string;
       }
+    }
+    if (b.session !== undefined) {
+      if (b.session !== "day" && b.session !== "night") {
+        return NextResponse.json({ error: "Invalid session." }, { status: 400 });
+      }
+      details.session = b.session;
     }
     for (const key of ["email", "notes", "heardAbout"] as const) {
       if (b[key] !== undefined) {

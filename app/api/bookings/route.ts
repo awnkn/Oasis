@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     phone: typeof b.phone === "string" ? b.phone : "",
     email: typeof b.email === "string" ? b.email : undefined,
     date: typeof b.date === "string" ? b.date : "",
+    session: b.session === "night" ? "night" : "day",
     guests: typeof b.guests === "number" ? b.guests : NaN,
     heardAbout: Array.isArray(b.heardAbout)
       ? b.heardAbout.filter((o): o is string => typeof o === "string")
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
         id: booking.id,
         name: booking.name,
         date: booking.date,
+        session: booking.session,
         guests: booking.guests,
         pricePerGuest: booking.price_per_guest,
         totalPrice: booking.total_price,
