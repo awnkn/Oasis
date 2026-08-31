@@ -90,7 +90,7 @@ export default function EventReservationForm({
           ✓
         </div>
         <h2 className="mt-5 font-display text-3xl font-semibold">
-          You&apos;re on the list, {confirmed.name.split(" ")[0]}!
+          You’re on the list, {confirmed.name.split(" ")[0]}!
         </h2>
         <p className="mt-3 text-oasis-900/70">
           Your reservation for <strong>{confirmed.eventTitle}</strong> is{" "}
@@ -142,7 +142,7 @@ export default function EventReservationForm({
       <h2 className="font-display text-2xl font-semibold">Reserve your spot</h2>
       <p className="mt-1 text-sm text-oasis-900/60">
         Send your request and we confirm every reservation. Nothing is charged
-        online, and you pay at the entrance.
+        online, and you pay at the gate.
       </p>
 
       <div className="mt-6">
@@ -265,13 +265,13 @@ export default function EventReservationForm({
         />
         <span>
           I understand this is a reservation request. Our team will confirm my
-          spot, and the {price} JOD per ticket is paid at the entrance.{" "}
+          spot, and the {price} JOD per ticket is paid at the gate.{" "}
           <span className="text-blush-500">*</span>
         </span>
       </label>
 
       {error && (
-        <p className="mt-5 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">
+        <p className="mt-5 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-700">
           {error}
         </p>
       )}

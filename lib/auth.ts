@@ -32,7 +32,8 @@ function getSecret(): Buffer {
   return crypto.createHash("sha256").update(secret).digest();
 }
 
-function hashEquals(a: string, b: string): boolean {
+/** Constant-time string comparison (hash to a fixed length, then compare). */
+export function hashEquals(a: string, b: string): boolean {
   const ha = crypto.createHash("sha256").update(a).digest();
   const hb = crypto.createHash("sha256").update(b).digest();
   return crypto.timingSafeEqual(ha, hb);

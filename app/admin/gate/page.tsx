@@ -20,7 +20,13 @@ export default async function GatePage() {
 
   sweepNoResponse();
   const todayStr = today();
-  const bookings = listBookings({ date: todayStr, status: "approved" });
+  // The gate shows guests who may still walk in. Bookings that have clearly
+  // ended — cancelled, or already marked a no-show — are left off so the
+  // check-in list stays clean and matches the day's guest count.
+  const ENDED = ["cancelled", "cancelled_no_response", "no_show"];
+  const bookings = listBookings({ date: todayStr, status: "approved" }).filter(
+    (b) => !ENDED.includes(b.guest_status)
+  );
   const badges = customerBadges(bookings.map((b) => b.phone));
 
   return (

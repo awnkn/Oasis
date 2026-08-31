@@ -7,7 +7,8 @@ import { logAction, type Actor } from "./bookings";
 
 /** Guest statuses that count as a real, completed visit. */
 const VISITED = "guest_status = 'checked_in'";
-const NO_SHOW = "guest_status = 'cancelled_no_response'";
+/** Booked but never arrived: marked a no-show, or auto-cancelled at 24h. */
+const NO_SHOW = "guest_status IN ('no_show', 'cancelled_no_response')";
 
 export interface CustomerBadge {
   /** Non-rejected bookings this phone has ever made. */

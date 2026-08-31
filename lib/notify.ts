@@ -1,7 +1,7 @@
 import { CLUB_NAME } from "./config";
 import { formatDateLong } from "./dates";
 import { getBooking, logAction, type Booking } from "./bookings";
-import { bookingConfirmationText } from "./messages";
+import { SITE_URL } from "./seo";
 
 // Automatic guest notifications, sent when a booking is approved.
 // Each channel activates only when its environment variables are set —
@@ -13,19 +13,6 @@ import { bookingConfirmationText } from "./messages";
 //              optional WHATSAPP_LANG     (default "en")
 
 const SYSTEM = { name: "System", role: "system" };
-
-// Absolute base URL for assets inside emails.
-const SITE_URL = process.env.SITE_URL || "https://oasis-i1qn.onrender.com";
-
-function confirmationText(b: Booking): string {
-  return bookingConfirmationText({
-    firstName: b.name.split(" ")[0],
-    reference: String(b.id).padStart(4, "0"),
-    dateLong: formatDateLong(b.date),
-    guests: b.guests,
-    total: b.total_price,
-  });
-}
 
 async function sendEmail(b: Booking): Promise<string | null> {
   const key = process.env.RESEND_API_KEY;
@@ -172,10 +159,167 @@ export async function sendApprovalNotifications(bookingId: number): Promise<void
   }
 }
 
-/** Pre-filled wa.me link so staff can send the confirmation manually. */
-export function waMeLink(b: Booking): string {
-  const digits = b.phone.replace(/\D/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(confirmationText(b))}`;
+// ---------- day-before reminders ----------
+
+async function sendReminderEmail(b: Booking): Promise<string | null> {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  if (!key || !from || !b.email) return null;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: `${CLUB_NAME} <${from}>`,
+      to: [b.email],
+      subject: `See you tomorrow — ${formatDateLong(b.date)}`,
+      html: `
+        <div style="background:#fafafa;padding:32px 16px">
+          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #ececec;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1c1e">
+            <img src="${SITE_URL}/images/email-header.jpg" alt="${CLUB_NAME}" width="560" style="width:100%;display:block" />
+            <div style="padding:36px 40px 40px">
+              <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:600;letter-spacing:-0.2px">See you tomorrow, ${escapeHtml(b.name.split(" ")[0])} 🌴</h1>
+              <p style="margin:14px 0 0;font-size:15px;line-height:1.6;color:#6b6b70">
+                A friendly reminder that your day at Oasis is tomorrow. Here are
+                your details once more.
+              </p>
+              <table style="width:100%;border-collapse:collapse;margin-top:28px;font-size:15px">
+                <tr>
+                  <td style="padding:12px 0;color:#8e8e93">Reference</td>
+                  <td style="padding:12px 0;text-align:right;font-weight:600">#${String(b.id).padStart(4, "0")}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;color:#8e8e93;border-top:1px solid #f2f2f2">Day</td>
+                  <td style="padding:12px 0;text-align:right;font-weight:600;border-top:1px solid #f2f2f2">${formatDateLong(b.date)}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;color:#8e8e93;border-top:1px solid #f2f2f2">Guests</td>
+                  <td style="padding:12px 0;text-align:right;font-weight:600;border-top:1px solid #f2f2f2">${b.guests}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 0 0;color:#8e8e93;border-top:1px solid #f2f2f2">Total at the gate</td>
+                  <td style="padding:14px 0 0;text-align:right;border-top:1px solid #f2f2f2;font-weight:700;font-size:18px;color:#297c80">${b.total_price} JOD</td>
+                </tr>
+              </table>
+              <p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#8e8e93">
+                A few reminders: Oasis is 16+ (Mondays welcome ages 10+). No
+                outside food or drinks, and photography is not permitted. Pay at
+                the gate by cash or CliQ. Pool seating is first come, first served.
+              </p>
+              <p style="margin:24px 0 0;font-size:15px">
+                We can't wait to welcome you 🌴<br/>
+                <span style="color:#6b6b70">${CLUB_NAME}</span>
+              </p>
+            </div>
+          </div>
+          <p style="max-width:560px;margin:16px auto 0;text-align:center;font-size:12px;color:#b0b0b5">
+            ${CLUB_NAME} · Ladies only · Amman, Jordan
+          </p>
+        </div>`,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  }
+  return "email";
+}
+
+async function sendWhatsAppReminder(b: Booking): Promise<string | null> {
+  const token = process.env.WHATSAPP_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_ID;
+  if (!token || !phoneId) return null;
+
+  // A reminder is a separate, business-initiated message, so it needs its
+  // own approved template (defaults to "booking_reminder"). Same five body
+  // variables as the confirmation, in the same order.
+  const template = process.env.WHATSAPP_REMINDER_TEMPLATE || "booking_reminder";
+  const lang = process.env.WHATSAPP_LANG || "en";
+  const to = b.phone.replace(/\D/g, "");
+
+  const res = await fetch(
+    `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: template,
+          language: { code: lang },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: b.name.split(" ")[0] },
+                { type: "text", text: String(b.id).padStart(4, "0") },
+                { type: "text", text: formatDateLong(b.date) },
+                { type: "text", text: `${b.guests} ${b.guests === 1 ? "guest" : "guests"}` },
+                { type: "text", text: `${b.total_price} JOD` },
+              ],
+            },
+          ],
+        },
+      }),
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`WhatsApp ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  }
+  return "WhatsApp";
+}
+
+/** Outcome of a reminder attempt, so the caller can retry real failures. */
+export type ReminderOutcome = "sent" | "nothing" | "failed";
+
+/**
+ * Fire the day-before reminder on both channels; failures are logged.
+ * Returns "sent" when a channel delivered, "failed" when a configured
+ * channel errored (so the caller can retry), or "nothing" when no channel
+ * is set up (nothing to retry).
+ */
+export async function sendReminderNotifications(
+  bookingId: number
+): Promise<ReminderOutcome> {
+  const booking = getBooking(bookingId);
+  if (!booking) return "nothing";
+
+  const results = await Promise.allSettled([
+    sendReminderEmail(booking),
+    sendWhatsAppReminder(booking),
+  ]);
+
+  const sent: string[] = [];
+  let failed = false;
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value) sent.push(r.value);
+    if (r.status === "rejected") {
+      failed = true;
+      logAction(
+        SYSTEM,
+        "reminder_failed",
+        `Booking #${bookingId}: ${String(r.reason).slice(0, 200)}`,
+        bookingId
+      );
+    }
+  }
+  if (sent.length > 0) {
+    logAction(
+      SYSTEM,
+      "reminder",
+      `Booking #${bookingId} (${booking.name}): day-before reminder sent via ${sent.join(" + ")}`,
+      bookingId
+    );
+    return "sent";
+  }
+  return failed ? "failed" : "nothing";
 }
 
 // ---------- event ticket confirmations ----------
@@ -225,7 +369,7 @@ export async function sendEventApprovalEmail(
       body: JSON.stringify({
         from: `${CLUB_NAME} <${from}>`,
         to: [ticket.email],
-        subject: `You're confirmed — ${escapeHtml(event.title)}`,
+        subject: `You're confirmed — ${event.title}`,
         html: `
           <div style="background:#fafafa;padding:32px 16px">
             <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #ececec;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1c1e">

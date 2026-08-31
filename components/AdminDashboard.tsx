@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type {
   Booking,
@@ -19,13 +18,16 @@ import { bookingConfirmationText } from "@/lib/messages";
 import type { StaffUser } from "@/lib/users";
 import type { CustomerBadge } from "@/lib/customers";
 import AddBookingModal from "@/components/AddBookingModal";
+import AdminShell from "@/components/AdminShell";
 import AssistantWidget from "@/components/AssistantWidget";
 import EditBookingModal from "@/components/EditBookingModal";
 import CustomerProfile from "@/components/CustomerProfile";
+import CompAccessSection from "@/components/CompAccess";
+import type { CompAccess, CompAccessSummary } from "@/lib/comp";
 
 const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   pending: "Pending",
-  approved: "Booking approved",
+  approved: "Approved",
   rejected: "Rejected",
 };
 
@@ -40,9 +42,12 @@ const STATUS_STYLES: Record<BookingStatus, string> = {
 // Guest-status colour system. Each state reads at a glance:
 //   open        → slate  (neutral, new / no action yet)
 //   contacted   → blue   (informational, reached out / in progress)
+//   follow up   → violet (flagged, needs chasing)
 //   no response → amber  (caution, waiting on the guest)
 //   confirmed   → green  (positive, they're coming)
 //   checked in  → teal   (success, through the gate)
+//   no show     → stone  (absent, booked but never arrived)
+//   wrong num.  → zinc   (dead, unreachable contact)
 //   cancelled   → red    (negative, spot released)
 const GUEST_STATUS_COLOR: Record<
   GuestStatus,
@@ -50,9 +55,12 @@ const GUEST_STATUS_COLOR: Record<
 > = {
   open: { dot: "bg-slate-400", pill: "bg-slate-100 text-slate-600", select: "border-slate-200 bg-slate-50 text-slate-700" },
   contacted: { dot: "bg-sky-500", pill: "bg-sky-100 text-sky-700", select: "border-sky-200 bg-sky-50 text-sky-700" },
+  follow_up: { dot: "bg-violet-500", pill: "bg-violet-100 text-violet-700", select: "border-violet-200 bg-violet-50 text-violet-700" },
   no_response: { dot: "bg-amber-500", pill: "bg-amber-100 text-amber-800", select: "border-amber-200 bg-amber-50 text-amber-800" },
   confirmed: { dot: "bg-emerald-500", pill: "bg-emerald-100 text-emerald-700", select: "border-emerald-200 bg-emerald-50 text-emerald-700" },
   checked_in: { dot: "bg-teal-600", pill: "bg-teal-100 text-teal-700", select: "border-teal-200 bg-teal-50 text-teal-700" },
+  no_show: { dot: "bg-stone-500", pill: "bg-stone-200 text-stone-700", select: "border-stone-300 bg-stone-100 text-stone-700" },
+  wrong_number: { dot: "bg-zinc-400", pill: "bg-zinc-200 text-zinc-600", select: "border-zinc-300 bg-zinc-100 text-zinc-600" },
   cancelled: { dot: "bg-rose-500", pill: "bg-rose-100 text-rose-600", select: "border-rose-200 bg-rose-50 text-rose-600" },
   cancelled_no_response: { dot: "bg-rose-400", pill: "bg-rose-100 text-rose-600", select: "border-rose-200 bg-rose-50 text-rose-600" },
 };
@@ -61,8 +69,11 @@ const GUEST_STATUS_COLOR: Record<
 const SELECTABLE_GUEST_STATUSES: GuestStatus[] = [
   "open",
   "contacted",
+  "follow_up",
   "no_response",
   "confirmed",
+  "no_show",
+  "wrong_number",
   "cancelled",
 ];
 
@@ -100,11 +111,14 @@ interface SortState {
 const GUEST_STATUS_ORDER: Record<GuestStatus, number> = {
   open: 0,
   contacted: 1,
-  no_response: 2,
-  confirmed: 3,
-  checked_in: 4,
-  cancelled: 5,
-  cancelled_no_response: 6,
+  follow_up: 2,
+  no_response: 3,
+  confirmed: 4,
+  checked_in: 5,
+  no_show: 6,
+  wrong_number: 7,
+  cancelled: 8,
+  cancelled_no_response: 9,
 };
 
 function sortBookings(list: Booking[], sort: SortState): Booking[] {
@@ -160,7 +174,19 @@ function SortableHead({
     <thead className="sticky top-0 z-10">
       <tr className="border-b border-zinc-200/70 bg-white text-[11px] uppercase tracking-wider text-zinc-400">
         {COLUMNS.map((c) => (
-          <th key={c.label} className="bg-white px-4 py-3.5">
+          <th
+            key={c.label}
+            className="bg-white px-4 py-3.5"
+            aria-sort={
+              c.key && sort.key === c.key
+                ? sort.dir === "asc"
+                  ? "ascending"
+                  : "descending"
+                : c.key
+                  ? "none"
+                  : undefined
+            }
+          >
             {c.key ? (
               <button
                 onClick={() => onSort(c.key as SortKey)}
@@ -234,10 +260,150 @@ function statusOptions(b: Booking): { value: GuestStatus; disabled?: boolean }[]
   return base;
 }
 
+// Shared editable controls, used by both the desktop table row and the
+// mobile card, so the two views can never drift apart.
+
+function ArrivalsStepper({ b, ctx }: { b: Booking; ctx: RowCtx }) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5">
+        <button
+          aria-label="One guest left"
+          onClick={() => ctx.patch(b.id, { checkedInCount: b.checked_in_count - 1 })}
+          disabled={ctx.busyBooking === b.id || b.checked_in_count === 0}
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-oasis-950/10 text-base text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-30"
+        >
+          −
+        </button>
+        <span
+          className={`min-w-12 text-center text-sm font-semibold ${
+            b.checked_in_count === b.guests
+              ? "text-teal-600"
+              : b.checked_in_count > 0
+                ? "text-amber-600"
+                : "text-zinc-400"
+          }`}
+        >
+          {b.checked_in_count} / {b.guests}
+        </span>
+        <button
+          aria-label="One guest arrived"
+          onClick={() => ctx.patch(b.id, { checkedInCount: b.checked_in_count + 1 })}
+          disabled={ctx.busyBooking === b.id || b.checked_in_count >= b.guests}
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-oasis-950/10 text-base text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-30"
+        >
+          +
+        </button>
+      </div>
+      <p className="mt-1 text-[11px] text-zinc-400">
+        {b.checked_in_count === 0
+          ? "no one in yet"
+          : b.checked_in_count === b.guests
+            ? "all in"
+            : `${b.guests - b.checked_in_count} still expected`}
+      </p>
+    </div>
+  );
+}
+
+function GuestStatusSelect({ b, ctx }: { b: Booking; ctx: RowCtx }) {
+  return (
+    <select
+      aria-label={`Guest status for booking ${b.id}`}
+      value={b.guest_status}
+      disabled={ctx.busyBooking === b.id}
+      onChange={(e) => ctx.patch(b.id, { guestStatus: e.target.value })}
+      className={`rounded-lg border px-2 py-1.5 text-xs font-medium outline-none ${GUEST_STATUS_COLOR[b.guest_status].select}`}
+    >
+      {statusOptions(b).map((o) => (
+        <option key={o.value} value={o.value} disabled={o.disabled}>
+          {GUEST_STATUS_LABELS[o.value]}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function StatusPill({ b }: { b: Booking }) {
+  return (
+    <span
+      className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[b.status]}`}
+    >
+      {BOOKING_STATUS_LABELS[b.status]}
+    </span>
+  );
+}
+
+function ActionButtons({ b, ctx }: { b: Booking; ctx: RowCtx }) {
+  const used = ctx.waUsed(b);
+  return (
+    <>
+      {b.status === "approved" && b.checked_in_count < b.guests && (
+        <button
+          onClick={() => ctx.patch(b.id, { checkedInCount: b.guests })}
+          disabled={ctx.busyBooking === b.id}
+          className="rounded-full bg-oasis-900 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-800 disabled:opacity-40"
+        >
+          All in
+        </button>
+      )}
+      {b.status === "approved" && (
+        <a
+          href={waLink(b)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => ctx.onWhatsApp(b)}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+            used
+              ? "border border-emerald-500 bg-emerald-50 text-emerald-700"
+              : "border border-oasis-950/10 text-oasis-700 hover:bg-oasis-50"
+          }`}
+        >
+          {used ? "WhatsApp ✓" : "WhatsApp ↗"}
+        </a>
+      )}
+      {b.status !== "approved" && (
+        <button
+          onClick={() => ctx.setStatus(b.id, "approved")}
+          disabled={ctx.busyBooking === b.id}
+          className="rounded-full bg-oasis-600 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
+        >
+          Approve
+        </button>
+      )}
+      {b.status !== "rejected" && (
+        <button
+          onClick={() => ctx.setStatus(b.id, "rejected")}
+          disabled={ctx.busyBooking === b.id}
+          className="rounded-full border border-rose-300 px-3.5 py-1.5 text-xs font-medium text-rose-500 transition hover:bg-rose-50 disabled:opacity-40"
+        >
+          Reject
+        </button>
+      )}
+      {b.status !== "pending" && (
+        <button
+          onClick={() => ctx.setStatus(b.id, "pending")}
+          disabled={ctx.busyBooking === b.id}
+          className="rounded-full border border-oasis-200 px-3.5 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
+        >
+          Reset
+        </button>
+      )}
+      <button
+        onClick={() => ctx.onEdit(b)}
+        disabled={ctx.busyBooking === b.id}
+        className="rounded-full border border-oasis-950/10 px-3.5 py-1.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-40"
+      >
+        Edit
+      </button>
+    </>
+  );
+}
+
+/** Desktop / wide-screen table row. */
 function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
   const allIn = b.status === "approved" && b.checked_in_count >= b.guests;
   const pending = pendingOf(b);
-  const used = ctx.waUsed(b);
 
   return (
     <tr className={`border-b border-zinc-100 last:border-0 ${allIn ? "bg-zinc-50/70" : ""}`}>
@@ -269,44 +435,7 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
       {/* Arrivals */}
       <td className="px-4 py-3.5">
         {b.status === "approved" ? (
-          <div>
-            <div className="flex items-center gap-1.5">
-              <button
-                aria-label="One guest left"
-                onClick={() => ctx.patch(b.id, { checkedInCount: b.checked_in_count - 1 })}
-                disabled={ctx.busyBooking === b.id || b.checked_in_count === 0}
-                className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-30"
-              >
-                −
-              </button>
-              <span
-                className={`min-w-12 text-center text-sm font-semibold ${
-                  b.checked_in_count === b.guests
-                    ? "text-teal-600"
-                    : b.checked_in_count > 0
-                      ? "text-amber-600"
-                      : "text-zinc-400"
-                }`}
-              >
-                {b.checked_in_count} / {b.guests}
-              </span>
-              <button
-                aria-label="One guest arrived"
-                onClick={() => ctx.patch(b.id, { checkedInCount: b.checked_in_count + 1 })}
-                disabled={ctx.busyBooking === b.id || b.checked_in_count >= b.guests}
-                className="flex h-6 w-6 items-center justify-center rounded-full border border-oasis-950/10 text-sm text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-30"
-              >
-                +
-              </button>
-            </div>
-            <p className="mt-1 text-[11px] text-zinc-400">
-              {b.checked_in_count === 0
-                ? "no one in yet"
-                : b.checked_in_count === b.guests
-                  ? "all in"
-                  : `${b.guests - b.checked_in_count} still expected`}
-            </p>
-          </div>
+          <ArrivalsStepper b={b} ctx={ctx} />
         ) : (
           <span className="text-sm text-zinc-400">{b.guests} booked</span>
         )}
@@ -347,91 +476,97 @@ function BookingRow({ b, ctx }: { b: Booking; ctx: RowCtx }) {
       {/* Status */}
       <td className="px-4 py-3.5">
         <div className="flex flex-col items-start gap-1.5">
-          <span
-            className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[b.status]}`}
-          >
-            {BOOKING_STATUS_LABELS[b.status]}
-          </span>
-          <select
-            aria-label={`Guest status for booking ${b.id}`}
-            value={b.guest_status}
-            disabled={ctx.busyBooking === b.id}
-            onChange={(e) => ctx.patch(b.id, { guestStatus: e.target.value })}
-            className={`rounded-lg border px-2 py-1 text-xs font-medium outline-none ${GUEST_STATUS_COLOR[b.guest_status].select}`}
-          >
-            {statusOptions(b).map((o) => (
-              <option key={o.value} value={o.value} disabled={o.disabled}>
-                {GUEST_STATUS_LABELS[o.value]}
-              </option>
-            ))}
-          </select>
+          <StatusPill b={b} />
+          <GuestStatusSelect b={b} ctx={ctx} />
         </div>
       </td>
 
       {/* Actions */}
       <td className="px-4 py-3.5">
         <div className="flex max-w-36 flex-wrap gap-1.5">
-          {b.status === "approved" && b.checked_in_count < b.guests && (
-            <button
-              onClick={() => ctx.patch(b.id, { checkedInCount: b.guests })}
-              disabled={ctx.busyBooking === b.id}
-              className="rounded-full bg-oasis-900 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-800 disabled:opacity-40"
-            >
-              All in
-            </button>
-          )}
-          {b.status === "approved" && (
-            <a
-              href={waLink(b)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => ctx.onWhatsApp(b)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
-                used
-                  ? "border border-emerald-500 bg-emerald-50 text-emerald-700"
-                  : "border border-oasis-950/10 text-oasis-700 hover:bg-oasis-50"
-              }`}
-            >
-              {used ? "WhatsApp ✓" : "WhatsApp ↗"}
-            </a>
-          )}
-          {b.status !== "approved" && (
-            <button
-              onClick={() => ctx.setStatus(b.id, "approved")}
-              disabled={ctx.busyBooking === b.id}
-              className="rounded-full bg-oasis-600 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-oasis-700 disabled:opacity-40"
-            >
-              Approve
-            </button>
-          )}
-          {b.status !== "rejected" && (
-            <button
-              onClick={() => ctx.setStatus(b.id, "rejected")}
-              disabled={ctx.busyBooking === b.id}
-              className="rounded-full border border-rose-300 px-3.5 py-1.5 text-xs font-medium text-rose-500 transition hover:bg-rose-50 disabled:opacity-40"
-            >
-              Reject
-            </button>
-          )}
-          {b.status !== "pending" && (
-            <button
-              onClick={() => ctx.setStatus(b.id, "pending")}
-              disabled={ctx.busyBooking === b.id}
-              className="rounded-full border border-oasis-200 px-3.5 py-1.5 text-xs font-medium text-oasis-700 transition hover:bg-oasis-50 disabled:opacity-40"
-            >
-              Reset
-            </button>
-          )}
-          <button
-            onClick={() => ctx.onEdit(b)}
-            disabled={ctx.busyBooking === b.id}
-            className="rounded-full border border-oasis-950/10 px-3.5 py-1.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-40"
-          >
-            Edit
-          </button>
+          <ActionButtons b={b} ctx={ctx} />
         </div>
       </td>
     </tr>
+  );
+}
+
+/** Phone / tablet card — the same booking, laid out to stack cleanly. */
+function BookingCard({ b, ctx }: { b: Booking; ctx: RowCtx }) {
+  const pending = pendingOf(b);
+
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+      {/* Guest + booking status */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-zinc-400">#{String(b.id).padStart(4, "0")}</p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => ctx.onProfile(b.phone)}
+              className="text-left font-semibold transition hover:text-oasis-700 hover:underline"
+            >
+              {b.name}
+            </button>
+            <CustomerBadgePill badge={ctx.badges[b.phone]} />
+          </div>
+          <p className="text-xs text-zinc-500">{b.phone}</p>
+          {b.email && <p className="break-all text-xs text-zinc-500">{b.email}</p>}
+          {b.heard_about && <p className="text-xs text-zinc-400">via {b.heard_about}</p>}
+          {b.notes && <p className="mt-0.5 text-xs italic text-zinc-400">“{b.notes}”</p>}
+        </div>
+        <StatusPill b={b} />
+      </div>
+
+      {/* Day · Paid · Pending */}
+      <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50 px-3 py-2.5">
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-zinc-400">Day</p>
+          <p className="text-sm font-medium" title={formatDateLong(b.date)}>
+            {formatDateShort(b.date)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-zinc-400">Paid</p>
+          <p className={`text-sm font-semibold ${(b.paid_amount ?? 0) > 0 ? "text-emerald-600" : "text-zinc-400"}`}>
+            {b.paid_amount ?? 0} JOD
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-zinc-400">Pending</p>
+          <p className={`text-sm font-semibold ${pending > 0 ? "text-amber-600" : "text-zinc-400"}`}>
+            {pending} JOD
+          </p>
+        </div>
+      </div>
+
+      {/* Arrivals */}
+      <div className="mt-3">
+        <p className="mb-1 text-[11px] uppercase tracking-wide text-zinc-400">Arrivals</p>
+        {b.status === "approved" ? (
+          <ArrivalsStepper b={b} ctx={ctx} />
+        ) : (
+          <p className="text-sm text-zinc-400">{b.guests} guests booked</p>
+        )}
+      </div>
+
+      {/* Payment editor */}
+      <div className="mt-3 border-t border-zinc-100 pt-3">
+        <p className="mb-1.5 text-[11px] uppercase tracking-wide text-zinc-400">Payment</p>
+        <PaymentEditor booking={b} onError={ctx.onError} onSaved={ctx.onRefresh} />
+      </div>
+
+      {/* Guest status */}
+      <div className="mt-3 border-t border-zinc-100 pt-3">
+        <p className="mb-1.5 text-[11px] uppercase tracking-wide text-zinc-400">Guest status</p>
+        <GuestStatusSelect b={b} ctx={ctx} />
+      </div>
+
+      {/* Actions */}
+      <div className="mt-3 flex flex-wrap gap-1.5 border-t border-zinc-100 pt-3">
+        <ActionButtons b={b} ctx={ctx} />
+      </div>
+    </div>
   );
 }
 
@@ -502,15 +637,24 @@ function BookingsByStatus({
               </button>
 
               {isOpen && (
-                <div className="overflow-x-auto border-t border-zinc-100">
-                  <table className="w-full text-left text-sm">
-                    <SortableHead sort={sort} onSort={onSort} />
-                    <tbody className="align-top">
-                      {items.map((b) => (
-                        <BookingRow key={b.id} b={b} ctx={ctx} />
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="border-t border-zinc-100">
+                  {/* Desktop table */}
+                  <div className="hidden overflow-x-auto lg:block">
+                    <table className="w-full text-left text-sm">
+                      <SortableHead sort={sort} onSort={onSort} />
+                      <tbody className="align-top">
+                        {items.map((b) => (
+                          <BookingRow key={b.id} b={b} ctx={ctx} />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Mobile / tablet cards */}
+                  <div className="space-y-3 bg-zinc-50/60 p-3 lg:hidden">
+                    {items.map((b) => (
+                      <BookingCard key={b.id} b={b} ctx={ctx} />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -865,6 +1009,8 @@ export default function AdminDashboard({
   role,
   team,
   badges,
+  compSummary,
+  compEntries,
   showPasswordWarning,
 }: {
   bookings: Booking[];
@@ -879,6 +1025,8 @@ export default function AdminDashboard({
   role: "manager" | "staff";
   team: StaffUser[];
   badges: Record<string, CustomerBadge>;
+  compSummary: CompAccessSummary;
+  compEntries: CompAccess[];
   showPasswordWarning: boolean;
 }) {
   const router = useRouter();
@@ -1020,74 +1168,8 @@ export default function AdminDashboard({
     }
   }
 
-  async function logout() {
-    await fetch("/api/admin/logout", { method: "POST" }).catch(() => null);
-    router.push("/admin/login");
-    router.refresh();
-  }
-
   return (
-    <div className="min-h-screen bg-zinc-50 pb-20">
-      <header className="border-b border-zinc-200/70 bg-white">
-        <div className="mx-auto flex max-w-[100rem] items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Link href="/">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/logo-black.png" alt="Oasis by Azara" className="h-7 w-auto" />
-            </Link>
-            <span className="rounded-full bg-oasis-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-oasis-700">
-              {role === "manager" ? "Manager" : "Staff"}
-            </span>
-          </div>
-          <div className="flex items-center gap-5">
-            {role === "manager" && (
-              <>
-                <Link
-                  href="/admin/insights"
-                  className="rounded-full bg-oasis-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-700"
-                >
-                  Insights &amp; accounting
-                </Link>
-                <Link
-                  href="/admin/close"
-                  className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
-                >
-                  Cash close
-                </Link>
-                <Link
-                  href="/admin/activity"
-                  className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
-                >
-                  Activity log
-                </Link>
-              </>
-            )}
-            <Link
-              href="/admin/gate"
-              className="rounded-full bg-oasis-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-800"
-            >
-              Gate check-in
-            </Link>
-            <Link
-              href="/admin/customers"
-              className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
-            >
-              Customers
-            </Link>
-            <Link
-              href="/admin/events"
-              className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
-            >
-              Events
-            </Link>
-            <button onClick={logout} className="text-sm font-medium text-oasis-800 hover:text-oasis-600">
-              Sign out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-[100rem] px-6 pt-8">
+    <AdminShell role={role}>
         {showPasswordWarning && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
             <strong>Security note:</strong> the admin password is still the default.
@@ -1097,31 +1179,31 @@ export default function AdminDashboard({
         )}
 
         {/* Stats + capacity */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6">
             <p className="text-sm text-zinc-500">Pending requests</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight">{pendingCount}</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{pendingCount}</p>
           </div>
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6">
             <p className="text-sm text-zinc-500">Bookings today</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight">{bookingsToday}</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{bookingsToday}</p>
           </div>
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6">
             <p className="text-sm text-zinc-500">Guests today</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight">
+            <p className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
               {guestsToday}
-              <span className="text-xl text-zinc-400"> / {capacity}</span>
+              <span className="text-lg text-zinc-400 sm:text-xl"> / {capacity}</span>
             </p>
           </div>
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6">
             <p className="text-sm text-zinc-500">Checked in today</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight text-teal-600">
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-teal-600 sm:text-3xl">
               {checkedInToday}
-              <span className="text-xl text-zinc-400"> / {guestsToday}</span>
+              <span className="text-lg text-zinc-400 sm:text-xl"> / {guestsToday}</span>
             </p>
           </div>
           {role === "manager" ? (
-            <form onSubmit={saveCapacity} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <form onSubmit={saveCapacity} className="col-span-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6 lg:col-span-1">
               <label htmlFor="capacity" className="text-sm text-zinc-500">Daily capacity</label>
               <div className="mt-2 flex gap-2">
                 <input
@@ -1144,16 +1226,16 @@ export default function AdminDashboard({
               <p className="mt-2 text-xs text-zinc-400">Applies to every day. Lower it to limit guests.</p>
             </form>
           ) : (
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <div className="col-span-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6 lg:col-span-1">
               <p className="text-sm text-zinc-500">Daily capacity</p>
-              <p className="mt-1 text-3xl font-semibold tracking-tight">{capacity}</p>
+              <p className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{capacity}</p>
               <p className="mt-2 text-xs text-zinc-400">Set by the manager.</p>
             </div>
           )}
         </div>
 
         {/* Next 14 days */}
-        <section className="mt-10">
+        <section className="mt-8 sm:mt-10">
           <h2 className="text-lg font-semibold tracking-tight">Next 14 days</h2>
           <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
             {summary.map((day) => {
@@ -1196,13 +1278,21 @@ export default function AdminDashboard({
         </section>
 
         {/* Bookings */}
-        <section className="mt-10">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="text-lg font-semibold tracking-tight">Bookings</h2>
-            <div className="flex flex-wrap items-center gap-3 text-sm">
+        <section className="mt-8 sm:mt-10">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold tracking-tight">Bookings</h2>
               <button
                 onClick={() => setShowAdd(true)}
-                className="rounded-full bg-oasis-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-800"
+                className="rounded-full bg-oasis-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-800 sm:hidden"
+              >
+                + Add
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+              <button
+                onClick={() => setShowAdd(true)}
+                className="hidden rounded-full bg-oasis-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-oasis-800 sm:inline-block"
               >
                 + Add booking
               </button>
@@ -1212,7 +1302,7 @@ export default function AdminDashboard({
                 placeholder="Search name or phone…"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-52 rounded-xl border border-oasis-950/10 bg-white px-3 py-2 outline-none transition focus:border-oasis-950/25 focus:ring-4 focus:ring-oasis-500/10"
+                className="col-span-2 rounded-xl border border-oasis-950/10 bg-white px-3 py-2 outline-none transition focus:border-oasis-950/25 focus:ring-4 focus:ring-oasis-500/10 sm:w-52"
               />
               <select
                 aria-label="Filter bookings by status"
@@ -1259,7 +1349,8 @@ export default function AdminDashboard({
             <p className="mt-4 rounded-xl bg-rose-100 px-4 py-3 text-sm text-rose-600">{message}</p>
           )}
 
-          <div className="mt-4 max-h-[65vh] overflow-auto rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+          {/* Desktop / wide table */}
+          <div className="mt-4 hidden max-h-[65vh] overflow-auto rounded-2xl bg-white shadow-sm ring-1 ring-black/5 lg:block">
             <table className="w-full text-left text-sm">
               <SortableHead sort={sort} onSort={onSort} />
               <tbody className="align-top">
@@ -1276,9 +1367,23 @@ export default function AdminDashboard({
               </tbody>
             </table>
           </div>
+
+          {/* Phone / tablet cards */}
+          <div className="mt-4 space-y-3 lg:hidden">
+            {sortedBookings.length === 0 && (
+              <div className="rounded-2xl bg-white px-4 py-12 text-center text-zinc-400 shadow-sm ring-1 ring-black/5">
+                No bookings match these filters.
+              </div>
+            )}
+            {sortedBookings.map((b) => (
+              <BookingCard key={b.id} b={b} ctx={ctx} />
+            ))}
+          </div>
         </section>
 
         <BookingsByStatus bookings={sortedBookings} ctx={ctx} sort={sort} onSort={onSort} />
+
+        <CompAccessSection today={today} summary={compSummary} entries={compEntries} />
 
         {role === "manager" && (
           <TeamSection
@@ -1290,7 +1395,6 @@ export default function AdminDashboard({
             }}
           />
         )}
-      </main>
 
       <AddBookingModal
         open={showAdd}
@@ -1317,6 +1421,6 @@ export default function AdminDashboard({
         onSaved={() => router.refresh()}
       />
       <AssistantWidget />
-    </div>
+    </AdminShell>
   );
 }

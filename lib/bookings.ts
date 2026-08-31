@@ -53,8 +53,31 @@ export interface Booking {
   created_at: string;
 }
 
-/** Guest statuses that release the booking's spots back to the day. */
-const RELEASING_GUEST_STATUSES = "('cancelled', 'cancelled_no_response')";
+/** Guest statuses that release the booking's spots back to the day — the
+ * guest is not (and will not be) taking up their place. "no_response" and
+ * "wrong_number" count here too: an unconfirmed or unreachable booking is
+ * not a real expected guest. This one list is the single source of truth;
+ * every capacity, occupancy and revenue query derives from it. */
+export const RELEASING_GUEST_STATUS_LIST: GuestStatus[] = [
+  "cancelled",
+  "cancelled_no_response",
+  "no_show",
+  "no_response",
+  "wrong_number",
+];
+
+/** The same statuses as a ready-to-embed SQL tuple. */
+export const RELEASING_GUEST_STATUSES = `(${RELEASING_GUEST_STATUS_LIST.map(
+  (s) => `'${s}'`
+).join(", ")})`;
+
+/** Does this booking still occupy a spot for the day? */
+export function bookingCounts(status: BookingStatus, guestStatus: GuestStatus): boolean {
+  return (
+    (status === "pending" || status === "approved") &&
+    !RELEASING_GUEST_STATUS_LIST.includes(guestStatus)
+  );
+}
 
 // ---------- audit log (append-only, by design never updated/deleted) ----------
 
@@ -298,15 +321,24 @@ export function createBooking(input: NewBookingInput): CreateResult {
     }
 
     const pricePerGuest = priceForDate(date);
+    // Bookings are confirmed the moment they are made — no admin approval
+    // step. The confirmation email and WhatsApp are sent from the route.
     const result = db
       .prepare(
-        `INSERT INTO bookings (name, phone, email, date, guests, price_per_guest, total_price, payment_method, heard_about, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO bookings (name, phone, email, date, guests, price_per_guest, total_price, payment_method, heard_about, notes, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')`
       )
       .run(name, phone, email, date, guests, pricePerGuest, pricePerGuest * guests, paymentMethod, heardAbout, notes);
 
-    const booking = getBooking(Number(result.lastInsertRowid));
+    const id = Number(result.lastInsertRowid);
+    const booking = getBooking(id);
     if (!booking) return { ok: false, error: "Something went wrong. Please try again." };
+    logAction(
+      { name: "System", role: "system" },
+      "created",
+      `Booking #${id} (${name}, ${date}, ${guests} ${guests === 1 ? "guest" : "guests"}) booked online and auto-confirmed`,
+      id
+    );
     return { ok: true, booking };
   });
 
@@ -534,10 +566,7 @@ export function updateBookingDetails(
 
     // Moving day or growing the group takes spots — re-check capacity for
     // bookings that count against it, on today or future days only.
-    const counts =
-      (booking.status === "pending" || booking.status === "approved") &&
-      booking.guest_status !== "cancelled" &&
-      booking.guest_status !== "cancelled_no_response";
+    const counts = bookingCounts(booking.status, booking.guest_status);
     if (counts && (date !== booking.date || guests > booking.guests) && date >= today()) {
       const room =
         date === booking.date

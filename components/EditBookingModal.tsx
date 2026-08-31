@@ -215,7 +215,7 @@ export default function EditBookingModal({
           </div>
 
           {error && (
-            <p className="rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">{error}</p>
+            <p className="rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-700">{error}</p>
           )}
 
           <div className="flex items-center justify-end gap-3 border-t border-zinc-100 pt-4">

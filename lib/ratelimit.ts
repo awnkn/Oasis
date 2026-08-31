@@ -30,9 +30,15 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateRes
   return { ok: true, retryAfterSec: 0 };
 }
 
-/** Best-effort client IP from the proxy headers (Render sets X-Forwarded-For). */
+/** Best-effort client IP from the proxy headers (Render sets X-Forwarded-For).
+ * We take the RIGHT-most entry — the address the platform's own proxy saw the
+ * request arrive from. The left-most values are supplied by the client and
+ * can be spoofed to slip past the rate limiter, so they are never trusted. */
 export function clientIp(request: Request): string {
   const xff = request.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
+  if (xff) {
+    const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1];
+  }
   return request.headers.get("x-real-ip") || "unknown";
 }

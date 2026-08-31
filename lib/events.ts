@@ -41,8 +41,10 @@ export const EVENT_TICKET_STATUSES: EventTicketStatus[] = [
 export const EVENT_GUEST_STATUSES = [
   "open",
   "contacted",
+  "follow_up",
   "confirmed",
   "checked_in",
+  "wrong_number",
   "cancelled",
 ] as const;
 export type EventGuestStatus = (typeof EVENT_GUEST_STATUSES)[number];
@@ -64,7 +66,9 @@ export interface EventTicket {
   created_at: string;
 }
 
-const RELEASING = "('cancelled')";
+// Guest statuses that free the ticket's spots: cancelled, or an unreachable
+// contact. A "wrong number" reservation is not a real expected guest.
+const RELEASING = "('cancelled', 'wrong_number')";
 
 function parseRow(row: EventRow | undefined): TicketedEvent | undefined {
   if (!row) return undefined;
@@ -405,6 +409,73 @@ export function createTicket(input: NewTicketInput): TicketResult {
 
 // ---------- reservations (admin) ----------
 
+export interface ManualTicketInput {
+  eventId: number;
+  name: string;
+  phone: string;
+  email?: string;
+  quantity: number;
+  notes?: string;
+}
+
+/**
+ * Staff-entered event reservation (walk-in or phone). Created already
+ * approved with the guest marked "confirmed" — staff spoke to them
+ * themselves. Email is optional here, unlike the public form.
+ */
+export function createManualTicket(
+  input: ManualTicketInput,
+  actor: Actor
+): TicketResult {
+  const name = input.name?.trim() ?? "";
+  const phone = input.phone?.trim() ?? "";
+  const email = input.email?.trim() || null;
+  const notes = input.notes?.trim() || null;
+
+  if (name.length < 2 || name.length > 100) return { ok: false, error: "Please enter the guest's full name." };
+  if (phone.length < 6 || phone.length > 30) return { ok: false, error: "Please enter a valid phone number." };
+  if (email && (email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+    return { ok: false, error: "Please enter a valid email address (or leave it empty)." };
+  }
+  if (notes && notes.length > 500) return { ok: false, error: "Notes are too long (500 characters max)." };
+  if (!Number.isInteger(input.quantity) || input.quantity < 1 || input.quantity > 30) {
+    return { ok: false, error: "Please enter how many tickets (1–30)." };
+  }
+
+  const db = getDb();
+  const insert = db.transaction((): TicketResult => {
+    const event = getEvent(input.eventId);
+    if (!event) return { ok: false, error: "Event not found." };
+    const remaining = remainingFor(event);
+    if (remaining !== null && input.quantity > remaining) {
+      return {
+        ok: false,
+        error:
+          remaining <= 0
+            ? "This event is fully booked. Raise the capacity to add more."
+            : `Only ${remaining} ${remaining === 1 ? "ticket is" : "tickets are"} left for this event.`,
+      };
+    }
+    const total = event.price * input.quantity;
+    const result = db
+      .prepare(
+        `INSERT INTO event_tickets
+           (event_id, name, phone, email, quantity, total_price, notes, status, guest_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', 'confirmed')`
+      )
+      .run(event.id, name, phone, email, input.quantity, total, notes);
+    const id = Number(result.lastInsertRowid);
+    logAction(
+      actor,
+      "event_ticket",
+      `Event "${event.title}" · walk-in reservation #${String(id).padStart(4, "0")} (${name}, ${input.quantity} ${input.quantity === 1 ? "ticket" : "tickets"}) added from the dashboard`
+    );
+    const ticket = getTicket(id)!;
+    return { ok: true, ticket, event };
+  });
+  return insert();
+}
+
 export function getTicket(id: number): EventTicket | undefined {
   return getDb().prepare("SELECT * FROM event_tickets WHERE id = ?").get(id) as
     | EventTicket
@@ -492,7 +563,13 @@ export function updateTicket(
         return { ok: false, reason: "invalid", message: "Unknown guest status." };
       }
       if (u.guestStatus !== ticket.guest_status) changes.push(`guest ${ticket.guest_status} → ${u.guestStatus}`);
-      db.prepare("UPDATE event_tickets SET guest_status = ? WHERE id = ?").run(u.guestStatus, id);
+      // Leaving "checked in" clears the arrivals count, mirroring day-pass
+      // bookings, so a cancelled ticket never keeps ghost arrivals.
+      const clearArrivals =
+        ticket.guest_status === "checked_in" && u.guestStatus !== "checked_in";
+      db.prepare(
+        `UPDATE event_tickets SET guest_status = ?${clearArrivals ? ", checked_in_count = 0" : ""} WHERE id = ?`
+      ).run(u.guestStatus, id);
     }
 
     if (u.checkedInCount !== undefined) {

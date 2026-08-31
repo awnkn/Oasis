@@ -58,7 +58,8 @@ export function businessJsonLd() {
     areaServed: { "@type": "City", name: "Amman" },
     audience: { "@type": "PeopleAudience", suggestedGender: "female" },
     slogan: "A sanctuary designed around you.",
-    sameAs: [SITE_URL],
+    // sameAs intentionally omitted until real social profile URLs exist
+    // (Instagram / TikTok / Facebook); it must not point at our own site.
   };
 }
 
@@ -96,11 +97,11 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How do I book a day at Oasis?",
-    a: "Send a booking request online in under a minute. Our team reviews every request and calls you to confirm. Nothing is charged online, and you pay at the gate.",
+    a: "Book online in under a minute and your spot is confirmed instantly. You receive a confirmation by email and WhatsApp, plus a reminder the day before. Nothing is charged online, and you pay at the gate.",
   },
   {
     q: "How do I pay?",
-    a: "You pay at the entrance. There is no online payment. We accept Cash, CliQ and Visa at the gate.",
+    a: "You pay at the gate. There is no online payment. We accept Cash, CliQ and Visa at the gate.",
   },
   {
     q: "Is there an age policy?",
@@ -138,7 +139,7 @@ export function faqJsonLd() {
 
 // ---------- Event structured data ----------
 
-export function eventJsonLd(event: TicketedEvent) {
+export function eventJsonLd(event: TicketedEvent, soldOut = false) {
   const url = `${SITE_URL}/events/${event.slug}`;
   return {
     "@context": "https://schema.org",
@@ -161,7 +162,9 @@ export function eventJsonLd(event: TicketedEvent) {
       "@type": "Offer",
       price: event.price,
       priceCurrency: CURRENCY,
-      availability: "https://schema.org/InStock",
+      availability: soldOut
+        ? "https://schema.org/SoldOut"
+        : "https://schema.org/InStock",
       url,
     },
   };

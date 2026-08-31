@@ -1,8 +1,6 @@
 // Central configuration for the Oasis club booking system.
 
 export const CLUB_NAME = "Oasis by Azara";
-export const CLUB_TAGLINE =
-  "A sanctuary for women, a ladies only pool retreat in Jordan.";
 
 export const CURRENCY = "JOD";
 
@@ -40,13 +38,17 @@ export const HEARD_ABOUT_OPTIONS = [
 ] as const;
 
 // Guest relationship statuses (separate from booking approval).
-// "cancelled_no_response" is set automatically by the 24-hour sweep.
+// "cancelled_no_response" is set automatically by the 24-hour sweep;
+// "no_show" is set by staff for a confirmed guest who never arrived.
 export const GUEST_STATUSES = [
   "open",
   "contacted",
+  "follow_up",
   "no_response",
   "confirmed",
   "checked_in",
+  "no_show",
+  "wrong_number",
   "cancelled",
   "cancelled_no_response",
 ] as const;
@@ -56,9 +58,12 @@ export type GuestStatus = (typeof GUEST_STATUSES)[number];
 export const GUEST_STATUS_LABELS: Record<GuestStatus, string> = {
   open: "Open",
   contacted: "Contacted",
+  follow_up: "Follow up",
   no_response: "No response",
   confirmed: "Confirmed",
   checked_in: "Checked in",
+  no_show: "No show",
+  wrong_number: "Wrong number",
   cancelled: "Cancelled",
   cancelled_no_response: "Cancelled (no response)",
 };

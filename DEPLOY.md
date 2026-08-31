@@ -12,8 +12,10 @@ Three good options, easiest first:
    (`awnkn/Oasis`). Render reads [`render.yaml`](render.yaml) automatically.
 3. When prompted, set **`ADMIN_PASSWORD`** — this is the password for the
    `/admin` dashboard, so pick a strong one.
-4. Click **Apply**. First build takes a few minutes, then your site is live at
-   `https://oasis-XXXX.onrender.com` — share that link.
+4. Click **Apply**. First build takes a few minutes, then your site goes live
+   on its Render URL. Point your custom domain (`oasisjo.com`) at the service
+   and set **`SITE_URL`** to `https://oasisjo.com` so every link, sitemap
+   entry and preview uses the real domain. Share the `oasisjo.com` link.
 
 Notes:
 - The blueprint uses the Starter instance (~$7/month) because persistent

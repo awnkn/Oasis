@@ -154,11 +154,12 @@ export default function BookingForm({
           ✓
         </div>
         <h2 className="mt-5 font-display text-3xl font-semibold">
-          Request received, {confirmed.name.split(" ")[0]}!
+          You’re confirmed, {confirmed.name.split(" ")[0]}!
         </h2>
         <p className="mt-3 text-oasis-900/70">
-          Your booking is <strong>pending approval</strong>. Our team will call
-          you shortly to confirm your day.
+          Your booking is <strong>confirmed</strong>. A confirmation is on its
+          way to your email and WhatsApp, and we’ll send a reminder the day
+          before your visit.
         </p>
         <dl className="mt-6 space-y-2 rounded-2xl bg-sand-100 p-6 text-sm">
           <div className="flex justify-between">
@@ -239,8 +240,9 @@ export default function BookingForm({
       {/* Availability + price strip */}
       {date && (
         <div
+          aria-live="polite"
           className={`mt-5 rounded-2xl px-5 py-4 text-sm ${
-            soldOut ? "bg-blush-100 text-blush-500" : "bg-oasis-50 text-oasis-800"
+            soldOut ? "bg-blush-100 text-blush-700" : "bg-oasis-50 text-oasis-800"
           }`}
         >
           {checking ? (
@@ -359,7 +361,7 @@ export default function BookingForm({
             />
           </div>
           <p className="mt-1 text-xs text-oasis-900/50">
-            We confirm every booking by phone.
+            We send your confirmation and a reminder here on WhatsApp.
           </p>
         </div>
         <div>
@@ -390,7 +392,7 @@ export default function BookingForm({
             return (
               <label
                 key={option}
-                className={`cursor-pointer select-none rounded-full border px-4 py-2 text-sm transition ${
+                className={`cursor-pointer select-none rounded-full border px-4 py-2 text-sm transition focus-within:ring-2 focus-within:ring-oasis-500 focus-within:ring-offset-2 ${
                   active
                     ? "border-oasis-600 bg-oasis-600 text-white"
                     : "border-oasis-950/10 bg-white text-oasis-800 hover:border-oasis-400"
@@ -453,7 +455,7 @@ export default function BookingForm({
       </fieldset>
 
       {error && (
-        <p className="mt-5 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-500">
+        <p className="mt-5 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-700">
           {error}
         </p>
       )}
@@ -483,7 +485,7 @@ export default function BookingForm({
           }
           className="rounded-full bg-oasis-600 px-8 py-3.5 font-medium text-white shadow-md transition hover:bg-oasis-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting ? "Sending…" : "Send booking request"}
+          {submitting ? "Confirming…" : "Confirm booking"}
         </button>
       </div>
     </form>

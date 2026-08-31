@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import CsvButton from "@/components/CsvButton";
+import AdminShell from "@/components/AdminShell";
 import { getAdminRole } from "@/lib/auth";
 import {
   getInsights,
@@ -337,37 +337,24 @@ export default async function InsightsPage() {
   const heardMax = Math.max(1, ...heardAbout.map((h) => h.count));
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-20">
-      <header className="border-b border-zinc-200/70 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Link href="/">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/logo-black.png"
-                alt="Oasis by Azara"
-                className="h-7 w-auto"
-              />
-            </Link>
-            <span className="rounded-full bg-sand-200 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sand-800">
-              Insights
-            </span>
+    <AdminShell role={role} maxWidthClass="max-w-6xl">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">
+              Insights &amp; accounting
+            </h1>
+            <p className="mt-1 text-sm text-zinc-500">
+              Bookings, revenue and where your guests come from.
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            <a
-              href="/api/admin/backup"
-              className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
-            >
-              Download backup
-            </a>
-            <Link href="/admin" className="text-sm font-medium text-oasis-800 hover:text-oasis-600">
-              ← Back to dashboard
-            </Link>
-          </div>
+          <a
+            href="/api/admin/backup"
+            className="rounded-full border border-oasis-950/10 px-4 py-2 text-sm font-medium text-oasis-800 transition hover:bg-oasis-50"
+          >
+            Download backup
+          </a>
         </div>
-      </header>
 
-      <main className="mx-auto max-w-6xl px-6 pt-8">
         {/* KPIs */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {kpis.map((k) => (
@@ -660,7 +647,6 @@ export default async function InsightsPage() {
             </table>
           </div>
         </section>
-      </main>
-    </div>
+    </AdminShell>
   );
 }
