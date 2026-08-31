@@ -564,7 +564,7 @@ export default function HomePage() {
               },
             ].map((item) => (
               <div key={item.step} className="text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blush-200 font-display text-xl font-semibold text-oasis-900">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white font-display text-xl font-semibold text-oasis-900 shadow-sm ring-1 ring-oasis-950/10">
                   {item.step}
                 </div>
                 <h3 className="mt-4 font-display text-2xl font-semibold">{item.title}</h3>
