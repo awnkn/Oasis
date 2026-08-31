@@ -18,6 +18,7 @@ import { isValidDateString, today } from "@/lib/dates";
 import { getDb } from "@/lib/db";
 import { listUsers } from "@/lib/users";
 import { customerBadges } from "@/lib/customers";
+import { compAccessSummary, listCompAccess } from "@/lib/comp";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,8 @@ export default async function AdminPage({
       role={role}
       team={role === "manager" ? listUsers() : []}
       badges={badges}
+      compSummary={compAccessSummary()}
+      compEntries={listCompAccess()}
       showPasswordWarning={
         role === "manager" &&
         (defaultPasswordsInUse().manager || defaultPasswordsInUse().staff)

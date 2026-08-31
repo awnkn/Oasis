@@ -147,6 +147,22 @@ const SCHEMA = `
     closed_by TEXT NOT NULL,
     closed_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- Complimentary (free) entries, logged by staff. Standalone from bookings
+  -- so guests who never booked (VIPs, staff guests, press) can be recorded,
+  -- and past visits can be backfilled by setting an earlier date.
+  CREATE TABLE IF NOT EXISTS comp_access (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    people INTEGER NOT NULL DEFAULT 1 CHECK (people > 0),
+    date TEXT NOT NULL,
+    reason TEXT,
+    actor_name TEXT NOT NULL,
+    actor_role TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_comp_access_date ON comp_access(date);
 `;
 
 /** The event Oasis is launching with, inserted once on first run. */

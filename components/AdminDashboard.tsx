@@ -22,6 +22,8 @@ import AdminShell from "@/components/AdminShell";
 import AssistantWidget from "@/components/AssistantWidget";
 import EditBookingModal from "@/components/EditBookingModal";
 import CustomerProfile from "@/components/CustomerProfile";
+import CompAccessSection from "@/components/CompAccess";
+import type { CompAccess, CompAccessSummary } from "@/lib/comp";
 
 const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   pending: "Pending",
@@ -1007,6 +1009,8 @@ export default function AdminDashboard({
   role,
   team,
   badges,
+  compSummary,
+  compEntries,
   showPasswordWarning,
 }: {
   bookings: Booking[];
@@ -1021,6 +1025,8 @@ export default function AdminDashboard({
   role: "manager" | "staff";
   team: StaffUser[];
   badges: Record<string, CustomerBadge>;
+  compSummary: CompAccessSummary;
+  compEntries: CompAccess[];
   showPasswordWarning: boolean;
 }) {
   const router = useRouter();
@@ -1376,6 +1382,8 @@ export default function AdminDashboard({
         </section>
 
         <BookingsByStatus bookings={sortedBookings} ctx={ctx} sort={sort} onSort={onSort} />
+
+        <CompAccessSection today={today} summary={compSummary} entries={compEntries} />
 
         {role === "manager" && (
           <TeamSection
