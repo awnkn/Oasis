@@ -2,6 +2,17 @@
 
 import { useEffect, useState } from "react";
 import type { Booking } from "@/lib/bookings";
+import {
+  NIGHT_SWIM_DAY,
+  NIGHT_SWIM_TIME,
+  type SwimSession,
+} from "@/lib/config";
+
+function isThursdayDate(date: string): boolean {
+  return date
+    ? new Date(`${date}T00:00:00Z`).getUTCDay() === NIGHT_SWIM_DAY
+    : false;
+}
 
 /**
  * Edit every detail of an existing booking. The server re-checks
@@ -21,6 +32,7 @@ export default function EditBookingModal({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [date, setDate] = useState("");
+  const [session, setSession] = useState<SwimSession>("day");
   const [guests, setGuests] = useState("1");
   const [notes, setNotes] = useState("");
   const [heardAbout, setHeardAbout] = useState("");
@@ -34,6 +46,7 @@ export default function EditBookingModal({
     setPhone(booking.phone);
     setEmail(booking.email ?? "");
     setDate(booking.date);
+    setSession(booking.session);
     setGuests(String(booking.guests));
     setNotes(booking.notes ?? "");
     setHeardAbout(booking.heard_about ?? "");
@@ -41,6 +54,14 @@ export default function EditBookingModal({
   }, [booking]);
 
   if (!booking) return null;
+
+  const thursday = isThursdayDate(date);
+  const effectiveSession: SwimSession = thursday ? session : "day";
+
+  function pickDate(next: string) {
+    setDate(next);
+    if (!isThursdayDate(next)) setSession("day");
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,6 +77,7 @@ export default function EditBookingModal({
           phone,
           email: email.trim() || null,
           date,
+          session: effectiveSession,
           guests: Number.parseInt(guests, 10),
           notes: notes.trim() || null,
           heardAbout: heardAbout.trim() || null,
@@ -164,7 +186,7 @@ export default function EditBookingModal({
                 type="date"
                 required
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={(e) => pickDate(e.target.value)}
                 className={inputClass}
               />
             </div>
@@ -183,6 +205,42 @@ export default function EditBookingModal({
                 className={inputClass}
               />
             </div>
+          </div>
+
+          {/* Session — night swims sit in a separate Thursday-evening pool */}
+          <div>
+            <span className="mb-1 block text-xs font-medium text-zinc-500">Session</span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setSession("day")}
+                aria-pressed={effectiveSession === "day"}
+                className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                  effectiveSession === "day"
+                    ? "border-oasis-600 bg-oasis-50 text-oasis-800"
+                    : "border-oasis-950/10 bg-white text-zinc-600 hover:border-oasis-400"
+                }`}
+              >
+                ☀️ Day swim
+              </button>
+              <button
+                type="button"
+                onClick={() => thursday && setSession("night")}
+                disabled={!thursday}
+                aria-pressed={effectiveSession === "night"}
+                title={thursday ? undefined : "Night swims run on Thursdays only"}
+                className={`rounded-xl border px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  effectiveSession === "night"
+                    ? "border-oasis-600 bg-oasis-950 text-white"
+                    : "border-oasis-950/10 bg-white text-zinc-600 hover:border-oasis-400"
+                }`}
+              >
+                🌙 Night swim
+              </button>
+            </div>
+            {thursday && (
+              <p className="mt-1 text-xs text-zinc-400">Night swim: {NIGHT_SWIM_TIME}</p>
+            )}
           </div>
 
           <div>

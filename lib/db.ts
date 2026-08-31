@@ -10,6 +10,8 @@ const SCHEMA = `
     phone TEXT NOT NULL,
     email TEXT,
     date TEXT NOT NULL,
+    session TEXT NOT NULL DEFAULT 'day'
+      CHECK (session IN ('day', 'night')),
     guests INTEGER NOT NULL CHECK (guests > 0),
     price_per_guest REAL NOT NULL,
     total_price REAL NOT NULL,
@@ -242,6 +244,12 @@ function createDatabase(): Database.Database {
     // Bookings checked in before partial arrivals existed count in full.
     db.exec(
       "UPDATE bookings SET checked_in_count = guests WHERE checked_in_at IS NOT NULL"
+    );
+  }
+  if (!columns.includes("session")) {
+    // Every booking made before night swims existed is a day swim.
+    db.exec(
+      "ALTER TABLE bookings ADD COLUMN session TEXT NOT NULL DEFAULT 'day'"
     );
   }
   if (!columns.includes("reminder_sent_at")) {

@@ -7,11 +7,19 @@ import {
   MAX_ADVANCE_DAYS,
   NO_RESPONSE_CANCEL_HOURS,
   PAYMENT_ACCOUNTS,
+  SWIM_SESSION_LABELS,
   type GuestStatus,
+  type SwimSession,
 } from "./config";
 
-export type { GuestStatus };
-import { addDays, isValidDateString, priceForDate, today } from "./dates";
+export type { GuestStatus, SwimSession };
+import {
+  addDays,
+  isNightSwimDay,
+  isValidDateString,
+  priceForSession,
+  today,
+} from "./dates";
 
 export type BookingStatus = "pending" | "approved" | "rejected";
 
@@ -35,6 +43,8 @@ export interface Booking {
   phone: string;
   email: string | null;
   date: string;
+  /** Which session the booking is for: daytime pass or the night swim. */
+  session: SwimSession;
   guests: number;
   price_per_guest: number;
   total_price: number;
@@ -121,6 +131,7 @@ export interface NewBookingInput {
   phone: string;
   email?: string;
   date: string;
+  session?: SwimSession;
   guests: number;
   heardAbout?: string[];
   paymentMethod?: string;
@@ -189,16 +200,19 @@ export function checkedInGuestsToday(): number {
 
 /**
  * Guests counted against capacity: pending + approved bookings whose guest
- * hasn't cancelled.
+ * hasn't cancelled. Pass a session to count just that pool (day and night
+ * are separate time windows with separate capacity); omit it to count
+ * everyone expected on the date across both sessions.
  */
-export function bookedGuestsOn(date: string): number {
+export function bookedGuestsOn(date: string, session?: SwimSession): number {
   const row = getDb()
     .prepare(
       `SELECT COALESCE(SUM(guests), 0) AS total FROM bookings
        WHERE date = ? AND status IN ('pending', 'approved')
-         AND guest_status NOT IN ${RELEASING_GUEST_STATUSES}`
+         AND guest_status NOT IN ${RELEASING_GUEST_STATUSES}
+         ${session ? "AND session = ?" : ""}`
     )
-    .get(date) as { total: number };
+    .get(...(session ? [date, session] : [date])) as { total: number };
   return row.total;
 }
 
@@ -240,8 +254,10 @@ export function sweepNoResponse(): void {
   run();
 }
 
-export function remainingOn(date: string): number {
-  return Math.max(0, getDailyCapacity() - bookedGuestsOn(date));
+/** Spots left in one session's pool on a date (day pool by default). Day
+ *  and night each get the full daily capacity — they never share spots. */
+export function remainingOn(date: string, session: SwimSession = "day"): number {
+  return Math.max(0, getDailyCapacity() - bookedGuestsOn(date, session));
 }
 
 // ---------- bookings ----------
@@ -252,6 +268,7 @@ export function createBooking(input: NewBookingInput): CreateResult {
   const email = input.email?.trim() || null;
   const notes = input.notes?.trim() || null;
   const date = input.date?.trim() ?? "";
+  const session: SwimSession = input.session === "night" ? "night" : "day";
   const guests = input.guests;
 
   if (name.length < 2 || name.length > 100) {
@@ -304,13 +321,25 @@ export function createBooking(input: NewBookingInput): CreateResult {
   if (!Number.isInteger(guests) || guests < 1) {
     return { ok: false, error: "Please enter how many guests are coming." };
   }
+  if (session === "night" && !isNightSwimDay(date)) {
+    return {
+      ok: false,
+      error: "Night swims run on Thursday evenings only. Please pick a Thursday, or choose the day swim.",
+    };
+  }
 
   sweepNoResponse();
   const db = getDb();
   const insert = db.transaction((): CreateResult => {
-    const remaining = remainingOn(date);
+    const remaining = remainingOn(date, session);
     if (remaining <= 0) {
-      return { ok: false, error: "This day is fully booked. Please pick another date." };
+      return {
+        ok: false,
+        error:
+          session === "night"
+            ? "The night swim is fully booked for this date. Please pick another Thursday."
+            : "This day is fully booked. Please pick another date.",
+      };
     }
     if (guests > remaining) {
       return {
@@ -320,15 +349,15 @@ export function createBooking(input: NewBookingInput): CreateResult {
       };
     }
 
-    const pricePerGuest = priceForDate(date);
+    const pricePerGuest = priceForSession(date, session);
     // Bookings are confirmed the moment they are made — no admin approval
     // step. The confirmation email and WhatsApp are sent from the route.
     const result = db
       .prepare(
-        `INSERT INTO bookings (name, phone, email, date, guests, price_per_guest, total_price, payment_method, heard_about, notes, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')`
+        `INSERT INTO bookings (name, phone, email, date, session, guests, price_per_guest, total_price, payment_method, heard_about, notes, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')`
       )
-      .run(name, phone, email, date, guests, pricePerGuest, pricePerGuest * guests, paymentMethod, heardAbout, notes);
+      .run(name, phone, email, date, session, guests, pricePerGuest, pricePerGuest * guests, paymentMethod, heardAbout, notes);
 
     const id = Number(result.lastInsertRowid);
     const booking = getBooking(id);
@@ -336,7 +365,7 @@ export function createBooking(input: NewBookingInput): CreateResult {
     logAction(
       { name: "System", role: "system" },
       "created",
-      `Booking #${id} (${name}, ${date}, ${guests} ${guests === 1 ? "guest" : "guests"}) booked online and auto-confirmed`,
+      `Booking #${id} (${name}, ${date}, ${SWIM_SESSION_LABELS[session]}, ${guests} ${guests === 1 ? "guest" : "guests"}) booked online and auto-confirmed`,
       id
     );
     return { ok: true, booking };
@@ -350,6 +379,7 @@ export interface ManualBookingInput {
   phone: string;
   email?: string;
   date: string;
+  session?: SwimSession;
   guests: number;
   notes?: string;
 }
@@ -368,6 +398,7 @@ export function createManualBooking(
   const email = input.email?.trim() || null;
   const notes = input.notes?.trim() || null;
   const date = input.date?.trim() ?? "";
+  const session: SwimSession = input.session === "night" ? "night" : "day";
   const guests = input.guests;
 
   if (name.length < 2 || name.length > 100) {
@@ -398,35 +429,43 @@ export function createManualBooking(
   if (!Number.isInteger(guests) || guests < 1) {
     return { ok: false, error: "Please enter how many guests are coming." };
   }
+  if (session === "night" && !isNightSwimDay(date)) {
+    return {
+      ok: false,
+      error: "Night swims run on Thursdays only. Pick a Thursday, or choose the day swim.",
+    };
+  }
 
   sweepNoResponse();
   const db = getDb();
   const insert = db.transaction((): CreateResult => {
-    const remaining = remainingOn(date);
+    const remaining = remainingOn(date, session);
     if (guests > remaining) {
       return {
         ok: false,
         error:
           remaining <= 0
-            ? "This day is fully booked."
-            : `Only ${remaining} ${remaining === 1 ? "spot is" : "spots are"} left on this day.`,
+            ? session === "night"
+              ? "The night swim is fully booked for this date."
+              : "This day is fully booked."
+            : `Only ${remaining} ${remaining === 1 ? "spot is" : "spots are"} left on this ${session === "night" ? "night swim" : "day"}.`,
       };
     }
 
-    const pricePerGuest = priceForDate(date);
+    const pricePerGuest = priceForSession(date, session);
     const result = db
       .prepare(
-        `INSERT INTO bookings (name, phone, email, date, guests, price_per_guest, total_price,
+        `INSERT INTO bookings (name, phone, email, date, session, guests, price_per_guest, total_price,
            status, guest_status, guest_status_at, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', 'confirmed', datetime('now'), ?)`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'approved', 'confirmed', datetime('now'), ?)`
       )
-      .run(name, phone, email, date, guests, pricePerGuest, pricePerGuest * guests, notes);
+      .run(name, phone, email, date, session, guests, pricePerGuest, pricePerGuest * guests, notes);
 
     const id = Number(result.lastInsertRowid);
     logAction(
       actor,
       "created",
-      `Booking #${id} (${name}, ${date}, ${guests} ${guests === 1 ? "guest" : "guests"}) added manually from the dashboard`,
+      `Booking #${id} (${name}, ${date}, ${SWIM_SESSION_LABELS[session]}, ${guests} ${guests === 1 ? "guest" : "guests"}) added manually from the dashboard`,
       id
     );
     const booking = getBooking(id);
@@ -494,6 +533,7 @@ export interface BookingDetailsUpdate {
   /** null clears the email. */
   email?: string | null;
   date?: string;
+  session?: SwimSession;
   guests?: number;
   notes?: string | null;
   heardAbout?: string | null;
@@ -556,6 +596,7 @@ export function updateBookingDetails(
     const email =
       u.email !== undefined ? (u.email?.trim() || null) : booking.email;
     const date = u.date ?? booking.date;
+    const session: SwimSession = u.session ?? booking.session;
     const guests = u.guests ?? booking.guests;
     const notes =
       u.notes !== undefined ? (u.notes?.trim() || null) : booking.notes;
@@ -564,14 +605,23 @@ export function updateBookingDetails(
         ? (u.heardAbout?.trim().slice(0, 200) || null)
         : booking.heard_about;
 
-    // Moving day or growing the group takes spots — re-check capacity for
-    // bookings that count against it, on today or future days only.
+    // A night swim can only sit on a Thursday, whether the session or the
+    // day was the thing that changed.
+    if (session === "night" && !isNightSwimDay(date)) {
+      return invalid("Night swims run on Thursdays only — pick a Thursday, or switch it to a day swim.");
+    }
+
+    // Moving day/session or growing the group takes spots — re-check the
+    // relevant session's pool, on today or future days only.
     const counts = bookingCounts(booking.status, booking.guest_status);
-    if (counts && (date !== booking.date || guests > booking.guests) && date >= today()) {
-      const room =
-        date === booking.date
-          ? remainingOn(date) + booking.guests // this booking already counted
-          : remainingOn(date);
+    const moved =
+      date !== booking.date || session !== booking.session || guests > booking.guests;
+    if (counts && moved && date >= today()) {
+      // The booking only already occupies a spot in its *current* pool.
+      const samePool = date === booking.date && session === booking.session;
+      const room = samePool
+        ? remainingOn(date, session) + booking.guests
+        : remainingOn(date, session);
       if (guests > room) {
         return {
           ok: false,
@@ -587,7 +637,9 @@ export function updateBookingDetails(
     }
 
     const pricePerGuest =
-      date !== booking.date ? priceForDate(date) : booking.price_per_guest;
+      date !== booking.date || session !== booking.session
+        ? priceForSession(date, session)
+        : booking.price_per_guest;
     const totalPrice = pricePerGuest * guests;
 
     const changes: string[] = [];
@@ -596,6 +648,8 @@ export function updateBookingDetails(
     if (email !== booking.email)
       changes.push(`email ${booking.email ?? "—"} → ${email ?? "—"}`);
     if (date !== booking.date) changes.push(`day ${booking.date} → ${date}`);
+    if (session !== booking.session)
+      changes.push(`session ${SWIM_SESSION_LABELS[booking.session]} → ${SWIM_SESSION_LABELS[session]}`);
     if (guests !== booking.guests)
       changes.push(`guests ${booking.guests} → ${guests}`);
     if (totalPrice !== booking.total_price)
@@ -605,10 +659,10 @@ export function updateBookingDetails(
     if (changes.length === 0) return { ok: true, changed: false };
 
     db.prepare(
-      `UPDATE bookings SET name = ?, phone = ?, email = ?, date = ?, guests = ?,
+      `UPDATE bookings SET name = ?, phone = ?, email = ?, date = ?, session = ?, guests = ?,
          price_per_guest = ?, total_price = ?, notes = ?, heard_about = ?
        WHERE id = ?`
-    ).run(name, phone, email, date, guests, pricePerGuest, totalPrice, notes, heardAbout, id);
+    ).run(name, phone, email, date, session, guests, pricePerGuest, totalPrice, notes, heardAbout, id);
     logAction(
       actor,
       "edited",
@@ -645,7 +699,7 @@ export function updateBookingStatus(
       status !== "rejected" &&
       booking.date >= today()
     ) {
-      const remaining = remainingOn(booking.date);
+      const remaining = remainingOn(booking.date, booking.session);
       if (booking.guests > remaining) {
         return {
           ok: false,
@@ -1122,7 +1176,8 @@ export interface DaySummary {
   price: number;
 }
 
-/** Occupancy for the next `days` days, starting today. */
+/** Day-pass occupancy for the next `days` days, starting today. Night
+ *  swims are a separate Thursday-evening pool and are not counted here. */
 export function occupancySummary(days: number): DaySummary[] {
   const capacity = getDailyCapacity();
   const start = today();
@@ -1130,6 +1185,7 @@ export function occupancySummary(days: number): DaySummary[] {
     .prepare(
       `SELECT date, COALESCE(SUM(guests), 0) AS booked FROM bookings
        WHERE date >= ? AND date <= ? AND status IN ('pending', 'approved')
+         AND session = 'day'
          AND guest_status NOT IN ${RELEASING_GUEST_STATUSES}
        GROUP BY date`
     )
@@ -1145,7 +1201,7 @@ export function occupancySummary(days: number): DaySummary[] {
       booked,
       capacity,
       remaining: Math.max(0, capacity - booked),
-      price: priceForDate(date),
+      price: priceForSession(date, "day"),
     });
   }
   return summary;

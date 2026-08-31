@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       phone: typeof b.phone === "string" ? b.phone : "",
       email: typeof b.email === "string" ? b.email : undefined,
       date: typeof b.date === "string" ? b.date : "",
+      session: b.session === "night" ? "night" : "day",
       guests: typeof b.guests === "number" ? b.guests : NaN,
       notes: typeof b.notes === "string" ? b.notes : undefined,
     },

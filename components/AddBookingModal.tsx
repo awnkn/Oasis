@@ -7,9 +7,24 @@ import {
   normalizeNationalNumber,
   type PhoneCountry,
 } from "@/lib/phone";
-import { WEEKEND_DAYS, WEEKDAY_PRICE, WEEKEND_PRICE } from "@/lib/config";
+import {
+  NIGHT_SWIM_DAY,
+  NIGHT_SWIM_PRICE,
+  NIGHT_SWIM_TIME,
+  WEEKEND_DAYS,
+  WEEKDAY_PRICE,
+  WEEKEND_PRICE,
+  type SwimSession,
+} from "@/lib/config";
 
-function priceFor(date: string): number {
+function isThursdayDate(date: string): boolean {
+  return date
+    ? new Date(`${date}T00:00:00Z`).getUTCDay() === NIGHT_SWIM_DAY
+    : false;
+}
+
+function priceFor(date: string, session: SwimSession): number {
+  if (session === "night") return NIGHT_SWIM_PRICE;
   const day = new Date(`${date}T00:00:00Z`).getUTCDay();
   return WEEKEND_DAYS.includes(day) ? WEEKEND_PRICE : WEEKDAY_PRICE;
 }
@@ -34,6 +49,7 @@ export default function AddBookingModal({
   const [phoneDigits, setPhoneDigits] = useState("");
   const [email, setEmail] = useState("");
   const [date, setDate] = useState(today);
+  const [session, setSession] = useState<SwimSession>("day");
   const [guests, setGuests] = useState("1");
   const [notes, setNotes] = useState("");
   const [sendConfirmation, setSendConfirmation] = useState(true);
@@ -42,14 +58,24 @@ export default function AddBookingModal({
 
   if (!open) return null;
 
+  const thursday = isThursdayDate(date);
+  const effectiveSession: SwimSession = thursday ? session : "day";
   const guestCount = Number.parseInt(guests, 10) || 0;
-  const total = date ? priceFor(date) * Math.max(guestCount, 0) : 0;
+  const total = date
+    ? priceFor(date, effectiveSession) * Math.max(guestCount, 0)
+    : 0;
+
+  function pickDate(next: string) {
+    setDate(next);
+    if (!isThursdayDate(next)) setSession("day");
+  }
 
   function reset() {
     setName("");
     setPhoneDigits("");
     setEmail("");
     setDate(today);
+    setSession("day");
     setGuests("1");
     setNotes("");
     setSendConfirmation(true);
@@ -75,6 +101,7 @@ export default function AddBookingModal({
           phone: `+${country.dial}${phoneDigits}`,
           email: email.trim() || undefined,
           date,
+          session: effectiveSession,
           guests: guestCount,
           notes: notes.trim() || undefined,
           sendConfirmation,
@@ -212,7 +239,7 @@ export default function AddBookingModal({
                 required
                 min={today}
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={(e) => pickDate(e.target.value)}
                 className="w-full rounded-xl border border-oasis-950/10 bg-white px-3 py-2.5 text-sm outline-none focus:border-oasis-950/25"
               />
             </div>
@@ -231,6 +258,44 @@ export default function AddBookingModal({
                 className="w-full rounded-xl border border-oasis-950/10 bg-white px-3 py-2.5 text-sm outline-none focus:border-oasis-950/25"
               />
             </div>
+          </div>
+
+          {/* Session — night swims are a Thursday-evening pool */}
+          <div>
+            <span className="mb-1 block text-xs font-medium text-zinc-500">Session</span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setSession("day")}
+                aria-pressed={effectiveSession === "day"}
+                className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                  effectiveSession === "day"
+                    ? "border-oasis-600 bg-oasis-50 text-oasis-800"
+                    : "border-oasis-950/10 bg-white text-zinc-600 hover:border-oasis-400"
+                }`}
+              >
+                ☀️ Day swim
+              </button>
+              <button
+                type="button"
+                onClick={() => thursday && setSession("night")}
+                disabled={!thursday}
+                aria-pressed={effectiveSession === "night"}
+                title={thursday ? undefined : "Night swims run on Thursdays only"}
+                className={`rounded-xl border px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  effectiveSession === "night"
+                    ? "border-oasis-600 bg-oasis-950 text-white"
+                    : "border-oasis-950/10 bg-white text-zinc-600 hover:border-oasis-400"
+                }`}
+              >
+                🌙 Night swim
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-zinc-400">
+              {thursday
+                ? `Night swim: ${NIGHT_SWIM_TIME} · ${NIGHT_SWIM_PRICE} JOD per guest`
+                : "Night swims are available on Thursdays."}
+            </p>
           </div>
 
           <div>

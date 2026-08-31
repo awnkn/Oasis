@@ -1,8 +1,12 @@
 import {
+  NIGHT_SWIM_DAY,
+  NIGHT_SWIM_PRICE,
+  NIGHT_SWIM_TIME,
   TIME_ZONE,
   WEEKEND_DAYS,
   WEEKDAY_PRICE,
   WEEKEND_PRICE,
+  type SwimSession,
 } from "./config";
 
 // Dates are passed around as plain "YYYY-MM-DD" strings so that no time zone
@@ -25,6 +29,25 @@ export function isWeekend(date: string): boolean {
 
 export function priceForDate(date: string): number {
   return isWeekend(date) ? WEEKEND_PRICE : WEEKDAY_PRICE;
+}
+
+/** True when the date falls on the weekday night swims run (Thursday). */
+export function isNightSwimDay(date: string): boolean {
+  return dayOfWeek(date) === NIGHT_SWIM_DAY;
+}
+
+/** Price per guest for a given session. Night swims are a flat price on
+ *  any day; day swims follow the weekday/weekend rate. */
+export function priceForSession(date: string, session: SwimSession): number {
+  return session === "night" ? NIGHT_SWIM_PRICE : priceForDate(date);
+}
+
+/** Human "when" label for a booking, including the night-swim window so
+ *  confirmations and reminders make the evening slot unmistakable. */
+export function whenLabel(date: string, session: SwimSession): string {
+  return session === "night"
+    ? `${formatDateLong(date)} · Night swim (${NIGHT_SWIM_TIME})`
+    : formatDateLong(date);
 }
 
 /** Today's date in the club's time zone, as YYYY-MM-DD. */

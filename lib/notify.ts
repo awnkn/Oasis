@@ -1,7 +1,17 @@
-import { CLUB_NAME } from "./config";
-import { formatDateLong } from "./dates";
+import { CLUB_NAME, NIGHT_SWIM_TIME } from "./config";
+import { formatDateLong, whenLabel } from "./dates";
 import { getBooking, logAction, type Booking } from "./bookings";
 import { SITE_URL } from "./seo";
+
+/** A "Night swim · 6:30 – 10:30 PM" table row for confirmation/reminder
+ *  emails — only shown for night bookings. Empty string for day swims. */
+function nightRow(b: Booking): string {
+  if (b.session !== "night") return "";
+  return `<tr>
+    <td style="padding:12px 0;color:#8e8e93;border-top:1px solid #f2f2f2">Session</td>
+    <td style="padding:12px 0;text-align:right;font-weight:600;border-top:1px solid #f2f2f2">🌙 Night swim · ${NIGHT_SWIM_TIME}</td>
+  </tr>`;
+}
 
 // Automatic guest notifications, sent when a booking is approved.
 // Each channel activates only when its environment variables are set —
@@ -48,6 +58,7 @@ async function sendEmail(b: Booking): Promise<string | null> {
                   <td style="padding:12px 0;color:#8e8e93;border-top:1px solid #f2f2f2">Day</td>
                   <td style="padding:12px 0;text-align:right;font-weight:600;border-top:1px solid #f2f2f2">${formatDateLong(b.date)}</td>
                 </tr>
+                ${nightRow(b)}
                 <tr>
                   <td style="padding:12px 0;color:#8e8e93;border-top:1px solid #f2f2f2">Guests</td>
                   <td style="padding:12px 0;text-align:right;font-weight:600;border-top:1px solid #f2f2f2">${b.guests}</td>
@@ -109,7 +120,7 @@ async function sendWhatsApp(b: Booking): Promise<string | null> {
               parameters: [
                 { type: "text", text: b.name.split(" ")[0] },
                 { type: "text", text: String(b.id).padStart(4, "0") },
-                { type: "text", text: formatDateLong(b.date) },
+                { type: "text", text: whenLabel(b.date, b.session) },
                 { type: "text", text: `${b.guests} ${b.guests === 1 ? "guest" : "guests"}` },
                 { type: "text", text: `${b.total_price} JOD` },
               ],
@@ -195,6 +206,7 @@ async function sendReminderEmail(b: Booking): Promise<string | null> {
                   <td style="padding:12px 0;color:#8e8e93;border-top:1px solid #f2f2f2">Day</td>
                   <td style="padding:12px 0;text-align:right;font-weight:600;border-top:1px solid #f2f2f2">${formatDateLong(b.date)}</td>
                 </tr>
+                ${nightRow(b)}
                 <tr>
                   <td style="padding:12px 0;color:#8e8e93;border-top:1px solid #f2f2f2">Guests</td>
                   <td style="padding:12px 0;text-align:right;font-weight:600;border-top:1px solid #f2f2f2">${b.guests}</td>
@@ -260,7 +272,7 @@ async function sendWhatsAppReminder(b: Booking): Promise<string | null> {
               parameters: [
                 { type: "text", text: b.name.split(" ")[0] },
                 { type: "text", text: String(b.id).padStart(4, "0") },
-                { type: "text", text: formatDateLong(b.date) },
+                { type: "text", text: whenLabel(b.date, b.session) },
                 { type: "text", text: `${b.guests} ${b.guests === 1 ? "guest" : "guests"}` },
                 { type: "text", text: `${b.total_price} JOD` },
               ],

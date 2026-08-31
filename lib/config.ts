@@ -11,6 +11,26 @@ export const WEEKEND_PRICE = 30;
 // Jordan's weekend: Friday (5) and Saturday (6). 0 = Sunday … 6 = Saturday.
 export const WEEKEND_DAYS: number[] = [5, 6];
 
+// ---------- swim sessions (day pass vs. night swim) ----------
+
+// A booking is for one of two sessions on its date. Day is the ordinary
+// daytime pass; night is the Thursday-evening swim at a flat price.
+export const SWIM_SESSIONS = ["day", "night"] as const;
+export type SwimSession = (typeof SWIM_SESSIONS)[number];
+
+export const SWIM_SESSION_LABELS: Record<SwimSession, string> = {
+  day: "Day swim",
+  night: "Night swim",
+};
+
+// Night swim: flat entry price, one weekday only, fixed evening hours.
+export const NIGHT_SWIM_PRICE = 15;
+// 0 = Sunday … 6 = Saturday. Night swims run on Thursdays.
+export const NIGHT_SWIM_DAY = 4;
+export const NIGHT_SWIM_START = "6:30 PM";
+export const NIGHT_SWIM_END = "10:30 PM";
+export const NIGHT_SWIM_TIME = `${NIGHT_SWIM_START} – ${NIGHT_SWIM_END}`;
+
 // Default daily guest capacity. The live value is stored in the database
 // and can be reduced (or raised back up) from the admin dashboard.
 export const DEFAULT_DAILY_CAPACITY = 300;
@@ -82,6 +102,6 @@ export const BOOKING_TERMS = [
   "I understand that booking changes must be made at least 24 hours before my reservation. If cancelled in time, my booking can be transferred to a new booking date.",
   "I understand that same day cancellations and no shows will result in the loss of my booking.",
   `I understand that Oasis is exclusively for guests aged ${AGE_OTHER_DAYS} and above, except Mondays where ages ${AGE_MONDAY}+ are welcome.`,
-  `I acknowledge the entrance fee of ${WEEKDAY_PRICE} JOD on weekdays and ${WEEKEND_PRICE} JOD on weekends.`,
+  `I acknowledge the entrance fee of ${WEEKDAY_PRICE} JOD on weekdays and ${WEEKEND_PRICE} JOD on weekends, and ${NIGHT_SWIM_PRICE} JOD for the Thursday night swim.`,
   "Seating at all pool areas, including the Shisha Pool, is available on a first come, first served basis and cannot be reserved or guaranteed.",
 ] as const;

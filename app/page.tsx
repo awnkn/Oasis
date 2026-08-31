@@ -5,6 +5,8 @@ import {
   AGE_OTHER_DAYS,
   CLUB_NAME,
   CURRENCY,
+  NIGHT_SWIM_PRICE,
+  NIGHT_SWIM_TIME,
   WEEKDAY_PRICE,
   WEEKEND_PRICE,
 } from "@/lib/config";
@@ -137,10 +139,10 @@ export default function HomePage() {
               Reserve your day
             </Link>
             <a
-              href="#prices"
+              href="#good-to-know"
               className="rounded-full border border-white/50 bg-white/10 px-8 py-3.5 text-base font-medium text-white backdrop-blur transition hover:bg-white/20"
             >
-              See prices
+              What to know
             </a>
           </div>
           <p className="mt-5 text-sm text-white/75">
@@ -154,7 +156,121 @@ export default function HomePage() {
             <span className="hidden text-white/30 sm:block">✦</span>
             <span>Friday & Saturday · {WEEKEND_PRICE} {CURRENCY} per guest</span>
             <span className="hidden text-white/30 sm:block">✦</span>
-            <span>Limited guests each day, for your calm</span>
+            <span>🌙 Thursday night swim · {NIGHT_SWIM_PRICE} {CURRENCY}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Good to know — the answers to what people usually message us about */}
+      <section id="good-to-know" className="border-y border-oasis-950/5 bg-white px-6 py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-600">
+              Before you come
+            </p>
+            <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
+              Good to know
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-oasis-900/60">
+              Everything you might ask, answered here — so you can just pick a
+              day and come.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Ages — front and centre */}
+            <div className="rounded-3xl border border-blush-200 bg-blush-100/50 p-7">
+              <p className="text-xs font-semibold uppercase tracking-widest text-blush-700">
+                Ages
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold">
+                Who can visit
+              </h3>
+              <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-oasis-900/75">
+                <li>· <strong>Mondays</strong> — ladies {AGE_MONDAY} and above</li>
+                <li>· <strong>Every other day</strong> — ages {AGE_OTHER_DAYS}+</li>
+                <li>· Under {AGE_GUARDIAN} join with a guardian aged {AGE_GUARDIAN}+</li>
+              </ul>
+            </div>
+
+            {/* Ladies only */}
+            <div className="rounded-3xl bg-sand-50 p-7 ring-1 ring-oasis-950/5">
+              <p className="text-xs font-semibold uppercase tracking-widest text-oasis-500">
+                Privacy
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold">
+                Ladies only, always
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-oasis-900/70">
+                Every hour of every day — no “family times”, ever. No cameras
+                inside, so you can be completely at ease.
+              </p>
+            </div>
+
+            {/* Prices */}
+            <div className="rounded-3xl bg-sand-50 p-7 ring-1 ring-oasis-950/5">
+              <p className="text-xs font-semibold uppercase tracking-widest text-oasis-500">
+                Day pass
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold">
+                {WEEKDAY_PRICE} / {WEEKEND_PRICE} {CURRENCY}
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-oasis-900/70">
+                {WEEKDAY_PRICE} {CURRENCY} Sunday–Thursday, {WEEKEND_PRICE}{" "}
+                {CURRENCY} Friday &amp; Saturday. Per guest, all day long.
+              </p>
+            </div>
+
+            {/* Night swim */}
+            <div className="rounded-3xl bg-oasis-950 p-7 text-white">
+              <p className="text-xs font-semibold uppercase tracking-widest text-oasis-300">
+                🌙 New · Thursdays
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold">
+                Night swim
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-white/75">
+                Thursday evenings, {NIGHT_SWIM_TIME}. A flat {NIGHT_SWIM_PRICE}{" "}
+                {CURRENCY} per guest — choose it when you book.
+              </p>
+            </div>
+
+            {/* Payment */}
+            <div className="rounded-3xl bg-sand-50 p-7 ring-1 ring-oasis-950/5">
+              <p className="text-xs font-semibold uppercase tracking-widest text-oasis-500">
+                Booking &amp; payment
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold">
+                Pay at the gate
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-oasis-900/70">
+                Nothing is charged online. Book in a minute, get an instant
+                confirmation, and pay by cash or CliQ when you arrive.
+              </p>
+            </div>
+
+            {/* Calm */}
+            <div className="rounded-3xl bg-sand-50 p-7 ring-1 ring-oasis-950/5">
+              <p className="text-xs font-semibold uppercase tracking-widest text-oasis-500">
+                The space
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold">
+                Never crowded
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-oasis-900/70">
+                Guest numbers are capped every single day, so the pools stay
+                calm and the day stays yours.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-10 text-center">
+            <Link
+              href="/faq"
+              className="text-sm font-medium text-oasis-600 underline-offset-4 hover:underline"
+            >
+              More questions? Read the FAQ →
+            </Link>
           </div>
         </div>
       </section>
@@ -219,39 +335,37 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Brand moment */}
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-24 md:grid-cols-2">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-600">
-            More than relaxation
-          </p>
-          <h2 className="mt-4 font-display text-4xl font-semibold leading-tight sm:text-5xl">
-            A place you return to, slowly.
-          </h2>
-          <p className="mt-6 text-lg leading-relaxed text-oasis-900/70">
-            Every corner of {CLUB_NAME} is shaped around one thing: your
-            ease, without compromise. Complete privacy in every space, so each
-            moment feels lighter, freer and wholly your own.
-          </p>
-          <p className="mt-4 text-lg leading-relaxed text-oasis-900/70">
-            Caring for yourself is not a luxury saved for special occasions.
-            It is a rhythm worth returning to, again and again.
-          </p>
-          <Link
-            href="/book?src=story"
-            className="mt-8 inline-block rounded-full bg-oasis-600 px-7 py-3 font-medium text-white shadow-md transition hover:bg-oasis-700"
-          >
-            Book your visit
-          </Link>
-        </div>
-        <div className="relative mx-auto w-full max-w-sm">
+      {/* Brand moment — the sand mark sits on top of the words */}
+      <section className="mx-auto max-w-3xl px-6 py-24 text-center">
+        <div className="mx-auto mb-10 w-full max-w-xs">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/sand-logo.jpg"
-            alt="The Oasis by Azara mark pressed into sand"
-            className="w-full rounded-3xl object-cover shadow-xl ring-1 ring-sand-200"
+            alt="The Oasis by Azara mark pressed into golden sand"
+            className="aspect-[4/5] w-full rounded-3xl object-cover shadow-xl ring-1 ring-sand-200"
           />
         </div>
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-600">
+          More than relaxation
+        </p>
+        <h2 className="mt-4 font-display text-4xl font-semibold leading-tight sm:text-5xl">
+          A place you return to, slowly.
+        </h2>
+        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-oasis-900/70">
+          Every corner of {CLUB_NAME} is shaped around one thing: your ease,
+          without compromise. Complete privacy in every space, so each moment
+          feels lighter, freer and wholly your own.
+        </p>
+        <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-oasis-900/70">
+          Caring for yourself is not a luxury saved for special occasions. It
+          is a rhythm worth returning to, again and again.
+        </p>
+        <Link
+          href="/book?src=story"
+          className="mt-8 inline-block rounded-full bg-oasis-600 px-7 py-3 font-medium text-white shadow-md transition hover:bg-oasis-700"
+        >
+          Book your visit
+        </Link>
       </section>
 
       {/* Why Oasis */}
@@ -389,6 +503,27 @@ export default function HomePage() {
                 Book a weekend
               </Link>
             </div>
+          </div>
+
+          {/* Night swim — the Thursday-evening option */}
+          <div className="mx-auto mt-6 flex max-w-3xl flex-col items-center justify-between gap-4 rounded-3xl bg-oasis-950 px-7 py-6 text-white sm:flex-row sm:text-left">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-widest text-oasis-300">
+                🌙 Night swim · Thursdays
+              </p>
+              <p className="mt-2 text-lg">
+                <span className="font-display text-3xl font-semibold">
+                  {NIGHT_SWIM_PRICE} <span className="text-xl text-oasis-300">{CURRENCY}</span>
+                </span>{" "}
+                <span className="text-white/70">per guest · {NIGHT_SWIM_TIME}</span>
+              </p>
+            </div>
+            <Link
+              href="/book?src=pricing-night"
+              className="shrink-0 rounded-full bg-white/95 px-6 py-2.5 text-sm font-medium text-oasis-900 transition hover:bg-white"
+            >
+              Book a night swim
+            </Link>
           </div>
 
           {/* Age note */}
