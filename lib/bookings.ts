@@ -20,6 +20,8 @@ import {
   priceForSession,
   today,
 } from "./dates";
+import { isDateClosed, closedDatesInRange } from "./closures";
+import { isNightSwimEnabled } from "./settings";
 
 export type BookingStatus = "pending" | "approved" | "rejected";
 
@@ -327,6 +329,12 @@ export function createBooking(input: NewBookingInput): CreateResult {
       error: "Night swims run on Thursday evenings only. Please pick a Thursday, or choose the day swim.",
     };
   }
+  if (isDateClosed(date)) {
+    return { ok: false, error: "We're closed on this day. Please choose another date." };
+  }
+  if (session === "night" && !isNightSwimEnabled()) {
+    return { ok: false, error: "Night swim bookings are closed right now. Please choose the day swim." };
+  }
 
   sweepNoResponse();
   const db = getDb();
@@ -435,6 +443,12 @@ export function createManualBooking(
       error: "Night swims run on Thursdays only. Pick a Thursday, or choose the day swim.",
     };
   }
+  if (isDateClosed(date)) {
+    return { ok: false, error: "The club is marked closed on this day. Reopen it first to add a booking." };
+  }
+  if (session === "night" && !isNightSwimEnabled()) {
+    return { ok: false, error: "Night swim is turned off. Turn it on first, or choose the day swim." };
+  }
 
   sweepNoResponse();
   const db = getDb();
@@ -486,6 +500,7 @@ export interface BookingFilters {
   status?: BookingStatus;
   guestStatus?: GuestStatus;
   date?: string;
+  session?: SwimSession;
   includePast?: boolean;
   /** Case-insensitive match against guest name or phone number. */
   query?: string;
@@ -502,6 +517,10 @@ export function listBookings(filters: BookingFilters = {}): Booking[] {
   if (filters.guestStatus) {
     where.push("guest_status = ?");
     params.push(filters.guestStatus);
+  }
+  if (filters.session) {
+    where.push("session = ?");
+    params.push(filters.session);
   }
   if (filters.date) {
     where.push("date = ?");
@@ -1174,6 +1193,8 @@ export interface DaySummary {
   capacity: number;
   remaining: number;
   price: number;
+  /** True when the club is marked closed for bookings on this day. */
+  closed: boolean;
 }
 
 /** Day-pass occupancy for the next `days` days, starting today. Night
@@ -1192,16 +1213,19 @@ export function occupancySummary(days: number): DaySummary[] {
     .all(start, addDays(start, days - 1)) as { date: string; booked: number }[];
 
   const byDate = new Map(rows.map((r) => [r.date, r.booked]));
+  const closed = closedDatesInRange(start, addDays(start, days - 1));
   const summary: DaySummary[] = [];
   for (let i = 0; i < days; i++) {
     const date = addDays(start, i);
     const booked = byDate.get(date) ?? 0;
+    const isClosed = closed.has(date);
     summary.push({
       date,
       booked,
       capacity,
-      remaining: Math.max(0, capacity - booked),
+      remaining: isClosed ? 0 : Math.max(0, capacity - booked),
       price: priceForSession(date, "day"),
+      closed: isClosed,
     });
   }
   return summary;

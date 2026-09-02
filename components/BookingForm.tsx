@@ -5,8 +5,9 @@ import Link from "next/link";
 import { formatDateLong } from "@/lib/dates";
 import {
   AGE_GUARDIAN,
-  AGE_MONDAY,
-  AGE_OTHER_DAYS,
+  AGE_YOUNG,
+  AGE_STANDARD,
+  AGE_YOUNG_DAYS_LABEL,
   BOOKING_TERMS,
   HEARD_ABOUT_OPTIONS,
   NIGHT_SWIM_TIME,
@@ -28,6 +29,7 @@ interface SessionAvailability {
 interface Availability {
   date: string;
   bookable: boolean;
+  closed: boolean;
   isWeekend: boolean;
   currency: string;
   day: SessionAvailability;
@@ -276,9 +278,9 @@ export default function BookingForm({
       </div>
 
       <p className="mt-3 text-xs leading-relaxed text-oasis-900/50">
-        * Mondays welcome ages {AGE_MONDAY}+; all other days are {AGE_OTHER_DAYS}+.
-        Guests under {AGE_GUARDIAN} must be accompanied by a guardian aged{" "}
-        {AGE_GUARDIAN}+.
+        * {AGE_YOUNG_DAYS_LABEL} welcome ages {AGE_YOUNG}+; all other days are{" "}
+        {AGE_STANDARD}+. Guests under {AGE_GUARDIAN} must be accompanied by a
+        guardian aged {AGE_GUARDIAN}+.
       </p>
 
       {/* Session: day pass vs. Thursday night swim */}
@@ -358,6 +360,11 @@ export default function BookingForm({
             </span>
           ) : !availability.bookable ? (
             <span>This date can’t be booked online. Please pick another day.</span>
+          ) : availability.closed ? (
+            <span>
+              <strong>{formatDateLong(date)}</strong> — we’re closed on this day.
+              Please choose another day.
+            </span>
           ) : soldOut ? (
             <span>
               <strong>{formatDateLong(date)}</strong>

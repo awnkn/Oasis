@@ -11,6 +11,9 @@ import type {
 } from "@/lib/bookings";
 import { formatDateLong, formatDateShort, whenLabel } from "@/lib/dates";
 import { NIGHT_SWIM_TIME } from "@/lib/config";
+import SiteControls from "@/components/SiteControls";
+import type { ClosedDate } from "@/lib/closures";
+import type { Announcement } from "@/lib/settings";
 import {
   GUEST_STATUS_LABELS,
   PAYMENT_ACCOUNTS,
@@ -1006,6 +1009,7 @@ interface Filters {
   status: string;
   guestStatus: string;
   date: string;
+  session: string;
   includePast: boolean;
   query: string;
 }
@@ -1025,6 +1029,9 @@ export default function AdminDashboard({
   badges,
   compSummary,
   compEntries,
+  nightSwimEnabled,
+  closedDates,
+  announcement,
   showPasswordWarning,
 }: {
   bookings: Booking[];
@@ -1041,6 +1048,9 @@ export default function AdminDashboard({
   badges: Record<string, CustomerBadge>;
   compSummary: CompAccessSummary;
   compEntries: CompAccess[];
+  nightSwimEnabled: boolean;
+  closedDates: ClosedDate[];
+  announcement: Announcement;
   showPasswordWarning: boolean;
 }) {
   const router = useRouter();
@@ -1080,6 +1090,7 @@ export default function AdminDashboard({
       status: searchParams.get("status") ?? "",
       guestStatus: searchParams.get("gs") ?? "",
       date: searchParams.get("date") ?? "",
+      session: searchParams.get("sess") ?? "",
       includePast: searchParams.get("past") === "1",
       query: searchParams.get("q") ?? "",
     };
@@ -1088,6 +1099,7 @@ export default function AdminDashboard({
     if (merged.status) query.set("status", merged.status);
     if (merged.guestStatus) query.set("gs", merged.guestStatus);
     if (merged.date) query.set("date", merged.date);
+    if (merged.session) query.set("sess", merged.session);
     if (merged.includePast) query.set("past", "1");
     if (merged.query) query.set("q", merged.query);
     const qs = query.toString();
@@ -1255,14 +1267,17 @@ export default function AdminDashboard({
             {summary.map((day) => {
               const full = day.remaining <= 0;
               const ratio = day.capacity > 0 ? day.booked / day.capacity : 1;
+              const selected = filters.date === day.date;
               return (
                 <button
                   key={day.date}
-                  onClick={() => applyFilters({ date: filters.date === day.date ? "" : day.date })}
+                  onClick={() => applyFilters({ date: selected ? "" : day.date })}
                   className={`min-w-32 shrink-0 rounded-2xl border p-4 text-left transition ${
-                    filters.date === day.date
+                    selected
                       ? "border-oasis-600 bg-oasis-600 text-white"
-                      : "border-oasis-200/60 bg-white hover:border-oasis-400"
+                      : day.closed
+                        ? "border-zinc-300 bg-zinc-100 hover:border-zinc-400"
+                        : "border-oasis-200/60 bg-white hover:border-oasis-400"
                   }`}
                 >
                   <p className="text-xs font-semibold uppercase tracking-wide opacity-60">
@@ -1272,19 +1287,25 @@ export default function AdminDashboard({
                     {day.booked}
                     <span className="text-sm opacity-50"> / {day.capacity}</span>
                   </p>
-                  <p
-                    className={`mt-1 text-xs ${
-                      filters.date === day.date
-                        ? "text-white/70"
-                        : full
-                          ? "text-rose-500"
-                          : ratio > 0.8
-                            ? "text-amber-600"
-                            : "text-oasis-600"
-                    }`}
-                  >
-                    {full ? "Full" : `${day.remaining} left`} · {day.price} JOD
-                  </p>
+                  {day.closed ? (
+                    <p className={`mt-1 text-xs font-medium ${selected ? "text-white/80" : "text-zinc-500"}`}>
+                      🚫 Closed
+                    </p>
+                  ) : (
+                    <p
+                      className={`mt-1 text-xs ${
+                        selected
+                          ? "text-white/70"
+                          : full
+                            ? "text-rose-500"
+                            : ratio > 0.8
+                              ? "text-amber-600"
+                              : "text-oasis-600"
+                      }`}
+                    >
+                      {full ? "Full" : `${day.remaining} left`} · {day.price} JOD
+                    </p>
+                  )}
                 </button>
               );
             })}
@@ -1339,6 +1360,16 @@ export default function AdminDashboard({
                 {(Object.keys(GUEST_STATUS_LABELS) as GuestStatus[]).map((s) => (
                   <option key={s} value={s}>{GUEST_STATUS_LABELS[s]}</option>
                 ))}
+              </select>
+              <select
+                aria-label="Filter bookings by session"
+                value={filters.session}
+                onChange={(e) => applyFilters({ session: e.target.value })}
+                className="rounded-xl border border-oasis-950/10 bg-white px-3 py-2 outline-none focus:border-oasis-500"
+              >
+                <option value="">All sessions</option>
+                <option value="day">☀️ Day swim</option>
+                <option value="night">🌙 Night swim</option>
               </select>
               <input
                 type="date"
@@ -1398,6 +1429,15 @@ export default function AdminDashboard({
         <BookingsByStatus bookings={sortedBookings} ctx={ctx} sort={sort} onSort={onSort} />
 
         <CompAccessSection today={today} summary={compSummary} entries={compEntries} />
+
+        {role === "manager" && (
+          <SiteControls
+            nightSwimEnabled={nightSwimEnabled}
+            announcement={announcement}
+            closedDates={closedDates}
+            today={today}
+          />
+        )}
 
         {role === "manager" && (
           <TeamSection
