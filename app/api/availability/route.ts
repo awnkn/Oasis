@@ -1,6 +1,8 @@
 import { NextResponse, after } from "next/server";
 import { remainingOn, sweepNoResponse } from "@/lib/bookings";
 import { maybeRunDueReminders } from "@/lib/reminders";
+import { isDateClosed } from "@/lib/closures";
+import { isNightSwimEnabled } from "@/lib/settings";
 import {
   isValidDateString,
   isNightSwimDay,
@@ -25,19 +27,21 @@ export async function GET(request: Request) {
   const todayStr = today();
   const bookable =
     date >= todayStr && date <= addDays(todayStr, MAX_ADVANCE_DAYS);
-  const nightOffered = isNightSwimDay(date);
+  const closed = isDateClosed(date);
+  // Night swims run on Thursdays, and only while the switch is on.
+  const nightOffered = isNightSwimDay(date) && isNightSwimEnabled() && !closed;
 
   return NextResponse.json({
     date,
     bookable,
+    closed,
     isWeekend: isWeekend(date),
     currency: CURRENCY,
     day: {
-      available: remainingOn(date, "day") > 0,
+      available: !closed && remainingOn(date, "day") > 0,
       pricePerGuest: priceForSession(date, "day"),
     },
     night: {
-      // Night swims run on Thursdays only.
       offered: nightOffered,
       available: nightOffered && remainingOn(date, "night") > 0,
       pricePerGuest: NIGHT_SWIM_PRICE,

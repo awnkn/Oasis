@@ -10,6 +10,7 @@ import {
 } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
 import PageViewTracker from "@/components/PageViewTracker";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 import "./globals.css";
 
 const display = Playfair_Display({
@@ -78,6 +79,7 @@ export default function RootLayout({
         <JsonLd data={businessJsonLd()} />
         <JsonLd data={websiteJsonLd()} />
         <PageViewTracker />
+        <AnnouncementBanner />
         {children}
       </body>
     </html>

@@ -3,8 +3,9 @@
 
 import {
   AGE_GUARDIAN,
-  AGE_MONDAY,
-  AGE_OTHER_DAYS,
+  AGE_YOUNG,
+  AGE_STANDARD,
+  AGE_YOUNG_DAYS_LABEL,
   CLUB_NAME,
   CURRENCY,
   WEEKDAY_PRICE,
@@ -105,7 +106,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Is there an age policy?",
-    a: `Mondays welcome ladies aged ${AGE_MONDAY} and above, and every other day is for ages ${AGE_OTHER_DAYS} and above. Guests under ${AGE_GUARDIAN} join with a guardian aged ${AGE_GUARDIAN} and above.`,
+    a: `${AGE_YOUNG_DAYS_LABEL} welcome ladies aged ${AGE_YOUNG} and above, and every other day is for ages ${AGE_STANDARD} and above. Guests under ${AGE_GUARDIAN} join with a guardian aged ${AGE_GUARDIAN} and above.`,
   },
   {
     q: "Can I change or cancel my booking?",

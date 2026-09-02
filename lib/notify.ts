@@ -69,8 +69,9 @@ async function sendEmail(b: Booking): Promise<string | null> {
                 </tr>
               </table>
               <p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#8e8e93">
-                Changes need at least 24 hours' notice. Mondays welcome ages 10+;
-                all other days are 16+. Pool seating is first-come, first-served.
+                Changes need at least 24 hours' notice. Fridays and Sundays
+                welcome ages 10+; all other days are 16+. Pool seating is
+                first-come, first-served.
               </p>
               <p style="margin:24px 0 0;font-size:15px">
                 See you at the oasis 🌴<br/>
@@ -217,7 +218,7 @@ async function sendReminderEmail(b: Booking): Promise<string | null> {
                 </tr>
               </table>
               <p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#8e8e93">
-                A few reminders: Oasis is 16+ (Mondays welcome ages 10+). No
+                A few reminders: Oasis is 16+ (Fridays and Sundays welcome ages 10+). No
                 outside food or drinks, and photography is not permitted. Pay at
                 the gate by cash or CliQ. Pool seating is first come, first served.
               </p>

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import {
   AGE_GUARDIAN,
-  AGE_MONDAY,
-  AGE_OTHER_DAYS,
+  AGE_YOUNG,
+  AGE_STANDARD,
+  AGE_YOUNG_DAYS_LABEL,
   CLUB_NAME,
   CURRENCY,
   NIGHT_SWIM_PRICE,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/config";
 import { listUpcomingEvents } from "@/lib/events";
 import { eventHeroUrl } from "@/lib/eventHero";
+import { isNightSwimEnabled } from "@/lib/settings";
 import { formatDateLong } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
@@ -92,6 +94,7 @@ function Wordmark({ light = false }: { light?: boolean }) {
 
 export default function HomePage() {
   const events = listUpcomingEvents().slice(0, 3);
+  const nightSwim = isNightSwimEnabled();
   return (
     <div className="min-h-screen">
       <main>
@@ -155,8 +158,12 @@ export default function HomePage() {
             <span>Sunday to Thursday · {WEEKDAY_PRICE} {CURRENCY} per guest</span>
             <span className="hidden text-white/30 sm:block">✦</span>
             <span>Friday & Saturday · {WEEKEND_PRICE} {CURRENCY} per guest</span>
-            <span className="hidden text-white/30 sm:block">✦</span>
-            <span>🌙 Thursday night swim · {NIGHT_SWIM_PRICE} {CURRENCY}</span>
+            {nightSwim && (
+              <>
+                <span className="hidden text-white/30 sm:block">✦</span>
+                <span>🌙 Thursday night swim · {NIGHT_SWIM_PRICE} {CURRENCY}</span>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -187,8 +194,8 @@ export default function HomePage() {
                 Who can visit
               </h3>
               <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-oasis-900/75">
-                <li>· <strong>Mondays</strong> — ladies {AGE_MONDAY} and above</li>
-                <li>· <strong>Every other day</strong> — ages {AGE_OTHER_DAYS}+</li>
+                <li>· <strong>{AGE_YOUNG_DAYS_LABEL}</strong> — ladies {AGE_YOUNG} and above</li>
+                <li>· <strong>Every other day</strong> — ages {AGE_STANDARD}+</li>
                 <li>· Under {AGE_GUARDIAN} join with a guardian aged {AGE_GUARDIAN}+</li>
               </ul>
             </div>
@@ -222,18 +229,20 @@ export default function HomePage() {
             </div>
 
             {/* Night swim */}
-            <div className="rounded-3xl bg-oasis-950 p-7 text-white">
-              <p className="text-xs font-semibold uppercase tracking-widest text-oasis-300">
-                🌙 New · Thursdays
-              </p>
-              <h3 className="mt-2 font-display text-2xl font-semibold">
-                Night swim
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-white/75">
-                Thursday evenings, {NIGHT_SWIM_TIME}. A flat {NIGHT_SWIM_PRICE}{" "}
-                {CURRENCY} per guest — choose it when you book.
-              </p>
-            </div>
+            {nightSwim && (
+              <div className="rounded-3xl bg-oasis-950 p-7 text-white">
+                <p className="text-xs font-semibold uppercase tracking-widest text-oasis-300">
+                  🌙 New · Thursdays
+                </p>
+                <h3 className="mt-2 font-display text-2xl font-semibold">
+                  Night swim
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-white/75">
+                  Thursday evenings, {NIGHT_SWIM_TIME}. A flat {NIGHT_SWIM_PRICE}{" "}
+                  {CURRENCY} per guest — choose it when you book.
+                </p>
+              </div>
+            )}
 
             {/* Payment */}
             <div className="rounded-3xl bg-sand-50 p-7 ring-1 ring-oasis-950/5">
@@ -506,34 +515,36 @@ export default function HomePage() {
           </div>
 
           {/* Night swim — the Thursday-evening option */}
-          <div className="mx-auto mt-6 flex max-w-3xl flex-col items-center justify-between gap-4 rounded-3xl bg-oasis-950 px-7 py-6 text-white sm:flex-row sm:text-left">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-widest text-oasis-300">
-                🌙 Night swim · Thursdays
-              </p>
-              <p className="mt-2 text-lg">
-                <span className="font-display text-3xl font-semibold">
-                  {NIGHT_SWIM_PRICE} <span className="text-xl text-oasis-300">{CURRENCY}</span>
-                </span>{" "}
-                <span className="text-white/70">per guest · {NIGHT_SWIM_TIME}</span>
-              </p>
+          {nightSwim && (
+            <div className="mx-auto mt-6 flex max-w-3xl flex-col items-center justify-between gap-4 rounded-3xl bg-oasis-950 px-7 py-6 text-white sm:flex-row sm:text-left">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-widest text-oasis-300">
+                  🌙 Night swim · Thursdays
+                </p>
+                <p className="mt-2 text-lg">
+                  <span className="font-display text-3xl font-semibold">
+                    {NIGHT_SWIM_PRICE} <span className="text-xl text-oasis-300">{CURRENCY}</span>
+                  </span>{" "}
+                  <span className="text-white/70">per guest · {NIGHT_SWIM_TIME}</span>
+                </p>
+              </div>
+              <Link
+                href="/book?src=pricing-night"
+                className="shrink-0 rounded-full bg-white/95 px-6 py-2.5 text-sm font-medium text-oasis-900 transition hover:bg-white"
+              >
+                Book a night swim
+              </Link>
             </div>
-            <Link
-              href="/book?src=pricing-night"
-              className="shrink-0 rounded-full bg-white/95 px-6 py-2.5 text-sm font-medium text-oasis-900 transition hover:bg-white"
-            >
-              Book a night swim
-            </Link>
-          </div>
+          )}
 
           {/* Age note */}
           <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-blush-200 bg-blush-100/60 px-7 py-5 text-center">
             <p className="text-sm leading-relaxed text-oasis-900/80">
               <span className="mr-1.5">🌸</span>
               <strong className="font-semibold">A little note on ages.</strong>{" "}
-              Mondays welcome ladies {AGE_MONDAY}+, every other day is for ages{" "}
-              {AGE_OTHER_DAYS}+, and guests under {AGE_GUARDIAN} join with a
-              guardian aged {AGE_GUARDIAN}+.
+              {AGE_YOUNG_DAYS_LABEL} welcome ladies {AGE_YOUNG}+, every other day
+              is for ages {AGE_STANDARD}+, and guests under {AGE_GUARDIAN} join
+              with a guardian aged {AGE_GUARDIAN}+.
             </p>
           </div>
         </div>

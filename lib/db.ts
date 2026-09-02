@@ -165,6 +165,16 @@ const SCHEMA = `
   );
 
   CREATE INDEX IF NOT EXISTS idx_comp_access_date ON comp_access(date);
+
+  -- Dates the club is closed: no bookings (day or night) may be made for
+  -- these days. Managed from the admin dashboard.
+  CREATE TABLE IF NOT EXISTS closed_dates (
+    date TEXT PRIMARY KEY,
+    reason TEXT,
+    actor_name TEXT NOT NULL,
+    actor_role TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `;
 
 /** The event Oasis is launching with, inserted once on first run. */
