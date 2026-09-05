@@ -168,6 +168,66 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Upcoming events */}
+      {events.length > 0 && (
+        <section id="events" className="border-b border-oasis-950/5 bg-sand-100 px-6 py-24">
+          <div className="mx-auto max-w-6xl">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-600">
+                  Beyond the pool day
+                </p>
+                <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
+                  Upcoming events
+                </h2>
+              </div>
+              <Link
+                href="/events"
+                className="rounded-full border border-oasis-300 px-6 py-2.5 text-sm font-medium text-oasis-700 transition hover:border-oasis-500 hover:bg-white"
+              >
+                See all events →
+              </Link>
+            </div>
+
+            <div className="mt-12 grid gap-8 md:grid-cols-3">
+              {events.map((e) => {
+                const hero = eventHeroUrl(e);
+                return (
+                  <Link
+                    key={e.id}
+                    href={`/events/${e.slug}`}
+                    className="group overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-oasis-950/5 transition hover:shadow-lg"
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-oasis-700 to-oasis-950">
+                      {hero && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={hero}
+                          alt={e.title}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        />
+                      )}
+                    </div>
+                    <div className="p-6">
+                      <h3 className="font-display text-2xl font-semibold">{e.title}</h3>
+                      {e.event_date && (
+                        <p className="mt-2 text-sm text-oasis-900/60">
+                          {formatDateLong(e.event_date)}
+                          {e.start_time ? ` · ${e.start_time}` : ""}
+                        </p>
+                      )}
+                      <p className="mt-4 font-medium text-oasis-600 group-hover:underline">
+                        {e.price} {CURRENCY} · Reserve →
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Good to know — the answers to what people usually message us about */}
       <section id="good-to-know" className="border-y border-oasis-950/5 bg-white px-6 py-20 sm:py-24">
         <div className="mx-auto max-w-6xl">
@@ -283,66 +343,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Upcoming events */}
-      {events.length > 0 && (
-        <section id="events" className="border-b border-oasis-950/5 bg-sand-100 px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sand-600">
-                  Beyond the pool day
-                </p>
-                <h2 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
-                  Upcoming events
-                </h2>
-              </div>
-              <Link
-                href="/events"
-                className="rounded-full border border-oasis-300 px-6 py-2.5 text-sm font-medium text-oasis-700 transition hover:border-oasis-500 hover:bg-white"
-              >
-                See all events →
-              </Link>
-            </div>
-
-            <div className="mt-12 grid gap-8 md:grid-cols-3">
-              {events.map((e) => {
-                const hero = eventHeroUrl(e);
-                return (
-                  <Link
-                    key={e.id}
-                    href={`/events/${e.slug}`}
-                    className="group overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-oasis-950/5 transition hover:shadow-lg"
-                  >
-                    <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-oasis-700 to-oasis-950">
-                      {hero && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={hero}
-                          alt={e.title}
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                        />
-                      )}
-                    </div>
-                    <div className="p-6">
-                      <h3 className="font-display text-2xl font-semibold">{e.title}</h3>
-                      {e.event_date && (
-                        <p className="mt-2 text-sm text-oasis-900/60">
-                          {formatDateLong(e.event_date)}
-                          {e.start_time ? ` · ${e.start_time}` : ""}
-                        </p>
-                      )}
-                      <p className="mt-4 font-medium text-oasis-600 group-hover:underline">
-                        {e.price} {CURRENCY} · Reserve →
-                      </p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Brand moment — the sand mark sits on top of the words */}
       <section className="mx-auto max-w-3xl px-6 py-24 text-center">
