@@ -210,6 +210,35 @@ export type EventResult =
   | { ok: true; event: TicketedEvent }
   | { ok: false; message: string };
 
+/** Normalise a raw request body into an EventInput (shared by the event
+ *  create and update routes). */
+export function parseEventInput(body: unknown): EventInput {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" ? v : undefined);
+  const strOrNull = (v: unknown) =>
+    v === null ? null : typeof v === "string" ? v : undefined;
+  return {
+    title: str(b.title),
+    tagline: strOrNull(b.tagline),
+    description: strOrNull(b.description),
+    highlights: Array.isArray(b.highlights)
+      ? b.highlights.filter((h): h is string => typeof h === "string")
+      : undefined,
+    eventDate: strOrNull(b.eventDate),
+    startTime: strOrNull(b.startTime),
+    price: typeof b.price === "number" ? b.price : undefined,
+    priceNote: strOrNull(b.priceNote),
+    capacity:
+      b.capacity === null
+        ? null
+        : typeof b.capacity === "number"
+          ? b.capacity
+          : undefined,
+    location: strOrNull(b.location),
+    active: typeof b.active === "boolean" ? b.active : undefined,
+  };
+}
+
 function validate(input: EventInput, forCreate: boolean): string | null {
   if (forCreate || input.title !== undefined) {
     const t = (input.title ?? "").trim();
@@ -264,6 +293,61 @@ export function createEvent(input: EventInput, actor: Actor): EventResult {
     });
   const event = getEvent(Number(result.lastInsertRowid))!;
   logAction(actor, "event", `Created event "${event.title}"`);
+  return { ok: true, event };
+}
+
+/**
+ * Copy an event into a new one. Everything carries over (details, price,
+ * date, highlights, and the hero photo) except its reservations. The copy
+ * is created hidden (a draft) so staff can adjust the date before it goes
+ * live, and gets its own unique slug.
+ */
+export function duplicateEvent(id: number, actor: Actor): EventResult {
+  const db = getDb();
+  const source = getEvent(id);
+  if (!source) return { ok: false, message: "Event not found." };
+  const title = `${source.title} (copy)`.slice(0, 120);
+
+  const run = db.transaction((): TicketedEvent => {
+    const result = db
+      .prepare(
+        `INSERT INTO ticketed_events
+           (slug, title, tagline, description, highlights, event_date, start_time,
+            price, price_note, capacity, location, active, sort_order)
+         VALUES (@slug, @title, @tagline, @description, @highlights, @event_date,
+            @start_time, @price, @price_note, @capacity, @location, 0, @sort_order)`
+      )
+      .run({
+        slug: uniqueSlug(title),
+        title,
+        tagline: source.tagline,
+        description: source.description,
+        highlights: JSON.stringify(source.highlights),
+        event_date: source.event_date,
+        start_time: source.start_time,
+        price: source.price,
+        price_note: source.price_note,
+        capacity: source.capacity,
+        location: source.location,
+        sort_order: source.sort_order,
+      });
+    const newId = Number(result.lastInsertRowid);
+    // Carry the hero photo over so the copy looks complete.
+    const hero = getEventHero(id);
+    if (hero) {
+      db.prepare(
+        `INSERT INTO event_hero (event_id, data, content_type, updated_at)
+         VALUES (?, ?, ?, datetime('now'))`
+      ).run(newId, hero.data, hero.content_type);
+      db.prepare(
+        "UPDATE ticketed_events SET hero_updated_at = datetime('now') WHERE id = ?"
+      ).run(newId);
+    }
+    return getEvent(newId)!;
+  });
+
+  const event = run();
+  logAction(actor, "event", `Duplicated event "${source.title}" → "${event.title}" (hidden draft)`);
   return { ok: true, event };
 }
 

@@ -499,6 +499,17 @@ export default function EventsAdmin({
     router.refresh();
   }
 
+  async function duplicateEvent(id: number) {
+    setMessage("");
+    const res = await fetch(`/api/admin/events/${id}/duplicate`, { method: "POST" }).catch(() => null);
+    if (!res || !res.ok) {
+      setMessage("Could not duplicate the event.");
+      return;
+    }
+    setMessage("Duplicated — the copy is hidden. Edit its date and details, then press Show to publish it.");
+    router.refresh();
+  }
+
   async function uploadHero(id: number, file: File) {
     setMessage("");
     const form = new FormData();
@@ -624,6 +635,9 @@ export default function EventsAdmin({
                         </a>
                         <button onClick={() => { setFormEvent(event); setShowForm(true); }} className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50">
                           Edit
+                        </button>
+                        <button onClick={() => duplicateEvent(event.id)} className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50">
+                          Duplicate
                         </button>
                         <button onClick={() => patchEvent(event.id, { active: event.active === 0 })} className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50">
                           {event.active === 1 ? "Hide" : "Show"}

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
-import { deleteEvent, updateEvent } from "@/lib/events";
-import { parseEventInput } from "../route";
+import { deleteEvent, updateEvent, parseEventInput } from "@/lib/events";
 
 export async function PATCH(
   request: Request,
