@@ -3,16 +3,9 @@
 import { useEffect, useState } from "react";
 import type { Booking } from "@/lib/bookings";
 import {
-  NIGHT_SWIM_DAY,
   NIGHT_SWIM_TIME,
   type SwimSession,
 } from "@/lib/config";
-
-function isThursdayDate(date: string): boolean {
-  return date
-    ? new Date(`${date}T00:00:00Z`).getUTCDay() === NIGHT_SWIM_DAY
-    : false;
-}
 
 /**
  * Edit every detail of an existing booking. The server re-checks
@@ -21,10 +14,12 @@ function isThursdayDate(date: string): boolean {
  */
 export default function EditBookingModal({
   booking,
+  nightDates,
   onClose,
   onSaved,
 }: {
   booking: Booking | null;
+  nightDates: string[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -55,12 +50,12 @@ export default function EditBookingModal({
 
   if (!booking) return null;
 
-  const thursday = isThursdayDate(date);
-  const effectiveSession: SwimSession = thursday ? session : "day";
+  const isNightDate = nightDates.includes(date);
+  const effectiveSession: SwimSession = isNightDate ? session : "day";
 
   function pickDate(next: string) {
     setDate(next);
-    if (!isThursdayDate(next)) setSession("day");
+    if (!nightDates.includes(next)) setSession("day");
   }
 
   async function submit(e: React.FormEvent) {
@@ -207,7 +202,7 @@ export default function EditBookingModal({
             </div>
           </div>
 
-          {/* Session — night swims sit in a separate Thursday-evening pool */}
+          {/* Session — night swim is offered only on configured dates */}
           <div>
             <span className="mb-1 block text-xs font-medium text-zinc-500">Session</span>
             <div className="grid grid-cols-2 gap-2">
@@ -225,10 +220,10 @@ export default function EditBookingModal({
               </button>
               <button
                 type="button"
-                onClick={() => thursday && setSession("night")}
-                disabled={!thursday}
+                onClick={() => isNightDate && setSession("night")}
+                disabled={!isNightDate}
                 aria-pressed={effectiveSession === "night"}
-                title={thursday ? undefined : "Night swims run on Thursdays only"}
+                title={isNightDate ? undefined : "This date isn't a night-swim date"}
                 className={`rounded-xl border px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
                   effectiveSession === "night"
                     ? "border-oasis-600 bg-oasis-950 text-white"
@@ -238,8 +233,12 @@ export default function EditBookingModal({
                 🌙 Night swim
               </button>
             </div>
-            {thursday && (
+            {isNightDate ? (
               <p className="mt-1 text-xs text-zinc-400">Night swim: {NIGHT_SWIM_TIME}</p>
+            ) : (
+              <p className="mt-1 text-xs text-zinc-400">
+                Night swim runs only on the dates set under Site controls.
+              </p>
             )}
           </div>
 

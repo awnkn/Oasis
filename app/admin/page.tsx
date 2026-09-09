@@ -20,6 +20,7 @@ import { listUsers } from "@/lib/users";
 import { customerBadges } from "@/lib/customers";
 import { compAccessSummary, listCompAccess } from "@/lib/comp";
 import { listClosedDates } from "@/lib/closures";
+import { listNightSwimDates } from "@/lib/nightSwim";
 import { getAnnouncement, isNightSwimEnabled } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -97,6 +98,7 @@ export default async function AdminPage({
       compSummary={compAccessSummary()}
       compEntries={listCompAccess()}
       nightSwimEnabled={isNightSwimEnabled()}
+      nightSwimDates={listNightSwimDates()}
       closedDates={listClosedDates()}
       announcement={getAnnouncement()}
       showPasswordWarning={

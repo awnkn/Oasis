@@ -14,7 +14,8 @@ export const WEEKEND_DAYS: number[] = [5, 6];
 // ---------- swim sessions (day pass vs. night swim) ----------
 
 // A booking is for one of two sessions on its date. Day is the ordinary
-// daytime pass; night is the Thursday-evening swim at a flat price.
+// daytime pass; night is the evening swim at a flat price, offered only on
+// specific dates chosen in the admin dashboard.
 export const SWIM_SESSIONS = ["day", "night"] as const;
 export type SwimSession = (typeof SWIM_SESSIONS)[number];
 
@@ -23,10 +24,9 @@ export const SWIM_SESSION_LABELS: Record<SwimSession, string> = {
   night: "Night swim",
 };
 
-// Night swim: flat entry price, one weekday only, fixed evening hours.
+// Night swim: flat entry price, fixed evening hours. Which dates it runs on
+// is chosen in the admin dashboard (see lib/nightSwim.ts).
 export const NIGHT_SWIM_PRICE = 15;
-// 0 = Sunday … 6 = Saturday. Night swims run on Thursdays.
-export const NIGHT_SWIM_DAY = 4;
 export const NIGHT_SWIM_START = "6:30 PM";
 export const NIGHT_SWIM_END = "10:30 PM";
 export const NIGHT_SWIM_TIME = `${NIGHT_SWIM_START} – ${NIGHT_SWIM_END}`;
@@ -105,6 +105,6 @@ export const BOOKING_TERMS = [
   "I understand that booking changes must be made at least 24 hours before my reservation. If cancelled in time, my booking can be transferred to a new booking date.",
   "I understand that same day cancellations and no shows will result in the loss of my booking.",
   `I understand that Oasis is exclusively for guests aged ${AGE_STANDARD} and above, except ${AGE_YOUNG_DAYS_LABEL} where ages ${AGE_YOUNG}+ are welcome.`,
-  `I acknowledge the entrance fee of ${WEEKDAY_PRICE} JOD on weekdays and ${WEEKEND_PRICE} JOD on weekends, and ${NIGHT_SWIM_PRICE} JOD for the Thursday night swim.`,
+  `I acknowledge the entrance fee of ${WEEKDAY_PRICE} JOD on weekdays and ${WEEKEND_PRICE} JOD on weekends, and ${NIGHT_SWIM_PRICE} JOD for the night swim.`,
   "Seating at all pool areas, including the Shisha Pool, is available on a first come, first served basis and cannot be reserved or guaranteed.",
 ] as const;

@@ -13,6 +13,7 @@ import { formatDateLong, formatDateShort, whenLabel } from "@/lib/dates";
 import { NIGHT_SWIM_TIME } from "@/lib/config";
 import SiteControls from "@/components/SiteControls";
 import type { ClosedDate } from "@/lib/closures";
+import type { NightSwimDate } from "@/lib/nightSwim";
 import type { Announcement } from "@/lib/settings";
 import {
   GUEST_STATUS_LABELS,
@@ -1030,6 +1031,7 @@ export default function AdminDashboard({
   compSummary,
   compEntries,
   nightSwimEnabled,
+  nightSwimDates,
   closedDates,
   announcement,
   showPasswordWarning,
@@ -1049,6 +1051,7 @@ export default function AdminDashboard({
   compSummary: CompAccessSummary;
   compEntries: CompAccess[];
   nightSwimEnabled: boolean;
+  nightSwimDates: NightSwimDate[];
   closedDates: ClosedDate[];
   announcement: Announcement;
   showPasswordWarning: boolean;
@@ -1078,6 +1081,10 @@ export default function AdminDashboard({
   }, [capacity]);
 
   const sortedBookings = useMemo(() => sortBookings(bookings, sort), [bookings, sort]);
+  const nightDateStrings = useMemo(
+    () => nightSwimDates.map((d) => d.date),
+    [nightSwimDates]
+  );
 
   function onSort(key: SortKey) {
     setSort((s) =>
@@ -1433,6 +1440,7 @@ export default function AdminDashboard({
         {role === "manager" && (
           <SiteControls
             nightSwimEnabled={nightSwimEnabled}
+            nightSwimDates={nightSwimDates}
             announcement={announcement}
             closedDates={closedDates}
             today={today}
@@ -1453,6 +1461,7 @@ export default function AdminDashboard({
       <AddBookingModal
         open={showAdd}
         today={today}
+        nightDates={nightDateStrings}
         onClose={() => setShowAdd(false)}
         onSaved={() => {
           setShowAdd(false);
@@ -1462,6 +1471,7 @@ export default function AdminDashboard({
       />
       <EditBookingModal
         booking={editing}
+        nightDates={nightDateStrings}
         onClose={() => setEditing(null)}
         onSaved={() => {
           setEditing(null);

@@ -15,12 +15,12 @@ import {
 export type { GuestStatus, SwimSession };
 import {
   addDays,
-  isNightSwimDay,
   isValidDateString,
   priceForSession,
   today,
 } from "./dates";
 import { isDateClosed, closedDatesInRange } from "./closures";
+import { isNightSwimDate } from "./nightSwim";
 import { isNightSwimEnabled } from "./settings";
 
 export type BookingStatus = "pending" | "approved" | "rejected";
@@ -323,17 +323,16 @@ export function createBooking(input: NewBookingInput): CreateResult {
   if (!Number.isInteger(guests) || guests < 1) {
     return { ok: false, error: "Please enter how many guests are coming." };
   }
-  if (session === "night" && !isNightSwimDay(date)) {
-    return {
-      ok: false,
-      error: "Night swims run on Thursday evenings only. Please pick a Thursday, or choose the day swim.",
-    };
-  }
   if (isDateClosed(date)) {
     return { ok: false, error: "We're closed on this day. Please choose another date." };
   }
-  if (session === "night" && !isNightSwimEnabled()) {
-    return { ok: false, error: "Night swim bookings are closed right now. Please choose the day swim." };
+  if (session === "night") {
+    if (!isNightSwimEnabled()) {
+      return { ok: false, error: "Night swim bookings are closed right now. Please choose the day swim." };
+    }
+    if (!isNightSwimDate(date)) {
+      return { ok: false, error: "The night swim isn't open on that date. Please pick a night-swim date, or choose the day swim." };
+    }
   }
 
   sweepNoResponse();
@@ -345,7 +344,7 @@ export function createBooking(input: NewBookingInput): CreateResult {
         ok: false,
         error:
           session === "night"
-            ? "The night swim is fully booked for this date. Please pick another Thursday."
+            ? "The night swim is fully booked for this date. Please pick another night-swim date."
             : "This day is fully booked. Please pick another date.",
       };
     }
@@ -437,17 +436,16 @@ export function createManualBooking(
   if (!Number.isInteger(guests) || guests < 1) {
     return { ok: false, error: "Please enter how many guests are coming." };
   }
-  if (session === "night" && !isNightSwimDay(date)) {
-    return {
-      ok: false,
-      error: "Night swims run on Thursdays only. Pick a Thursday, or choose the day swim.",
-    };
-  }
   if (isDateClosed(date)) {
     return { ok: false, error: "The club is marked closed on this day. Reopen it first to add a booking." };
   }
-  if (session === "night" && !isNightSwimEnabled()) {
-    return { ok: false, error: "Night swim is turned off. Turn it on first, or choose the day swim." };
+  if (session === "night") {
+    if (!isNightSwimEnabled()) {
+      return { ok: false, error: "Night swim is turned off. Turn it on first, or choose the day swim." };
+    }
+    if (!isNightSwimDate(date)) {
+      return { ok: false, error: "That date isn't a night-swim date. Add it under Site controls, or choose the day swim." };
+    }
   }
 
   sweepNoResponse();
@@ -624,10 +622,15 @@ export function updateBookingDetails(
         ? (u.heardAbout?.trim().slice(0, 200) || null)
         : booking.heard_about;
 
-    // A night swim can only sit on a Thursday, whether the session or the
-    // day was the thing that changed.
-    if (session === "night" && !isNightSwimDay(date)) {
-      return invalid("Night swims run on Thursdays only — pick a Thursday, or switch it to a day swim.");
+    // A night swim can only sit on a configured night-swim date, whether the
+    // session or the day was the thing that changed.
+    if (session === "night") {
+      if (!isNightSwimEnabled()) {
+        return invalid("Night swim is turned off — turn it on, or switch this to a day swim.");
+      }
+      if (!isNightSwimDate(date)) {
+        return invalid("That date isn't a night-swim date — pick a night-swim date, or switch it to a day swim.");
+      }
     }
 
     // Moving day/session or growing the group takes spots — re-check the

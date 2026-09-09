@@ -3,6 +3,8 @@ import BookingForm from "@/components/BookingForm";
 import { MAX_ADVANCE_DAYS } from "@/lib/config";
 import { addDays, today } from "@/lib/dates";
 import { recordEvent } from "@/lib/bookings";
+import { upcomingNightSwimDates } from "@/lib/nightSwim";
+import { isNightSwimEnabled } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +74,7 @@ export default async function BookPage({
           <BookingForm
             minDate={todayStr}
             maxDate={addDays(todayStr, MAX_ADVANCE_DAYS)}
+            nightDates={isNightSwimEnabled() ? upcomingNightSwimDates() : []}
           />
         </div>
       </main>
