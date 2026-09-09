@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { formatDateLong } from "@/lib/dates";
+import { formatDateLong, formatDateShort } from "@/lib/dates";
 import {
   AGE_GUARDIAN,
   AGE_YOUNG,
@@ -53,9 +53,12 @@ const inputClass =
 export default function BookingForm({
   minDate,
   maxDate,
+  nightDates = [],
 }: {
   minDate: string;
   maxDate: string;
+  /** Upcoming dates the night swim is open (for the hint). */
+  nightDates?: string[];
 }) {
   const [date, setDate] = useState("");
   const [session, setSession] = useState<SwimSession>("day");
@@ -93,7 +96,7 @@ export default function BookingForm({
       .then((data) => {
         if (cancelled) return;
         setAvailability(data);
-        // The night swim runs on Thursdays only; if the chosen day can't
+        // Night swim runs only on specific dates; if the chosen date can't
         // take one, fall back to the day swim automatically.
         if (!data?.night?.offered) setSession("day");
       })
@@ -108,24 +111,13 @@ export default function BookingForm({
     };
   }, [date, retryToken]);
 
-  // Night swims are Thursdays only — snap back to the day swim whenever the
-  // chosen date isn't a Thursday.
-  useEffect(() => {
-    const thu = date
-      ? new Date(`${date}T00:00:00Z`).getUTCDay() === 4
-      : false;
-    if (!thu) setSession("day");
-  }, [date]);
-
   const guestCount = Number.parseInt(guests, 10);
   const validGuests = Number.isInteger(guestCount) && guestCount >= 1;
   const country =
     PHONE_COUNTRIES.find((c) => c.code === phoneCountry) ?? PHONE_COUNTRIES[0];
-  // Computed client-side so the night option appears the instant a Thursday
-  // is picked, before the availability request comes back. (4 = Thursday.)
-  const isThursday = date
-    ? new Date(`${date}T00:00:00Z`).getUTCDay() === 4
-    : false;
+  // Whether the chosen date is a night-swim date — decided by the server
+  // (which knows the configured dates and the master switch).
+  const nightOffered = availability?.night.offered ?? false;
   const sessionAvail = availability
     ? session === "night"
       ? availability.night
@@ -283,7 +275,16 @@ export default function BookingForm({
         guardian aged {AGE_GUARDIAN}+.
       </p>
 
-      {/* Session: day pass vs. Thursday night swim */}
+      {nightDates.length > 0 && (
+        <p className="mt-3 rounded-xl bg-oasis-950/5 px-4 py-2.5 text-xs leading-relaxed text-oasis-900/70">
+          🌙 <strong>Night swim</strong> ({NIGHT_SWIM_TIME}) is open on{" "}
+          <strong>{nightDates.slice(0, 6).map(formatDateShort).join(", ")}</strong>
+          {nightDates.length > 6 ? " and more" : ""}. Pick one of these dates,
+          then choose Night swim below.
+        </p>
+      )}
+
+      {/* Session: day pass vs. night swim (offered only on set dates) */}
       {date && (
         <fieldset className="mt-5">
           <legend className="mb-2 block text-sm font-medium">
@@ -311,13 +312,13 @@ export default function BookingForm({
             </button>
             <button
               type="button"
-              onClick={() => isThursday && setSession("night")}
-              disabled={!isThursday}
+              onClick={() => nightOffered && setSession("night")}
+              disabled={!nightOffered}
               aria-pressed={session === "night"}
               className={`rounded-2xl border px-4 py-3.5 text-left transition disabled:cursor-not-allowed ${
                 session === "night"
                   ? "border-oasis-600 bg-oasis-950 text-white ring-2 ring-oasis-500/40"
-                  : isThursday
+                  : nightOffered
                     ? "border-oasis-950/10 bg-white hover:border-oasis-400"
                     : "border-oasis-950/10 bg-zinc-50 opacity-60"
               }`}
@@ -328,9 +329,9 @@ export default function BookingForm({
                   session === "night" ? "text-white/70" : "text-oasis-900/60"
                 }`}
               >
-                {isThursday
-                  ? `${NIGHT_SWIM_TIME} · 15 ${availability?.currency ?? "JOD"} per guest`
-                  : "Thursdays only — pick a Thursday"}
+                {nightOffered
+                  ? `${availability?.night.time ?? NIGHT_SWIM_TIME} · 15 ${availability?.currency ?? "JOD"} per guest`
+                  : "Not a night-swim date"}
               </span>
             </button>
           </div>

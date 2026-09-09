@@ -8,7 +8,6 @@ import {
   type PhoneCountry,
 } from "@/lib/phone";
 import {
-  NIGHT_SWIM_DAY,
   NIGHT_SWIM_PRICE,
   NIGHT_SWIM_TIME,
   WEEKEND_DAYS,
@@ -16,12 +15,6 @@ import {
   WEEKEND_PRICE,
   type SwimSession,
 } from "@/lib/config";
-
-function isThursdayDate(date: string): boolean {
-  return date
-    ? new Date(`${date}T00:00:00Z`).getUTCDay() === NIGHT_SWIM_DAY
-    : false;
-}
 
 function priceFor(date: string, session: SwimSession): number {
   if (session === "night") return NIGHT_SWIM_PRICE;
@@ -36,11 +29,13 @@ function priceFor(date: string, session: SwimSession): number {
 export default function AddBookingModal({
   open,
   today,
+  nightDates,
   onClose,
   onSaved,
 }: {
   open: boolean;
   today: string;
+  nightDates: string[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -58,8 +53,8 @@ export default function AddBookingModal({
 
   if (!open) return null;
 
-  const thursday = isThursdayDate(date);
-  const effectiveSession: SwimSession = thursday ? session : "day";
+  const isNightDate = nightDates.includes(date);
+  const effectiveSession: SwimSession = isNightDate ? session : "day";
   const guestCount = Number.parseInt(guests, 10) || 0;
   const total = date
     ? priceFor(date, effectiveSession) * Math.max(guestCount, 0)
@@ -67,7 +62,7 @@ export default function AddBookingModal({
 
   function pickDate(next: string) {
     setDate(next);
-    if (!isThursdayDate(next)) setSession("day");
+    if (!nightDates.includes(next)) setSession("day");
   }
 
   function reset() {
@@ -260,7 +255,7 @@ export default function AddBookingModal({
             </div>
           </div>
 
-          {/* Session — night swims are a Thursday-evening pool */}
+          {/* Session — night swim is offered only on configured dates */}
           <div>
             <span className="mb-1 block text-xs font-medium text-zinc-500">Session</span>
             <div className="grid grid-cols-2 gap-2">
@@ -278,10 +273,10 @@ export default function AddBookingModal({
               </button>
               <button
                 type="button"
-                onClick={() => thursday && setSession("night")}
-                disabled={!thursday}
+                onClick={() => isNightDate && setSession("night")}
+                disabled={!isNightDate}
                 aria-pressed={effectiveSession === "night"}
-                title={thursday ? undefined : "Night swims run on Thursdays only"}
+                title={isNightDate ? undefined : "This date isn't a night-swim date"}
                 className={`rounded-xl border px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
                   effectiveSession === "night"
                     ? "border-oasis-600 bg-oasis-950 text-white"
@@ -292,9 +287,9 @@ export default function AddBookingModal({
               </button>
             </div>
             <p className="mt-1 text-xs text-zinc-400">
-              {thursday
+              {isNightDate
                 ? `Night swim: ${NIGHT_SWIM_TIME} · ${NIGHT_SWIM_PRICE} JOD per guest`
-                : "Night swims are available on Thursdays."}
+                : "Night swim runs only on the dates set under Site controls."}
             </p>
           </div>
 

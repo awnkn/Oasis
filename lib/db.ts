@@ -175,6 +175,16 @@ const SCHEMA = `
     actor_role TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- Specific dates the night swim is open. Night swim is offered ONLY on
+  -- these dates (not automatically on any weekday). Managed from the
+  -- admin dashboard.
+  CREATE TABLE IF NOT EXISTS night_swim_dates (
+    date TEXT PRIMARY KEY,
+    actor_name TEXT NOT NULL,
+    actor_role TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `;
 
 /** The event Oasis is launching with, inserted once on first run. */

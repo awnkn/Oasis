@@ -1,5 +1,4 @@
 import {
-  NIGHT_SWIM_DAY,
   NIGHT_SWIM_PRICE,
   NIGHT_SWIM_TIME,
   TIME_ZONE,
@@ -29,11 +28,6 @@ export function isWeekend(date: string): boolean {
 
 export function priceForDate(date: string): number {
   return isWeekend(date) ? WEEKEND_PRICE : WEEKDAY_PRICE;
-}
-
-/** True when the date falls on the weekday night swims run (Thursday). */
-export function isNightSwimDay(date: string): boolean {
-  return dayOfWeek(date) === NIGHT_SWIM_DAY;
 }
 
 /** Price per guest for a given session. Night swims are a flat price on

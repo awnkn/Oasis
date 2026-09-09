@@ -14,7 +14,8 @@ import {
 import { listUpcomingEvents } from "@/lib/events";
 import { eventHeroUrl } from "@/lib/eventHero";
 import { isNightSwimEnabled } from "@/lib/settings";
-import { formatDateLong } from "@/lib/dates";
+import { upcomingNightSwimDates } from "@/lib/nightSwim";
+import { formatDateLong, formatDateShort } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +95,10 @@ function Wordmark({ light = false }: { light?: boolean }) {
 
 export default function HomePage() {
   const events = listUpcomingEvents().slice(0, 3);
-  const nightSwim = isNightSwimEnabled();
+  const nightDates = isNightSwimEnabled() ? upcomingNightSwimDates() : [];
+  // Only advertise the night swim when it's on AND has upcoming dates.
+  const showNight = nightDates.length > 0;
+  const nightDatesLabel = nightDates.slice(0, 3).map(formatDateShort).join(", ");
   return (
     <div className="min-h-screen">
       <main>
@@ -158,10 +162,10 @@ export default function HomePage() {
             <span>Sunday to Thursday · {WEEKDAY_PRICE} {CURRENCY} per guest</span>
             <span className="hidden text-white/30 sm:block">✦</span>
             <span>Friday & Saturday · {WEEKEND_PRICE} {CURRENCY} per guest</span>
-            {nightSwim && (
+            {showNight && (
               <>
                 <span className="hidden text-white/30 sm:block">✦</span>
-                <span>🌙 Thursday night swim · {NIGHT_SWIM_PRICE} {CURRENCY}</span>
+                <span>🌙 Night swim · {NIGHT_SWIM_PRICE} {CURRENCY}</span>
               </>
             )}
           </div>
@@ -289,17 +293,18 @@ export default function HomePage() {
             </div>
 
             {/* Night swim */}
-            {nightSwim && (
+            {showNight && (
               <div className="rounded-3xl bg-oasis-950 p-7 text-white">
                 <p className="text-xs font-semibold uppercase tracking-widest text-oasis-300">
-                  🌙 New · Thursdays
+                  🌙 Night swim
                 </p>
                 <h3 className="mt-2 font-display text-2xl font-semibold">
-                  Night swim
+                  Select evenings
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-white/75">
-                  Thursday evenings, {NIGHT_SWIM_TIME}. A flat {NIGHT_SWIM_PRICE}{" "}
-                  {CURRENCY} per guest — choose it when you book.
+                  {NIGHT_SWIM_TIME}, a flat {NIGHT_SWIM_PRICE} {CURRENCY} per guest.
+                  Next: {nightDatesLabel}
+                  {nightDates.length > 3 ? " and more" : ""}.
                 </p>
               </div>
             )}
@@ -515,17 +520,21 @@ export default function HomePage() {
           </div>
 
           {/* Night swim — the Thursday-evening option */}
-          {nightSwim && (
+          {showNight && (
             <div className="mx-auto mt-6 flex max-w-3xl flex-col items-center justify-between gap-4 rounded-3xl bg-oasis-950 px-7 py-6 text-white sm:flex-row sm:text-left">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-widest text-oasis-300">
-                  🌙 Night swim · Thursdays
+                  🌙 Night swim
                 </p>
                 <p className="mt-2 text-lg">
                   <span className="font-display text-3xl font-semibold">
                     {NIGHT_SWIM_PRICE} <span className="text-xl text-oasis-300">{CURRENCY}</span>
                   </span>{" "}
                   <span className="text-white/70">per guest · {NIGHT_SWIM_TIME}</span>
+                </p>
+                <p className="mt-1 text-sm text-white/60">
+                  Next: {nightDatesLabel}
+                  {nightDates.length > 3 ? " and more" : ""}
                 </p>
               </div>
               <Link
