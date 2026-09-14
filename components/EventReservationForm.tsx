@@ -94,8 +94,9 @@ export default function EventReservationForm({
         </h2>
         <p className="mt-3 text-oasis-900/70">
           Your reservation for <strong>{confirmed.eventTitle}</strong> is{" "}
-          <strong>pending confirmation</strong>. Our team will reach out to
-          confirm your spot.
+          <strong>reserved but not yet confirmed</strong>. Full payment secures
+          your spot — our team will reach out to arrange it, and you’ll be
+          confirmed once payment is received.
         </p>
         <dl className="mt-6 space-y-2 rounded-2xl bg-sand-100 p-6 text-sm">
           <div className="flex justify-between">
@@ -107,7 +108,7 @@ export default function EventReservationForm({
             <dd className="font-semibold">{confirmed.quantity}</dd>
           </div>
           <div className="flex justify-between border-t border-sand-200 pt-2">
-            <dt className="text-oasis-900/60">Total at the gate</dt>
+            <dt className="text-oasis-900/60">Total to secure</dt>
             <dd className="font-semibold">{confirmed.totalPrice} JOD</dd>
           </div>
         </dl>
@@ -141,8 +142,8 @@ export default function EventReservationForm({
     >
       <h2 className="font-display text-2xl font-semibold">Reserve your spot</h2>
       <p className="mt-1 text-sm text-oasis-900/60">
-        Send your request and we confirm every reservation. Nothing is charged
-        online, and you pay at the gate.
+        Send your request to reserve. Full payment is required to secure your
+        spot — our team will reach out to arrange it.
       </p>
 
       <div className="mt-6">
@@ -264,8 +265,8 @@ export default function EventReservationForm({
           className="mt-1 h-4 w-4 shrink-0 accent-oasis-600"
         />
         <span>
-          I understand this is a reservation request. Our team will confirm my
-          spot, and the {price} JOD per ticket is paid at the gate.{" "}
+          I understand this is a reservation request, and the full amount
+          ({price} JOD per ticket) must be paid to secure my spot.{" "}
           <span className="text-blush-500">*</span>
         </span>
       </label>
@@ -280,7 +281,7 @@ export default function EventReservationForm({
         <div className="text-sm text-oasis-900/60">
           {total !== null ? (
             <>
-              Total at the gate:{" "}
+              Total to secure:{" "}
               <span className="font-display text-2xl font-semibold text-oasis-950">
                 {total} JOD
               </span>

@@ -63,8 +63,8 @@ export default async function BookPage({
             Reserve your day
           </h1>
           <p className="mt-3 max-w-xl text-white/85">
-            Book below and your day is confirmed instantly, with a confirmation
-            by email and WhatsApp. Nothing is charged online, and you pay at the gate.
+            Day swims are confirmed instantly and paid at the gate. Night swims
+            are reserved now and secured with full payment — our team arranges it.
           </p>
         </div>
       </div>
