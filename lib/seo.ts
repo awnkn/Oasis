@@ -98,11 +98,11 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How do I book a day at Oasis?",
-    a: "Book online in under a minute and your spot is confirmed instantly. You receive a confirmation by email and WhatsApp, plus a reminder the day before. Nothing is charged online, and you pay at the gate.",
+    a: "Book your day swim online in under a minute and your spot is confirmed instantly — you pay at the gate. Night swims and events are different: your spot is reserved when you book, and full payment is required to secure it (our team reaches out to arrange it).",
   },
   {
     q: "How do I pay?",
-    a: "You pay at the gate. There is no online payment. We accept Cash, CliQ and Visa at the gate.",
+    a: "For a day swim you pay at the gate — Cash, CliQ or Visa. For night swims and events, the full amount is paid to secure your spot; our team will reach out to arrange payment after you reserve.",
   },
   {
     q: "Is there an age policy?",

@@ -152,9 +152,6 @@ export default function HomePage() {
               What to know
             </a>
           </div>
-          <p className="mt-5 text-sm text-white/75">
-            Takes under a minute · No online payment · Pay at the gate
-          </p>
         </div>
 
         <div className="relative z-10 border-t border-white/15 bg-oasis-950/40 backdrop-blur">
@@ -303,7 +300,7 @@ export default function HomePage() {
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-white/75">
                   {NIGHT_SWIM_TIME}, a flat {NIGHT_SWIM_PRICE} {CURRENCY} per guest.
-                  Next: {nightDatesLabel}
+                  Full payment secures your spot. Next: {nightDatesLabel}
                   {nightDates.length > 3 ? " and more" : ""}.
                 </p>
               </div>
@@ -338,7 +335,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-10 text-center">
+          <p className="mt-8 text-center text-sm text-oasis-900/55">
+            🌿 Shisha available at the pool · 7 {CURRENCY}
+          </p>
+
+          <div className="mt-6 text-center">
             <Link
               href="/faq"
               className="text-sm font-medium text-oasis-600 underline-offset-4 hover:underline"
@@ -413,7 +414,7 @@ export default function HomePage() {
               {
                 icon: FEATURE_ICONS.quick,
                 title: "Book in a minute",
-                text: "No online payment, no cards. Reserve now, pay at the gate.",
+                text: "Reserve in under a minute. Day swims are simply paid at the gate.",
               },
               {
                 icon: FEATURE_ICONS.confirmed,

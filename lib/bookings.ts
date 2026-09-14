@@ -357,14 +357,16 @@ export function createBooking(input: NewBookingInput): CreateResult {
     }
 
     const pricePerGuest = priceForSession(date, session);
-    // Bookings are confirmed the moment they are made — no admin approval
-    // step. The confirmation email and WhatsApp are sent from the route.
+    // Day passes are confirmed instantly (paid at the gate). Night swims must
+    // be paid in full to secure the spot, so they start 'pending' (held) and
+    // staff confirm them once the payment is received.
+    const status: BookingStatus = session === "night" ? "pending" : "approved";
     const result = db
       .prepare(
         `INSERT INTO bookings (name, phone, email, date, session, guests, price_per_guest, total_price, payment_method, heard_about, notes, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(name, phone, email, date, session, guests, pricePerGuest, pricePerGuest * guests, paymentMethod, heardAbout, notes);
+      .run(name, phone, email, date, session, guests, pricePerGuest, pricePerGuest * guests, paymentMethod, heardAbout, notes, status);
 
     const id = Number(result.lastInsertRowid);
     const booking = getBooking(id);
@@ -372,7 +374,7 @@ export function createBooking(input: NewBookingInput): CreateResult {
     logAction(
       { name: "System", role: "system" },
       "created",
-      `Booking #${id} (${name}, ${date}, ${SWIM_SESSION_LABELS[session]}, ${guests} ${guests === 1 ? "guest" : "guests"}) booked online and auto-confirmed`,
+      `Booking #${id} (${name}, ${date}, ${SWIM_SESSION_LABELS[session]}, ${guests} ${guests === 1 ? "guest" : "guests"}) booked online — ${status === "approved" ? "auto-confirmed" : "held pending full payment"}`,
       id
     );
     return { ok: true, booking };

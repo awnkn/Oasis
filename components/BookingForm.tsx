@@ -180,19 +180,31 @@ export default function BookingForm({
   }
 
   if (confirmed) {
+    const held = confirmed.status !== "approved";
     return (
       <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-oasis-950/5 sm:p-10">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-oasis-100 text-3xl">
-          ✓
+          {held ? "🌙" : "✓"}
         </div>
         <h2 className="mt-5 font-display text-3xl font-semibold">
-          You’re confirmed, {confirmed.name.split(" ")[0]}!
+          {held
+            ? `You’re reserved, ${confirmed.name.split(" ")[0]}!`
+            : `You’re confirmed, ${confirmed.name.split(" ")[0]}!`}
         </h2>
-        <p className="mt-3 text-oasis-900/70">
-          Your booking is <strong>confirmed</strong>. A confirmation is on its
-          way to your email and WhatsApp, and we’ll send a reminder the day
-          before your visit.
-        </p>
+        {held ? (
+          <p className="mt-3 text-oasis-900/70">
+            Your night swim spot is <strong>reserved but not yet confirmed</strong>.
+            To secure it, the full amount below must be paid — our team will
+            reach out to arrange it, and you’ll get your confirmation once
+            payment is received.
+          </p>
+        ) : (
+          <p className="mt-3 text-oasis-900/70">
+            Your booking is <strong>confirmed</strong>. A confirmation is on its
+            way to your email and WhatsApp, and we’ll send a reminder the day
+            before your visit.
+          </p>
+        )}
         <dl className="mt-6 space-y-2 rounded-2xl bg-sand-100 p-6 text-sm">
           <div className="flex justify-between">
             <dt className="text-oasis-900/60">Reference</dt>
@@ -213,7 +225,7 @@ export default function BookingForm({
             <dd className="font-semibold">{confirmed.guests}</dd>
           </div>
           <div className="flex justify-between border-t border-sand-200 pt-2">
-            <dt className="text-oasis-900/60">Total at the gate</dt>
+            <dt className="text-oasis-900/60">{held ? "Total to secure" : "Total at the gate"}</dt>
             <dd className="font-semibold">
               {confirmed.totalPrice} JOD
               <span className="ml-1 font-normal text-oasis-900/50">
@@ -338,6 +350,14 @@ export default function BookingForm({
         </fieldset>
       )}
 
+      {date && session === "night" && (
+        <p className="mt-3 rounded-xl bg-oasis-950/5 px-4 py-2.5 text-xs leading-relaxed text-oasis-900/70">
+          🌙 Night swim spots are <strong>held until full payment is received</strong>.
+          Reserve now and our team will reach out to arrange payment and confirm
+          your spot.
+        </p>
+      )}
+
       {/* Availability + price strip */}
       {date && (
         <div
@@ -370,7 +390,7 @@ export default function BookingForm({
             <span>
               <strong>{formatDateLong(date)}</strong>
               {session === "night"
-                ? " — the night swim is fully booked. Please choose another Thursday."
+                ? " — the night swim is fully booked. Please choose another night-swim date."
                 : " is fully booked. Please choose another day."}
             </span>
           ) : session === "night" ? (
@@ -582,7 +602,7 @@ export default function BookingForm({
         <div className="text-sm text-oasis-900/60">
           {total !== null && !soldOut ? (
             <>
-              Total at the gate:{" "}
+              {session === "night" ? "Total to secure:" : "Total at the gate:"}{" "}
               <span className="font-display text-2xl font-semibold text-oasis-950">
                 {total} JOD
               </span>
@@ -603,7 +623,13 @@ export default function BookingForm({
           }
           className="rounded-full bg-oasis-600 px-8 py-3.5 font-medium text-white shadow-md transition hover:bg-oasis-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting ? "Confirming…" : "Confirm booking"}
+          {submitting
+            ? session === "night"
+              ? "Reserving…"
+              : "Confirming…"
+            : session === "night"
+              ? "Reserve spot"
+              : "Confirm booking"}
         </button>
       </div>
     </form>
