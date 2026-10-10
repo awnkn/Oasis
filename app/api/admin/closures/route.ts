@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
-import { addClosedDate } from "@/lib/closures";
+import { addClosedDateRange } from "@/lib/closures";
 
-/** Mark a date closed for bookings. Manager-only. */
+/** Mark a date (or a date range) closed for bookings. Manager-only. */
 export async function POST(request: Request) {
   const session = await getAdminSession();
   if (session?.role !== "manager") {
@@ -20,8 +20,19 @@ export async function POST(request: Request) {
   }
   const b = (body ?? {}) as Record<string, unknown>;
 
-  const result = addClosedDate(
-    typeof b.date === "string" ? b.date : "",
+  // Accept a range (startDate/endDate) or a single date (date).
+  const start =
+    typeof b.startDate === "string"
+      ? b.startDate
+      : typeof b.date === "string"
+        ? b.date
+        : "";
+  const end =
+    typeof b.endDate === "string" && b.endDate ? b.endDate : start;
+
+  const result = addClosedDateRange(
+    start,
+    end,
     typeof b.reason === "string" ? b.reason : null,
     { name: session.name, role: session.role }
   );

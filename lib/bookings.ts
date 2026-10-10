@@ -1024,6 +1024,81 @@ export function accountingRows(
   return filled;
 }
 
+// ---------- date-range accounting overview (manager) ----------
+
+export interface AccountingOverview {
+  start: string;
+  end: string;
+  /** Guests who actually checked in (bookings + event tickets). */
+  checkedInGuests: number;
+  /** Money actually collected (recorded payments), bookings + event tickets. */
+  collected: number;
+  /** Collected split by account (Cash / CliQ / Visa). */
+  byAccount: Record<string, number>;
+  bookings: { checkedInGuests: number; collected: number };
+  events: { checkedInGuests: number; collected: number };
+}
+
+/**
+ * Accounting for a chosen date range: how many guests checked in and how much
+ * money was collected, across day/night bookings and event reservations.
+ * Bookings are grouped by their booking date; event tickets by the event's
+ * date. Payments are the amounts actually recorded (paid_amount).
+ */
+export function accountingOverview(start: string, end: string): AccountingOverview {
+  const db = getDb();
+
+  const b = db
+    .prepare(
+      `SELECT COALESCE(SUM(checked_in_count), 0) AS guests,
+              COALESCE(SUM(paid_amount), 0) AS collected
+       FROM bookings WHERE date >= ? AND date <= ?`
+    )
+    .get(start, end) as { guests: number; collected: number };
+
+  const e = db
+    .prepare(
+      `SELECT COALESCE(SUM(t.checked_in_count), 0) AS guests,
+              COALESCE(SUM(t.paid_amount), 0) AS collected
+       FROM event_tickets t JOIN ticketed_events ev ON ev.id = t.event_id
+       WHERE ev.event_date >= ? AND ev.event_date <= ?`
+    )
+    .get(start, end) as { guests: number; collected: number };
+
+  const byAccount: Record<string, number> = Object.fromEntries(
+    PAYMENT_ACCOUNTS.map((a) => [a, 0])
+  );
+  const bookingAccounts = db
+    .prepare(
+      `SELECT paid_account AS acct, COALESCE(SUM(paid_amount), 0) AS total
+       FROM bookings
+       WHERE date >= ? AND date <= ? AND paid_amount IS NOT NULL AND paid_account IS NOT NULL
+       GROUP BY paid_account`
+    )
+    .all(start, end) as { acct: string; total: number }[];
+  const eventAccounts = db
+    .prepare(
+      `SELECT t.paid_account AS acct, COALESCE(SUM(t.paid_amount), 0) AS total
+       FROM event_tickets t JOIN ticketed_events ev ON ev.id = t.event_id
+       WHERE ev.event_date >= ? AND ev.event_date <= ? AND t.paid_amount IS NOT NULL AND t.paid_account IS NOT NULL
+       GROUP BY t.paid_account`
+    )
+    .all(start, end) as { acct: string; total: number }[];
+  for (const r of [...bookingAccounts, ...eventAccounts]) {
+    if (r.acct in byAccount) byAccount[r.acct] += r.total;
+  }
+
+  return {
+    start,
+    end,
+    checkedInGuests: b.guests + e.guests,
+    collected: b.collected + e.collected,
+    byAccount,
+    bookings: { checkedInGuests: b.guests, collected: b.collected },
+    events: { checkedInGuests: e.guests, collected: e.collected },
+  };
+}
+
 export interface InsightsData {
   /** Past 30 days including today. */
   past: DailyAccountingRow[];
