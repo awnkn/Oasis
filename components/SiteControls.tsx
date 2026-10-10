@@ -44,6 +44,7 @@ export default function SiteControls({
 
   // Closures
   const [closeDate, setCloseDate] = useState("");
+  const [closeEnd, setCloseEnd] = useState("");
   const [closeReason, setCloseReason] = useState("");
   const [closeBusy, setCloseBusy] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -142,14 +143,19 @@ export default function SiteControls({
       const res = await fetch("/api/admin/closures", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: closeDate, reason: closeReason.trim() || undefined }),
+        body: JSON.stringify({
+          startDate: closeDate,
+          endDate: closeEnd || closeDate,
+          reason: closeReason.trim() || undefined,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        setError(data?.error || "Could not close that day.");
+        setError(data?.error || "Could not close those days.");
         return;
       }
       setCloseDate("");
+      setCloseEnd("");
       setCloseReason("");
       router.refresh();
     } catch {
@@ -331,12 +337,13 @@ export default function SiteControls({
       <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
         <h3 className="font-semibold">🚫 Closed days</h3>
         <p className="mt-1 text-sm text-zinc-500">
-          Mark a day closed to take zero bookings (day and night). Guests see it
-          as unavailable immediately.
+          Close a single day or a date range to take zero bookings (day and
+          night). Guests see those days as unavailable immediately. Leave “To”
+          empty to close just one day.
         </p>
         <form onSubmit={addClosure} className="mt-4 flex flex-wrap items-end gap-3">
           <div>
-            <label htmlFor="close-date" className="mb-1 block text-xs font-medium text-zinc-500">Date</label>
+            <label htmlFor="close-date" className="mb-1 block text-xs font-medium text-zinc-500">From</label>
             <input
               id="close-date"
               type="date"
@@ -344,6 +351,19 @@ export default function SiteControls({
               min={today}
               value={closeDate}
               onChange={(e) => setCloseDate(e.target.value)}
+              className="rounded-xl border border-oasis-950/10 bg-white px-3 py-2 text-sm outline-none focus:border-oasis-950/25"
+            />
+          </div>
+          <div>
+            <label htmlFor="close-end" className="mb-1 block text-xs font-medium text-zinc-500">
+              To <span className="font-normal text-zinc-400">(optional)</span>
+            </label>
+            <input
+              id="close-end"
+              type="date"
+              min={closeDate || today}
+              value={closeEnd}
+              onChange={(e) => setCloseEnd(e.target.value)}
               className="rounded-xl border border-oasis-950/10 bg-white px-3 py-2 text-sm outline-none focus:border-oasis-950/25"
             />
           </div>
@@ -365,7 +385,7 @@ export default function SiteControls({
             disabled={closeBusy || !closeDate}
             className="rounded-full bg-oasis-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-oasis-800 disabled:opacity-40"
           >
-            {closeBusy ? "Closing…" : "Close this day"}
+            {closeBusy ? "Closing…" : "Close these days"}
           </button>
         </form>
 

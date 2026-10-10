@@ -4,7 +4,7 @@
 
 import { getDb } from "./db";
 import { logAction, type Actor } from "./bookings";
-import { isValidDateString, today } from "./dates";
+import { addDays, isValidDateString, today } from "./dates";
 
 export interface ClosedDate {
   date: string;
@@ -61,6 +61,58 @@ export function addClosedDate(
     )
     .run(d, r, actor.name, actor.role);
   logAction(actor, "closure", `Closed ${d} for bookings${r ? ` — ${r}` : ""}`);
+  return { ok: true };
+}
+
+/**
+ * Close every date in [start, end] inclusive. Single-day closes pass the same
+ * date for both. Past days are skipped; the range is capped at 90 days.
+ */
+export function addClosedDateRange(
+  start: string,
+  end: string,
+  reason: string | null | undefined,
+  actor: Actor
+): CloseResult {
+  const s = (start ?? "").trim();
+  const e = (end ?? "").trim();
+  if (!isValidDateString(s) || !isValidDateString(e)) {
+    return { ok: false, error: "Please choose valid dates." };
+  }
+  let [from, to] = s <= e ? [s, e] : [e, s];
+  const todayStr = today();
+  if (to < todayStr) {
+    return { ok: false, error: "That date range has already passed." };
+  }
+  if (from < todayStr) from = todayStr; // never close days already gone
+
+  // Cap the span so a typo can't close hundreds of days.
+  let span = 1;
+  for (let d = from; d < to; d = addDays(d, 1)) {
+    span++;
+    if (span > 90) return { ok: false, error: "Range is too long (90 days max)." };
+  }
+
+  const r = reason?.trim() ? reason.trim().slice(0, 200) : null;
+  const db = getDb();
+  const insert = db.prepare(
+    `INSERT INTO closed_dates (date, reason, actor_name, actor_role)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(date) DO UPDATE SET reason = excluded.reason`
+  );
+  let count = 0;
+  const run = db.transaction(() => {
+    for (let d = from; d <= to; d = addDays(d, 1)) {
+      insert.run(d, r, actor.name, actor.role);
+      count++;
+    }
+  });
+  run();
+  logAction(
+    actor,
+    "closure",
+    `Closed ${from}${to !== from ? ` → ${to}` : ""} for bookings${r ? ` — ${r}` : ""} (${count} day${count === 1 ? "" : "s"})`
+  );
   return { ok: true };
 }
 

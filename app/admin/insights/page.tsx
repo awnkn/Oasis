@@ -3,6 +3,7 @@ import CsvButton from "@/components/CsvButton";
 import AdminShell from "@/components/AdminShell";
 import { getAdminRole } from "@/lib/auth";
 import {
+  accountingOverview,
   getInsights,
   guestJourney,
   recentActivity,
@@ -10,7 +11,7 @@ import {
   type DailyAccountingRow,
   type JourneyRow,
 } from "@/lib/bookings";
-import { formatDateShort, today } from "@/lib/dates";
+import { addDays, formatDateLong, formatDateShort, isValidDateString, today } from "@/lib/dates";
 import {
   GUEST_STATUSES,
   GUEST_STATUS_LABELS,
@@ -282,12 +283,25 @@ const CSV_HEADER = [
   "Outstanding (JOD)",
 ];
 
-export default async function InsightsPage() {
+export default async function InsightsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
   const role = await getAdminRole();
   if (!role) redirect("/admin/login");
   if (role !== "manager") redirect("/admin");
 
   sweepNoResponse();
+  const todayStr = today();
+
+  // Custom date-range accounting overview. Defaults to the last 30 days.
+  const sp = await searchParams;
+  let from = sp.from && isValidDateString(sp.from) ? sp.from : addDays(todayStr, -29);
+  let to = sp.to && isValidDateString(sp.to) ? sp.to : todayStr;
+  if (from > to) [from, to] = [to, from];
+  const overview = accountingOverview(from, to);
+
   const { past, upcoming, statusCounts, heardAbout, returning, views30, bookClicks } =
     getInsights();
   const clickMax = Math.max(1, ...bookClicks.map((c) => c.count));
@@ -297,7 +311,6 @@ export default async function InsightsPage() {
     { title: "Weekly — last 8 weeks", unit: "week", rows: guestJourney("week", 8) },
     { title: "Monthly — last 6 months", unit: "month", rows: guestJourney("month", 6) },
   ];
-  const todayStr = today();
 
   const accountTotals = PAYMENT_ACCOUNTS.map((a) => ({
     account: a,
@@ -354,6 +367,83 @@ export default async function InsightsPage() {
             Download backup
           </a>
         </div>
+
+        {/* Date-range accounting overview */}
+        <section className="mb-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Accounting overview</h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                Pick a date range — guests who checked in and money collected
+                (day &amp; night bookings and events).
+              </p>
+            </div>
+            <form method="get" className="flex flex-wrap items-end gap-3">
+              <div>
+                <label htmlFor="ov-from" className="mb-1 block text-xs font-medium text-zinc-500">From</label>
+                <input
+                  id="ov-from"
+                  type="date"
+                  name="from"
+                  defaultValue={from}
+                  max={todayStr}
+                  className="rounded-xl border border-oasis-950/10 bg-white px-3 py-2 text-sm outline-none focus:border-oasis-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="ov-to" className="mb-1 block text-xs font-medium text-zinc-500">To</label>
+                <input
+                  id="ov-to"
+                  type="date"
+                  name="to"
+                  defaultValue={to}
+                  max={todayStr}
+                  className="rounded-xl border border-oasis-950/10 bg-white px-3 py-2 text-sm outline-none focus:border-oasis-500"
+                />
+              </div>
+              <button
+                type="submit"
+                className="rounded-full bg-oasis-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-oasis-700"
+              >
+                Update
+              </button>
+            </form>
+          </div>
+
+          <p className="mt-4 text-xs text-zinc-400">
+            {formatDateLong(overview.start)} → {formatDateLong(overview.end)}
+          </p>
+
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl bg-oasis-50 p-5">
+              <p className="text-sm text-oasis-900/60">Guests checked in</p>
+              <p className="mt-1 text-3xl font-semibold tracking-tight text-oasis-700">
+                {overview.checkedInGuests}
+              </p>
+              <p className="mt-1 text-xs text-oasis-900/45">
+                {overview.bookings.checkedInGuests} from day/night · {overview.events.checkedInGuests} from events
+              </p>
+            </div>
+            <div className="rounded-2xl bg-sand-100 p-5">
+              <p className="text-sm text-oasis-900/60">Revenue collected</p>
+              <p className="mt-1 text-3xl font-semibold tracking-tight text-oasis-900">
+                {overview.collected} JOD
+              </p>
+              <p className="mt-1 text-xs text-oasis-900/45">
+                {overview.bookings.collected} JOD from day/night · {overview.events.collected} JOD from events
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+            <span className="text-zinc-500">Collected by account:</span>
+            {PAYMENT_ACCOUNTS.map((a) => (
+              <span key={a} className="text-zinc-700">
+                {a} <strong>{overview.byAccount[a] ?? 0} JOD</strong>
+              </span>
+            ))}
+          </div>
+        </section>
 
         {/* KPIs */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
