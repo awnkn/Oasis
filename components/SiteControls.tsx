@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { formatDateLong } from "@/lib/dates";
 import type { ClosedDate } from "@/lib/closures";
 import type { NightSwimDate } from "@/lib/nightSwim";
-import type { Announcement } from "@/lib/settings";
+import type { Announcement, BookingsStatus } from "@/lib/settings";
 import { NIGHT_SWIM_PRICE, NIGHT_SWIM_TIME } from "@/lib/config";
 
 /**
@@ -19,16 +19,24 @@ export default function SiteControls({
   nightSwimDates,
   announcement,
   closedDates,
+  bookingsStatus,
   today,
 }: {
   nightSwimEnabled: boolean;
   nightSwimDates: NightSwimDate[];
   announcement: Announcement;
   closedDates: ClosedDate[];
+  bookingsStatus: BookingsStatus;
   today: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
+
+  // Registrations master switch
+  const [regClosed, setRegClosed] = useState(bookingsStatus.closed);
+  const [regMessage, setRegMessage] = useState(bookingsStatus.message);
+  const [regBusy, setRegBusy] = useState(false);
+  const [regSaved, setRegSaved] = useState(false);
 
   // Night swim master switch + dates
   const [nightBusy, setNightBusy] = useState(false);
@@ -61,6 +69,23 @@ export default function SiteControls({
       return false;
     }
     return true;
+  }
+
+  async function saveRegistrations(closedNext: boolean) {
+    setRegBusy(true);
+    setError("");
+    setRegSaved(false);
+    try {
+      if (await putSettings({ bookings: { closed: closedNext, message: regMessage.trim() } })) {
+        setRegClosed(closedNext);
+        setRegSaved(true);
+        router.refresh();
+      }
+    } catch {
+      setError("Could not reach the server.");
+    } finally {
+      setRegBusy(false);
+    }
   }
 
   async function toggleNight() {
@@ -195,6 +220,67 @@ export default function SiteControls({
       {error && (
         <p className="mt-4 rounded-xl bg-blush-100 px-4 py-3 text-sm text-blush-700">{error}</p>
       )}
+
+      {/* Registrations master switch */}
+      <div
+        className={`mt-4 rounded-2xl p-5 shadow-sm ring-1 ${
+          regClosed ? "bg-blush-100/60 ring-blush-200" : "bg-white ring-black/5"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold">
+              {regClosed ? "🔒 Registrations are CLOSED" : "🔓 Registrations are open"}
+            </h3>
+            <p className="mt-1 text-sm text-zinc-600">
+              {regClosed
+                ? "Guests can't book day swims, night swims or events. Walk-ins you add from the dashboard still work."
+                : "Guests can book normally. Close this to stop all public bookings and event reservations at once."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => saveRegistrations(!regClosed)}
+            disabled={regBusy}
+            className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-medium text-white transition disabled:opacity-40 ${
+              regClosed ? "bg-oasis-600 hover:bg-oasis-700" : "bg-blush-600 hover:bg-blush-700"
+            }`}
+          >
+            {regBusy ? "Saving…" : regClosed ? "Reopen registrations" : "Close registrations"}
+          </button>
+        </div>
+        <div className="mt-4">
+          <label htmlFor="reg-msg" className="mb-1 block text-xs font-medium text-zinc-500">
+            Message guests see while closed
+          </label>
+          <textarea
+            id="reg-msg"
+            rows={2}
+            maxLength={280}
+            value={regMessage}
+            onChange={(e) => {
+              setRegMessage(e.target.value);
+              setRegSaved(false);
+            }}
+            placeholder="e.g. We're closed for the season — bookings reopen in May 2027."
+            className="w-full rounded-xl border border-oasis-950/10 bg-white px-3 py-2 text-sm outline-none focus:border-oasis-950/25"
+          />
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-xs text-zinc-400">
+              Shown on the booking and event pages.
+              {regSaved && <span className="ml-2 text-emerald-600">Saved ✓</span>}
+            </p>
+            <button
+              type="button"
+              onClick={() => saveRegistrations(regClosed)}
+              disabled={regBusy}
+              className="rounded-full border border-oasis-950/10 px-4 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-40"
+            >
+              Save message
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Night swim: master switch + the exact dates it runs */}
       <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">

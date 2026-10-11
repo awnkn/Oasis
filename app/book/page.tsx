@@ -4,7 +4,7 @@ import { MAX_ADVANCE_DAYS } from "@/lib/config";
 import { addDays, today } from "@/lib/dates";
 import { recordEvent } from "@/lib/bookings";
 import { upcomingNightSwimDates } from "@/lib/nightSwim";
-import { isNightSwimEnabled } from "@/lib/settings";
+import { getBookingsStatus, isNightSwimEnabled } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +33,10 @@ export default async function BookPage({
     recordEvent("book_click", src);
   }
   const todayStr = today();
+  const bookings = getBookingsStatus();
+  const closedMessage =
+    bookings.message.trim() ||
+    "Online bookings are closed right now. Please check back soon.";
   return (
     <div className="min-h-screen">
       {/* Photo header */}
@@ -60,22 +64,41 @@ export default async function BookPage({
         </header>
         <div className="relative z-10 mx-auto max-w-3xl px-6 pb-12 pt-6 text-white">
           <h1 className="font-display text-4xl font-semibold sm:text-5xl">
-            Reserve your day
+            {bookings.closed ? "We're closed for now" : "Reserve your day"}
           </h1>
           <p className="mt-3 max-w-xl text-white/85">
-            Day swims are confirmed instantly and paid at the gate. Night swims
-            are reserved now and secured with full payment — our team arranges it.
+            {bookings.closed
+              ? "Bookings are paused."
+              : "Day swims are confirmed instantly and paid at the gate. Night swims are reserved now and secured with full payment — our team arranges it."}
           </p>
         </div>
       </div>
 
       <main className="mx-auto max-w-3xl px-6 pb-24">
         <div className="-mt-6 relative z-10">
-          <BookingForm
-            minDate={todayStr}
-            maxDate={addDays(todayStr, MAX_ADVANCE_DAYS)}
-            nightDates={isNightSwimEnabled() ? upcomingNightSwimDates() : []}
-          />
+          {bookings.closed ? (
+            <div className="rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-oasis-950/5 sm:p-12">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sand-100 text-3xl">
+                🌴
+              </div>
+              <h2 className="mt-5 font-display text-2xl font-semibold">
+                Bookings are closed
+              </h2>
+              <p className="mx-auto mt-3 max-w-md text-oasis-900/70">{closedMessage}</p>
+              <Link
+                href="/"
+                className="mt-8 inline-block rounded-full bg-oasis-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-oasis-700"
+              >
+                Back to home
+              </Link>
+            </div>
+          ) : (
+            <BookingForm
+              minDate={todayStr}
+              maxDate={addDays(todayStr, MAX_ADVANCE_DAYS)}
+              nightDates={isNightSwimEnabled() ? upcomingNightSwimDates() : []}
+            />
+          )}
         </div>
       </main>
     </div>

@@ -6,6 +6,7 @@ import { eventHeroUrl } from "@/lib/eventHero";
 import { today, formatDateLong } from "@/lib/dates";
 import { CURRENCY } from "@/lib/config";
 import { eventJsonLd } from "@/lib/seo";
+import { getBookingsStatus } from "@/lib/settings";
 import EventReservationForm from "@/components/EventReservationForm";
 import JsonLd from "@/components/JsonLd";
 
@@ -159,7 +160,20 @@ export default async function EventDetailPage({
         </div>
 
         <div id="reserve" className="scroll-mt-8 lg:sticky lg:top-8 lg:self-start">
-          <EventReservationForm eventId={event.id} price={event.price} soldOut={soldOut} />
+          {getBookingsStatus().closed ? (
+            <div className="rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-oasis-950/5">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sand-100 text-2xl">
+                🌴
+              </div>
+              <p className="mt-4 font-display text-xl font-semibold">Reservations are closed</p>
+              <p className="mt-2 text-sm text-oasis-900/70">
+                {getBookingsStatus().message.trim() ||
+                  "Reservations are closed right now. Please check back soon."}
+              </p>
+            </div>
+          ) : (
+            <EventReservationForm eventId={event.id} price={event.price} soldOut={soldOut} />
+          )}
         </div>
       </main>
     </div>

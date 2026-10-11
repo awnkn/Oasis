@@ -21,7 +21,7 @@ import { customerBadges } from "@/lib/customers";
 import { compAccessSummary, listCompAccess } from "@/lib/comp";
 import { listClosedDates } from "@/lib/closures";
 import { listNightSwimDates } from "@/lib/nightSwim";
-import { getAnnouncement, isNightSwimEnabled } from "@/lib/settings";
+import { getAnnouncement, getBookingsStatus, isNightSwimEnabled } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +101,7 @@ export default async function AdminPage({
       nightSwimDates={listNightSwimDates()}
       closedDates={listClosedDates()}
       announcement={getAnnouncement()}
+      bookingsStatus={getBookingsStatus()}
       showPasswordWarning={
         role === "manager" &&
         (defaultPasswordsInUse().manager || defaultPasswordsInUse().staff)

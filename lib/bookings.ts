@@ -21,7 +21,7 @@ import {
 } from "./dates";
 import { isDateClosed, closedDatesInRange } from "./closures";
 import { isNightSwimDate } from "./nightSwim";
-import { isNightSwimEnabled } from "./settings";
+import { areBookingsClosed, bookingsClosedMessage, isNightSwimEnabled } from "./settings";
 
 export type BookingStatus = "pending" | "approved" | "rejected";
 
@@ -265,6 +265,9 @@ export function remainingOn(date: string, session: SwimSession = "day"): number 
 // ---------- bookings ----------
 
 export function createBooking(input: NewBookingInput): CreateResult {
+  if (areBookingsClosed()) {
+    return { ok: false, error: bookingsClosedMessage() };
+  }
   const name = input.name?.trim() ?? "";
   const phone = input.phone?.trim() ?? "";
   const email = input.email?.trim() || null;
