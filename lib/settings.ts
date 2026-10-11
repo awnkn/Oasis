@@ -36,6 +36,59 @@ export function setNightSwimEnabled(enabled: boolean, actor: Actor): void {
   }
 }
 
+// ---------- registrations open/closed (master booking switch) ----------
+
+export interface BookingsStatus {
+  /** When true, all public booking and event registration is closed. */
+  closed: boolean;
+  /** Guest-facing explanation shown on the booking/event pages. */
+  message: string;
+}
+
+const DEFAULT_CLOSED_MESSAGE =
+  "Online bookings are closed right now. Please check back soon.";
+
+export function getBookingsStatus(): BookingsStatus {
+  const raw = getRaw("bookings_status");
+  if (!raw) return { closed: false, message: "" };
+  try {
+    const p = JSON.parse(raw) as Partial<BookingsStatus>;
+    return {
+      closed: Boolean(p.closed),
+      message: typeof p.message === "string" ? p.message : "",
+    };
+  } catch {
+    return { closed: false, message: "" };
+  }
+}
+
+/** True when public registration is closed. */
+export function areBookingsClosed(): boolean {
+  return getBookingsStatus().closed;
+}
+
+/** The guest-facing message to show when closed (falls back to a default). */
+export function bookingsClosedMessage(): string {
+  const s = getBookingsStatus();
+  return s.message.trim() || DEFAULT_CLOSED_MESSAGE;
+}
+
+export function setBookingsStatus(
+  closed: boolean,
+  message: string,
+  actor: Actor
+): BookingsStatus {
+  const msg = (message ?? "").trim().slice(0, 280);
+  const value: BookingsStatus = { closed: Boolean(closed), message: msg };
+  setRaw("bookings_status", JSON.stringify(value));
+  logAction(
+    actor,
+    "settings",
+    `Registrations ${closed ? "closed" : "opened"}${closed && msg ? ` — ${msg}` : ""}`
+  );
+  return value;
+}
+
 // ---------- rotating announcement banner ----------
 
 export interface Announcement {

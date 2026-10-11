@@ -15,6 +15,7 @@ import SiteControls from "@/components/SiteControls";
 import type { ClosedDate } from "@/lib/closures";
 import type { NightSwimDate } from "@/lib/nightSwim";
 import type { Announcement } from "@/lib/settings";
+import type { BookingsStatus } from "@/lib/settings";
 import {
   GUEST_STATUS_LABELS,
   PAYMENT_ACCOUNTS,
@@ -1034,6 +1035,7 @@ export default function AdminDashboard({
   nightSwimDates,
   closedDates,
   announcement,
+  bookingsStatus,
   showPasswordWarning,
 }: {
   bookings: Booking[];
@@ -1054,6 +1056,7 @@ export default function AdminDashboard({
   nightSwimDates: NightSwimDate[];
   closedDates: ClosedDate[];
   announcement: Announcement;
+  bookingsStatus: BookingsStatus;
   showPasswordWarning: boolean;
 }) {
   const router = useRouter();
@@ -1443,6 +1446,7 @@ export default function AdminDashboard({
             nightSwimDates={nightSwimDates}
             announcement={announcement}
             closedDates={closedDates}
+            bookingsStatus={bookingsStatus}
             today={today}
           />
         )}

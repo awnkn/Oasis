@@ -285,6 +285,27 @@ function createDatabase(): Database.Database {
     "INSERT OR IGNORE INTO settings (key, value) VALUES ('daily_capacity', ?)"
   ).run(String(DEFAULT_DAILY_CAPACITY));
 
+  // One-time: close public registrations for the off-season. Applied once
+  // (guarded by a flag) so it never re-closes after a manager reopens.
+  const seededClosure = db
+    .prepare("SELECT value FROM settings WHERE key = 'seeded_closure_may2027'")
+    .get() as { value: string } | undefined;
+  if (!seededClosure) {
+    db.prepare(
+      `INSERT INTO settings (key, value) VALUES ('bookings_status', ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+    ).run(
+      JSON.stringify({
+        closed: true,
+        message:
+          "Oasis is closed for the season. Online bookings will reopen in May 2027 — we can't wait to welcome you back. 🌴",
+      })
+    );
+    db.prepare(
+      "INSERT INTO settings (key, value) VALUES ('seeded_closure_may2027', '1')"
+    ).run();
+  }
+
   // Seed the launch event exactly once (never re-inserts if it's later
   // edited or deleted from the dashboard).
   const seeded = db

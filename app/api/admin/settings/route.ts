@@ -3,8 +3,10 @@ import { getAdminSession, isAdminAuthed } from "@/lib/auth";
 import { getDailyCapacity, setDailyCapacity } from "@/lib/bookings";
 import {
   getAnnouncement,
+  getBookingsStatus,
   isNightSwimEnabled,
   setAnnouncement,
+  setBookingsStatus,
   setNightSwimEnabled,
 } from "@/lib/settings";
 
@@ -16,6 +18,7 @@ export async function GET() {
     dailyCapacity: getDailyCapacity(),
     nightSwimEnabled: isNightSwimEnabled(),
     announcement: getAnnouncement(),
+    bookings: getBookingsStatus(),
   });
 }
 
@@ -82,6 +85,19 @@ export async function PUT(request: Request) {
     touched = true;
   }
 
+  if (b.bookings !== undefined) {
+    const bk = b.bookings as Record<string, unknown>;
+    if (typeof bk !== "object" || bk === null || typeof bk.closed !== "boolean") {
+      return NextResponse.json({ error: "Invalid bookings status." }, { status: 400 });
+    }
+    setBookingsStatus(
+      bk.closed,
+      typeof bk.message === "string" ? bk.message : "",
+      actor
+    );
+    touched = true;
+  }
+
   if (!touched) {
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
   }
@@ -91,5 +107,6 @@ export async function PUT(request: Request) {
     dailyCapacity: getDailyCapacity(),
     nightSwimEnabled: isNightSwimEnabled(),
     announcement: getAnnouncement(),
+    bookings: getBookingsStatus(),
   });
 }

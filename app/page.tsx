@@ -13,7 +13,7 @@ import {
 } from "@/lib/config";
 import { listUpcomingEvents } from "@/lib/events";
 import { eventHeroUrl } from "@/lib/eventHero";
-import { isNightSwimEnabled } from "@/lib/settings";
+import { isNightSwimEnabled, getBookingsStatus } from "@/lib/settings";
 import { upcomingNightSwimDates } from "@/lib/nightSwim";
 import { formatDateLong, formatDateShort } from "@/lib/dates";
 
@@ -95,6 +95,7 @@ function Wordmark({ light = false }: { light?: boolean }) {
 
 export default function HomePage() {
   const events = listUpcomingEvents().slice(0, 3);
+  const bookingsStatus = getBookingsStatus();
   const nightDates = isNightSwimEnabled() ? upcomingNightSwimDates() : [];
   // Only advertise the night swim when it's on AND has upcoming dates.
   const showNight = nightDates.length > 0;
@@ -138,20 +139,26 @@ export default function HomePage() {
             Sunlit pools, complete privacy and slow days, made for women
             only, at every hour.
           </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/book?src=hero"
-              className="rounded-full bg-oasis-500 px-8 py-3.5 text-base font-medium text-white shadow-lg transition hover:bg-oasis-400"
-            >
-              Reserve your day
-            </Link>
-            <a
-              href="#good-to-know"
-              className="rounded-full border border-white/50 bg-white/10 px-8 py-3.5 text-base font-medium text-white backdrop-blur transition hover:bg-white/20"
-            >
-              What to know
-            </a>
-          </div>
+          {bookingsStatus.closed ? (
+            <div className="mt-9 max-w-xl rounded-2xl bg-white/10 px-6 py-5 text-base font-medium text-white backdrop-blur">
+              🌴 {bookingsStatus.message.trim() || "Bookings are closed for now. Please check back soon."}
+            </div>
+          ) : (
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <Link
+                href="/book?src=hero"
+                className="rounded-full bg-oasis-500 px-8 py-3.5 text-base font-medium text-white shadow-lg transition hover:bg-oasis-400"
+              >
+                Reserve your day
+              </Link>
+              <a
+                href="#good-to-know"
+                className="rounded-full border border-white/50 bg-white/10 px-8 py-3.5 text-base font-medium text-white backdrop-blur transition hover:bg-white/20"
+              >
+                What to know
+              </a>
+            </div>
+          )}
         </div>
 
         <div className="relative z-10 border-t border-white/15 bg-oasis-950/40 backdrop-blur">

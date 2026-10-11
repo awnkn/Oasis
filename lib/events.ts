@@ -4,6 +4,7 @@
 
 import { getDb } from "./db";
 import { logAction, type Actor } from "./bookings";
+import { areBookingsClosed, bookingsClosedMessage } from "./settings";
 import { isValidDateString, today } from "./dates";
 
 export interface TicketedEvent {
@@ -443,6 +444,9 @@ export type TicketResult =
   | { ok: false; error: string };
 
 export function createTicket(input: NewTicketInput): TicketResult {
+  if (areBookingsClosed()) {
+    return { ok: false, error: bookingsClosedMessage() };
+  }
   const name = input.name?.trim() ?? "";
   const phone = input.phone?.trim() ?? "";
   const email = input.email?.trim() || null;
